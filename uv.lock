@@ -454,7 +454,7 @@ requires-dist = [
     { name = "psycopg2", marker = "extra == 'docker'" },
     { name = "python-telegram-bot", specifier = ">=10" },
     { name = "pytz", marker = "extra == 'docker'", specifier = "==2025.2" },
-    { name = "tzdata", marker = "extra == 'docker'", specifier = "==2022.2" },
+    { name = "tzdata", marker = "extra == 'docker'", specifier = "==2025.2" },
 ]
 provides-extras = ["docker"]
 
@@ -484,11 +484,11 @@ wheels = [
 
 [[package]]
 name = "tzdata"
-version = "2022.2"
+version = "2025.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/3e/eb/a00286433c739bb1a0d83a069b2dc379a5d14b0b9c927e3cb00cb434d740/tzdata-2022.2.tar.gz", hash = "sha256:21f4f0d7241572efa7f7a4fdabb052e61b55dc48274e6842697ccdf5253e5451", size = 182864, upload-time = "2022-08-12T19:00:15.694Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/95/32/1a225d6164441be760d75c2c42e2780dc0873fe382da3e98a2e1e48361e5/tzdata-2025.2.tar.gz", hash = "sha256:b60a638fcc0daffadf82fe0f57e53d06bdec2f36c4df66280ae79bce6bd6f2b9", size = 196380, upload-time = "2025-03-23T13:54:43.652Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/71/9b/8b9fea4f4dc956de76baa291cec1c864a8edadf2950d1740bc386d7fe55a/tzdata-2022.2-py2.py3-none-any.whl", hash = "sha256:c3119520447d68ef3eb8187a55a4f44fa455f30eb1b4238fa5691ba094f2b05b", size = 336415, upload-time = "2022-08-12T19:00:14.437Z" },
+    { url = "https://files.pythonhosted.org/packages/5c/23/c7abc0ca0a1526a0774eca151daeb8de62ec457e77262b66b359c3c7679e/tzdata-2025.2-py2.py3-none-any.whl", hash = "sha256:1a403fada01ff9221ca8044d701868fa132215d84beb92242d9acd2147f667a8", size = 347839, upload-time = "2025-03-23T13:54:41.845Z" },
 ]
 
 [[package]]
