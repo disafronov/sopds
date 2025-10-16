@@ -1,0 +1,45 @@
+name: Mirror source branch
+
+"on":
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  SOURCE_REPO: https://github.com/mitshel/sopds.git
+  SOURCE_NAME: source
+  TARGET_BRANCH: source
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Determine default branch of source
+        id: default_branch
+        run: |
+          DEFAULT_BRANCH=$(git ls-remote --symref $SOURCE_REPO HEAD | awk '/^ref:/ {print $2}' | sed 's|refs/heads/||')
+          echo "default_branch=$DEFAULT_BRANCH" >> $GITHUB_OUTPUT
+
+      - name: Fetch default branch from source
+        run: |
+          DEFAULT_BRANCH=${{ steps.default_branch.outputs.default_branch }}
+          REMOTE_REF=$SOURCE_NAME/$DEFAULT_BRANCH
+
+          git remote add $SOURCE_NAME $SOURCE_REPO || true
+          git fetch $SOURCE_NAME $DEFAULT_BRANCH:refs/remotes/$REMOTE_REF
+
+      - name: Mirror to 'source' branch only if changes exist
+        run: |
+          DEFAULT_BRANCH=${{ steps.default_branch.outputs.default_branch }}
+          REMOTE_REF=$SOURCE_NAME/$DEFAULT_BRANCH
+
+          git switch -C $TARGET_BRANCH $REMOTE_REF
+          if ! git diff --quiet origin/$TARGET_BRANCH; then
+            git push origin $TARGET_BRANCH --force
+          fi

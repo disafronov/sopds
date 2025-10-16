@@ -1,3 +1,9 @@
+# sopds
+
+Soft fork of <https://github.com/mitshel/sopds>
+
+---
+
 #### SimpleOPDS Catalog
 #### Author: Dmitry V.Shelepnev
 #### Version 0.47-devel
