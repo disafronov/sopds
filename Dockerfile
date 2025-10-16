@@ -1,3 +1,6 @@
+# syntax = docker/dockerfile:1.7
+FROM ghcr.io/astral-sh/uv:0.8.17 AS uv
+
 FROM python:3.7-slim AS base
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
@@ -16,11 +19,12 @@ ARG BUILD_DEPENDENCIES="pkg-config build-essential libmariadb-dev libpq-dev libx
 RUN apt-get update && \
     apt-get install --no-install-recommends -y ${BUILD_DEPENDENCIES} && \
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
-    python3 -m venv /opt/sopds
+    rm -rf /var/lib/apt/lists/*
+RUN --mount=from=uv,source=/uv,target=/bin/uv \
+    uv venv /opt/sopds
 COPY requirements.txt requirements-override.txt /home/sopds/
-RUN pip3 install --ignore-installed --no-cache-dir --upgrade --disable-pip-version-check pip setuptools wheel && \
-    pip3 install --ignore-installed --no-cache-dir -r requirements.txt -r requirements-override.txt
+RUN --mount=from=uv,source=/uv,target=/bin/uv \
+    uv pip install --no-cache -r /home/sopds/requirements.txt -r /home/sopds/requirements-override.txt
 
 ############################################################
 
