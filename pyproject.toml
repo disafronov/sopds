@@ -1,0 +1,27 @@
+[project]
+name = "sopds"
+version = "0.0.0"
+description = "Simple OPDS server"
+readme = "README.md"
+requires-python = ">=3.8,<3.13"
+authors = [
+    { name = "Dmitrii Safronov", email = "dhameoelin@gmail.com" },
+]
+dependencies = [
+    "Django>=1.10,<2.2",
+    "Pillow>=2.9.0",
+    "apscheduler>=3.3.0",
+    "django-picklefield",
+    "lxml",
+    "python-telegram-bot>=10",
+]
+
+[project.optional-dependencies]
+docker = [
+    "Pillow==9.5.0",
+    "pytz==2022.2.1",
+    "tzdata==2022.2",
+    "mysqlclient",
+    "psycopg2",
+    "Django>=1.10,<3.0",
+]
