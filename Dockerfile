@@ -20,10 +20,14 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 RUN --mount=from=uv,source=/uv,target=/bin/uv \
+    --mount=type=bind,source=.python-version,target=.python-version \
     uv venv /opt/sopds
-COPY requirements.txt requirements-override.txt /home/sopds/
+WORKDIR /home/sopds
 RUN --mount=from=uv,source=/uv,target=/bin/uv \
-    uv pip install --no-cache -r /home/sopds/requirements.txt -r /home/sopds/requirements-override.txt
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=.python-version,target=.python-version \
+    uv sync --no-cache --no-dev --extra docker
 
 ############################################################
 
