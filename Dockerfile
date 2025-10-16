@@ -1,11 +1,10 @@
 # syntax = docker/dockerfile:1.7
 FROM ghcr.io/astral-sh/uv:0.8.17 AS uv
 
-FROM python:3.7-slim AS base
+FROM python:3.8-slim AS base
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 ENV PATH="/opt/sopds/bin:$PATH"
-WORKDIR /home/sopds
 ARG BASE_DEPENDENCIES="libpq5 libmariadb3 libxml2 libxslt1.1 libffi8 libjpeg62-turbo zlib1g xz-utils bzip2"
 RUN apt-get update && \
     apt-get install --no-install-recommends -y ${BASE_DEPENDENCIES} && \
@@ -41,6 +40,8 @@ RUN ( addgroup --system --gid $OWNER_GID sopds || echo sopds:x:$OWNER_GID:sopds 
 COPY --from=builder /opt/sopds/ /opt/sopds/
 COPY --chown=sopds:sopds . /home/sopds/
 RUN chmod a+x /home/sopds/entrypoint.sh
+WORKDIR /home/sopds
+VOLUME ["/srv"]
 ENTRYPOINT [ "/home/sopds/entrypoint.sh" ]
 CMD [ "help" ]
 USER sopds:sopds
