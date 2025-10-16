@@ -1,5 +1,5 @@
 Pillow==9.5.0
-pytz==2022.2.1
+pytz==2025.2
 tzdata==2022.2
 mysqlclient
 psycopg2

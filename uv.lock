@@ -400,11 +400,11 @@ wheels = [
 
 [[package]]
 name = "pytz"
-version = "2022.2.1"
+version = "2025.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/24/0c/401283bb1499768e33ddd2e1a35817c775405c1f047a9dc088a29ce2ea5d/pytz-2022.2.1.tar.gz", hash = "sha256:cea221417204f2d1a2aa03ddae3e867921971d0d76f14d87abb4414415bbdcf5", size = 316105, upload-time = "2022-08-13T02:07:59.396Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f8/bf/abbd3cdfb8fbc7fb3d4d38d320f2441b1e7cbe29be4f23797b4a2b5d8aac/pytz-2025.2.tar.gz", hash = "sha256:360b9e3dbb49a209c21ad61809c7fb453643e048b38924c765813546746e81c3", size = 320884, upload-time = "2025-03-25T02:25:00.538Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d5/50/54451e88e3da4616286029a3a17fc377de817f66a0f50e1faaee90161724/pytz-2022.2.1-py2.py3-none-any.whl", hash = "sha256:220f481bdafa09c3955dfbdddb7b57780e9a94f5127e35456a48589b9e0c0197", size = 500564, upload-time = "2022-08-13T02:07:57.135Z" },
+    { url = "https://files.pythonhosted.org/packages/81/c4/34e93fe5f5429d7570ec1fa436f1986fb1f00c3e0f43a589fe2bbcd22c3f/pytz-2025.2-py2.py3-none-any.whl", hash = "sha256:5ddf76296dd8c44c26eb8f4b6f35488f3ccbf6fbbd7adee0b7262d43f0ec2f00", size = 509225, upload-time = "2025-03-25T02:24:58.468Z" },
 ]
 
 [[package]]
@@ -453,7 +453,7 @@ requires-dist = [
     { name = "pillow", marker = "extra == 'docker'", specifier = "==9.5.0" },
     { name = "psycopg2", marker = "extra == 'docker'" },
     { name = "python-telegram-bot", specifier = ">=10" },
-    { name = "pytz", marker = "extra == 'docker'", specifier = "==2022.2.1" },
+    { name = "pytz", marker = "extra == 'docker'", specifier = "==2025.2" },
     { name = "tzdata", marker = "extra == 'docker'", specifier = "==2022.2" },
 ]
 provides-extras = ["docker"]
