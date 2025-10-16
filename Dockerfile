@@ -20,8 +20,7 @@ RUN apt-get update && \
     python3 -m venv /opt/sopds
 COPY requirements.txt requirements-override.txt /home/sopds/
 RUN pip3 install --ignore-installed --no-cache-dir --upgrade --disable-pip-version-check pip setuptools wheel && \
-    pip3 install --ignore-installed --no-cache-dir -r requirements.txt -r requirements-override.txt && \
-    find /opt/sopds \( -type d -a -name test -o -name tests \) -o \( -type f -a -name '*.pyo' -o -name '*.pyc' \) -exec rm -rvf '{}' \+
+    pip3 install --ignore-installed --no-cache-dir -r requirements.txt -r requirements-override.txt
 
 ############################################################
 
