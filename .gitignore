@@ -6,4 +6,24 @@ db.sqlite3
 db.sqlite3-journal
 .idea/*
 venv
+.vscode/
+.DS_Store
+.coverage
+coverage.xml
+.settings/
 
+# Eclipse/PyDev project files
+.project
+.pydevproject
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.tox/
+.cache/
