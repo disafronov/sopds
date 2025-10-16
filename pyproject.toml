@@ -20,7 +20,7 @@ dependencies = [
 docker = [
     "Pillow==9.5.0",
     "pytz==2025.2",
-    "tzdata==2022.2",
+    "tzdata==2025.2",
     "mysqlclient",
     "psycopg2",
     "Django>=1.10,<3.0",
