@@ -1,5 +1,5 @@
 # syntax = docker/dockerfile:1.7
-FROM ghcr.io/astral-sh/uv:0.9.5 AS uv
+FROM ghcr.io/astral-sh/uv:0.9.7 AS uv
 
 FROM python:3.8-slim AS base
 ENV PYTHONDONTWRITEBYTECODE 1
