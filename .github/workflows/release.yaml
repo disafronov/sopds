@@ -10,15 +10,17 @@ jobs:
   release:
     name: "Release"
     runs-on: ubuntu-latest
+    # Skip release on release commits to avoid infinite loop
+    if: "!startsWith(github.event.head_commit.message, 'chore(release):')"
     permissions:
-      pull-requests: write
       contents: write
+      pull-requests: write
     concurrency:
       group: semantic-release
       cancel-in-progress: false
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           token: ${{ secrets.SEMANTIC_RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
