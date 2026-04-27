@@ -54,15 +54,13 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
-            type=ref,event=branch,prefix=,suffix=-{{sha}}-{{date 'x'}}
             type=ref,event=pr
             type=ref,event=pr,suffix=-{{sha}}
             type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.0.') && !contains(github.ref, '-') }}
-            type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v.') && !contains(github.ref, '-') }}
+            type=semver,pattern={{major}}.{{minor}},enable=${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-rc.') && !startsWith(github.ref, 'refs/tags/v0.0.') }}
+            type=semver,pattern={{major}},enable=${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-rc.') && !startsWith(github.ref, 'refs/tags/v0.') }}
           flavor: |
-            latest=${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-') }}
+            latest=${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-rc.') }}
 
       # Cache dependencies
       # https://github.com/actions/cache
@@ -104,7 +102,12 @@ jobs:
       # Install the cosign tool except on PR
       # https://github.com/sigstore/cosign-installer
       - name: Install cosign
-        if: ${{ github.event_name != 'pull_request' }}
+        if: >-
+          ${{
+            github.event_name != 'pull_request' &&
+            startsWith(github.ref, 'refs/tags/v') &&
+            !contains(github.ref, '-rc.')
+          }}
         uses: sigstore/cosign-installer@v3
         # with:
         #   cosign-release: 'v2.2.2'
@@ -116,7 +119,12 @@ jobs:
       # cosign below.
       # https://github.com/sigstore/cosign
       - name: Sign the published Docker image
-        if: ${{ github.event_name != 'pull_request' }}
+        if: >-
+          ${{
+            github.event_name != 'pull_request' &&
+            startsWith(github.ref, 'refs/tags/v') &&
+            !contains(github.ref, '-rc.')
+          }}
         env:
           COSIGN_EXPERIMENTAL: "true"
         # This step uses the identity token to provision an ephemeral
