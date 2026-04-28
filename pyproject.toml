@@ -19,7 +19,7 @@ dependencies = [
 [project.optional-dependencies]
 docker = [
     "Pillow==9.5.0",
-    "pytz==2025.2",
+    "pytz==2026.1.post1",
     "tzdata==2025.2",
     "mysqlclient",
     "psycopg2",
