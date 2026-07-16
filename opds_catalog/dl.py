@@ -4,6 +4,8 @@ import base64
 import codecs
 import io
 import os
+import re
+import shutil
 import subprocess
 
 from constance import config
@@ -25,6 +27,24 @@ def getFileName(book):
         transname = utils.translit(book.filename)
 
     return utils.to_ascii(transname)
+
+
+def _safe_temp_name(name):
+    # Path-traversal guard: book-derived names must never escape SOPDS_TEMP_DIR.
+    # Keep only the basename and strip any path separators / ".." segments.
+    name = os.path.basename(name)
+    return re.sub(r"[^A-Za-z0-9._-]", "_", name)
+
+
+def _resolve_converter(converter_path):
+    # Validate the operator-configured converter before invoking it. Prefer a
+    # PATH lookup; fall back to an absolute path only if it is an executable file.
+    resolved = shutil.which(converter_path)
+    if resolved:
+        return resolved
+    if os.path.isfile(converter_path) and os.access(converter_path, os.X_OK):
+        return converter_path
+    return None
 
 
 def getFileData(book):
@@ -99,7 +119,7 @@ def getFileDataConv(book, convert_type):
     transname = getFileName(book)
 
     n, e = os.path.splitext(transname)
-    dlfilename = "%s.%s" % (n, convert_type)
+    dlfilename = _safe_temp_name("%s.%s" % (n, convert_type))
 
     if convert_type == "epub":
         converter_path = config.SOPDS_FB2TOEPUB
@@ -109,7 +129,12 @@ def getFileDataConv(book, convert_type):
         fo.close()
         return None
 
-    tmp_fb2_path = os.path.join(config.SOPDS_TEMP_DIR, book.filename)
+    converter_path = _resolve_converter(converter_path)
+    if not converter_path:
+        fo.close()
+        return None
+
+    tmp_fb2_path = os.path.join(config.SOPDS_TEMP_DIR, _safe_temp_name(book.filename))
     tmp_conv_path = os.path.join(config.SOPDS_TEMP_DIR, dlfilename)
     fw = open(tmp_fb2_path, "wb")
     fw.write(fo.read())
@@ -117,7 +142,6 @@ def getFileDataConv(book, convert_type):
     fo.close()
 
     popen_args = [converter_path, tmp_fb2_path, tmp_conv_path]
-    # nosec B602  # shell=False; list args; converter_path is operator config
     proc = subprocess.Popen(popen_args, shell=False, stdout=subprocess.PIPE)
     # У следующий строки 2 функции 1-получение информации по
     # конвертации и 2- ожидание конца конвертации
@@ -381,13 +405,19 @@ def ConvertFB2(request, book_id, convert_type):
     transname = utils.to_ascii(transname)
 
     n, e = os.path.splitext(transname)
-    dlfilename = "%s.%s" % (n, convert_type)
+    dlfilename = _safe_temp_name("%s.%s" % (n, convert_type))
 
     if convert_type == "epub":
         converter_path = config.SOPDS_FB2TOEPUB
     elif convert_type == "mobi":
         converter_path = config.SOPDS_FB2TOMOBI
+    else:
+        raise Http404
     content_type = mime_detector.fmt(convert_type)
+
+    converter_path = _resolve_converter(converter_path)
+    if not converter_path:
+        raise Http404
 
     if book.cat_type == opdsdb.CAT_NORMAL:
         tmp_fb2_path = None
@@ -399,12 +429,13 @@ def ConvertFB2(request, book_id, convert_type):
             raise Http404
         z = zipfile.ZipFile(fz, "r", allowZip64=True)
         z.extract(book.filename, config.SOPDS_TEMP_DIR)
-        tmp_fb2_path = os.path.join(config.SOPDS_TEMP_DIR, book.filename)
+        tmp_fb2_path = os.path.join(
+            config.SOPDS_TEMP_DIR, _safe_temp_name(book.filename)
+        )
         file_path = tmp_fb2_path
 
     tmp_conv_path = os.path.join(config.SOPDS_TEMP_DIR, dlfilename)
     popen_args = [converter_path, file_path, tmp_conv_path]
-    # nosec B108  # file_path is a DB book filename, not a request arg
     proc = subprocess.Popen(popen_args, shell=False, stdout=subprocess.PIPE)
     assert proc.stdout is not None
     proc.stdout.readlines()
