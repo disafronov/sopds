@@ -117,6 +117,7 @@ def getFileDataConv(book, convert_type):
     fo.close()
 
     popen_args = [converter_path, tmp_fb2_path, tmp_conv_path]
+    # nosec B602  # shell=False; list args; converter_path is operator config
     proc = subprocess.Popen(popen_args, shell=False, stdout=subprocess.PIPE)
     # У следующий строки 2 функции 1-получение информации по
     # конвертации и 2- ожидание конца конвертации
@@ -403,6 +404,7 @@ def ConvertFB2(request, book_id, convert_type):
 
     tmp_conv_path = os.path.join(config.SOPDS_TEMP_DIR, dlfilename)
     popen_args = [converter_path, file_path, tmp_conv_path]
+    # nosec B108  # file_path is a DB book filename, not a request arg
     proc = subprocess.Popen(popen_args, shell=False, stdout=subprocess.PIPE)
     assert proc.stdout is not None
     proc.stdout.readlines()
