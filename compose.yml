@@ -1,0 +1,28 @@
+# ! LOCAL DEVELOPMENT ONLY. DO NOT USE THIS COMPOSE FILE IN PRODUCTION.
+
+services:
+  postgres:
+    image: 'postgres:17'
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: sopds
+      POSTGRES_PASSWORD: sopds
+      POSTGRES_DB: sopds
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}" ]
+      interval: 30s
+      timeout: 60s
+      retries: 5
+      start_period: 60s
+
+  mailpit:
+    image: axllent/mailpit
+    ports:
+      - "1026:1025"
+      - "8025:8025"
+
+volumes:
+  postgres_data:

@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
 
-from django.test import TestCase, Client
+from django.test import TestCase
+
 
 class DownloadsTestCase(TestCase):
-    fixtures = ['testdb.json']
-    
+    fixtures = ["testdb.json"]
+
     def setUp(self):
-        pass            
-  
+        pass
+
     def test_download_book(self):
         pass
-    
+
     def test_download_zip(self):
-        pass    
-    
+        pass
+
     def test_download_cover(self):
-        pass    
+        pass

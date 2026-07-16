@@ -3,25 +3,81 @@ name = "sopds"
 version = "0.0.0"
 description = "Simple OPDS server"
 readme = "README.md"
-requires-python = ">=3.8,<3.13"
+requires-python = ">=3.10,<3.13"
 authors = [
     { name = "Dmitrii Safronov", email = "dhameoelin@gmail.com" },
 ]
 dependencies = [
-    "Django>=1.10,<2.2",
-    "Pillow>=2.9.0",
+    "Django>=5.2,<5.3",
+    "django-constance>=4.2",
+    "Pillow>=10.0.0",
     "apscheduler>=3.11.2",
-    "django-picklefield",
-    "lxml",
-    "python-telegram-bot>=10",
+    "lxml>=5.0.0",
+    "python-telegram-bot>=20.0",
 ]
 
-[project.optional-dependencies]
-docker = [
-    "Pillow==9.5.0",
-    "pytz==2026.2",
-    "tzdata==2026.2",
-    "mysqlclient",
-    "psycopg2",
-    "Django>=1.10,<3.0",
+[dependency-groups]
+dev = [
+    "black",
+    "isort",
+    "flake8",
+    "flake8-pyproject",
+    "autoflake",
+    "mypy",
+    "bandit",
+    "vulture",
+    "pre-commit",
+    "pip-audit",
+    "pytest",
+    "pytest-django",
+    "pytest-cov",
 ]
+docker = [
+    "Pillow==10.4.0",
+    "pytz==2024.2",
+    "tzdata==2024.2",
+    "mysqlclient",
+    "psycopg[binary]",
+]
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+
+[tool.isort]
+profile = "black"
+line_length = 88
+extend_skip_glob = ["*/migrations/*.py"]
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = ["E203", "W503"]
+exclude = [".venv", "htmlcov", "*/migrations/*.py"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+check_untyped_defs = true
+exclude = ['migrations/', '\.venv/', 'htmlcov/']
+
+[tool.bandit]
+exclude_dirs = [".venv", "htmlcov", "tests"]
+
+[tool.vulture]
+min_confidence = 80
+exclude = [".venv", "htmlcov", "*/migrations/*", "*/tests/*"]
+ignore_names = ["cls"]
+
+[tool.coverage.run]
+source = ["."]
+omit = [".venv/*", "tests/*", "*/tests/*", "*/migrations/*"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "sopds.settings"
+python_files = ["test_*.py", "*_test.py"]
+addopts = "-p no:cacheprovider"

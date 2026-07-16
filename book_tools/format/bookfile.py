@@ -1,7 +1,9 @@
-import os, re
-from abc import abstractmethod, ABCMeta
+import os
+import re
+from abc import ABCMeta, abstractmethod
 
 from book_tools.format.util import minify_cover
+
 
 class BookFile(object):
     __metaclass__ = ABCMeta
@@ -17,7 +19,7 @@ class BookFile(object):
         self.series_info = None
         self.language_code = None
         self.issues = []
-        self.docdate = ''
+        self.docdate = ""
 
     def __enter__(self):
         return self
@@ -65,7 +67,7 @@ class BookFile(object):
         if not sortkey:
             sortkey = name.split()[-1]
         sortkey = BookFile.__normalise_string__(sortkey).lower()
-        self.authors.append({'name': name, 'sortkey': sortkey})
+        self.authors.append({"name": name, "sortkey": sortkey})
 
     def __add_tag__(self, text):
         if text and BookFile.__is_text(text):
@@ -77,7 +79,7 @@ class BookFile(object):
     def __normalise_string__(text):
         if text is None:
             return None
-        return re.sub(r'\s+', ' ', text.strip())
+        return re.sub(r"\s+", " ", text.strip())
 
     def get_encryption_info(self):
         return {}
