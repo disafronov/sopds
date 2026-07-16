@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import time
+from typing import Any, cast
 
 from constance import config
 from django.utils.translation import gettext as _
@@ -88,9 +89,9 @@ class opdsScanner:
     def scan_all(self):
         self.init_stats()
         self.log_options()
-        self.inp_cat = None
-        self.zip_file = None
-        self.rel_path = None
+        self.inp_cat: Any = None
+        self.zip_file: Any = None
+        self.rel_path: str | None = None
 
         opdsdb.avail_check_prepare()
 
@@ -145,7 +146,7 @@ class opdsScanner:
 
         return result
 
-    def inpx_callback(self, inpx, inp, meta_data):
+    def inpx_callback(self, inpx: Any, inp: Any, meta_data: dict[str, Any]) -> None:
 
         name = "%s.%s" % (meta_data[inpx_parser.sFile], meta_data[inpx_parser.sExt])
 
@@ -154,7 +155,10 @@ class opdsScanner:
         annotation = ""
         docdate = meta_data[inpx_parser.sDate].strip(strip_symbols)
 
-        rel_path_current = os.path.join(self.rel_path, meta_data[inpx_parser.sFolder])
+        folder = cast(str, meta_data[inpx_parser.sFolder] or "")
+        if self.rel_path is None:
+            return
+        rel_path_current = os.path.join(self.rel_path, folder)
 
         if opdsdb.findbook(name, rel_path_current, 1) is None:
             cat = opdsdb.addcattree(rel_path_current, opdsdb.CAT_INP)

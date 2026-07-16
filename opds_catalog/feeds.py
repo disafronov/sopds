@@ -1,3 +1,5 @@
+from typing import Any
+
 from constance import config
 from django.contrib.syndication.views import Feed
 from django.db.models import Count, Min
@@ -25,7 +27,7 @@ from opds_catalog.opds_paginator import Paginator as OPDS_Paginator
 
 
 class AuthFeed(Feed):
-    request = None
+    request: Any = None
 
     def __call__(self, request, *args, **kwargs):
         self.request = request
@@ -310,6 +312,7 @@ class MainFeed(AuthFeed):
             },
         ]
         if config.SOPDS_AUTH and self.request.user.is_authenticated:
+            assert self.request.user is not None
             mainitems += [
                 {
                     "id": 6,
@@ -775,10 +778,10 @@ class SearchBooksFeed(AuthFeed):
         # Фильтруем дубликаты
         books_count = books.count()
         op = OPDS_Paginator(books_count, 0, page_num, config.SOPDS_MAXITEMS)
-        items = []
+        items: list[dict[str, Any]] = []
 
         prev_title = ""
-        prev_authors_set = set()
+        prev_authors_set: set[Any] = set()
 
         # Начаинам анализ с последнего элемента на предидущей странице,
         # чторбы он "вытянул" с этой страницы

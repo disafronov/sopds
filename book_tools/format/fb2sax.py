@@ -10,7 +10,7 @@ from book_tools.format.util import strip_symbols
 class fb2tag:
     def __init__(self, tags):
         self.tags = tags
-        self.attrs = []
+        self.attrs: "dict" = {}
         self.attrss = []
         self.index = -1
         self.size = len(self.tags)
@@ -21,7 +21,7 @@ class fb2tag:
     def reset(self):
         self.index = -1
         self.values = []
-        self.attrs = []
+        self.attrs = {}
         self.attrss = []
         self.process_value = False
         self.current_value = ""
@@ -249,7 +249,7 @@ class fb2parser:
         except StopIteration:
             pass
         except Exception as err:
-            self.parse_errormsg = err
+            self.parse_errormsg = str(err)
             self.parse_error = 1
 
 
@@ -257,7 +257,7 @@ class FB2StructureException(Exception):
     def __init__(self, error):
         Exception.__init__(self, "fb2 verification failed: %s" % error)
         if isinstance(error, Exception):
-            print(traceback.print_exc())
+            traceback.print_exc()
 
 
 class FB2sax(BookFile):

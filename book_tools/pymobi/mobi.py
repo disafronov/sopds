@@ -5,10 +5,7 @@ import re
 import struct
 import sys
 
-try:
-    from collections import OrderedDict
-except Exception:
-    from ordereddict import OrderedDict
+from collections import OrderedDict
 
 from book_tools.pymobi import compression
 from book_tools.pymobi.util import decodeVarint, hexdump, toByte, toStr
@@ -257,13 +254,13 @@ class BookMobi(object):
         ("unknown248", ">L", 248),
         ("unknown252", ">L", 252),
     ]
-    header = OrderedDict()
-    records = OrderedDict()
-    palmdoc = OrderedDict()
-    mobi = OrderedDict()
-    mobi_exth = OrderedDict()
-    book = OrderedDict()
-    compression = None
+    header: "dict" = OrderedDict()
+    records: "dict" = OrderedDict()
+    palmdoc: "dict" = OrderedDict()
+    mobi: "dict" = OrderedDict()
+    mobi_exth: "dict" = OrderedDict()
+    book: "dict" = OrderedDict()
+    compression: object = None  # type: ignore[assignment]
 
     def __init__(self, file):
         if isinstance(file, str):
@@ -397,7 +394,7 @@ class BookMobi(object):
         return len(self.book)
 
     def __iter__(self):
-        return self.book.itervalues()
+        return iter(self.book.values())
 
     def isMobipocket(self):
         return self.book["ident"] == pd_file_code["MobiPocket"]
@@ -417,7 +414,7 @@ class BookMobi(object):
         if sys.version_info[0] < 3:
             unpack = self.compression.unpack
         else:
-            unpack = self.compression.unpack3
+            unpack = self.compression.unpack3  # type: ignore[attr-defined]
         return unpack
 
     def typeDesc(self, types, value):
@@ -561,7 +558,7 @@ class BookMobi(object):
                 % os.path.basename(css_filename),
                 data_text,
                 re.I,
-            )
+            )  # type: ignore[call-overload]
         print("")
         if self.mobi["firstImageIndex"] != 0xFFFFFFFF:
             data_text = self.loadTextResource(data_text, basename)

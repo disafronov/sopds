@@ -1,8 +1,8 @@
 import os
 import shutil
-import urllib
 import zipfile
 from tempfile import mktemp
+from urllib.parse import unquote
 
 from lxml import etree
 
@@ -51,7 +51,7 @@ class EPub(BookFile):
         self.root_filename = None
         self.cover_fileinfos = []
 
-        self.__zip_file = None
+        self.__zip_file: "zipfile.ZipFile" = None  # type: ignore[assignment]
         self.__initialize()
 
     def __initialize(self):
@@ -84,7 +84,7 @@ class EPub(BookFile):
             raise error
         except Exception as error:
             self.close()
-            raise EPub.StructureException(error.message)
+            raise EPub.StructureException(str(error))
 
     def close(self):
         self.__zip_file.close()
@@ -181,7 +181,7 @@ class EPub(BookFile):
             try:
                 fileinfo = self.__zip_file.getinfo(path)
             except Exception:
-                fileinfo = self.__zip_file.getinfo(urllib.unquote(path))
+                fileinfo = self.__zip_file.getinfo(unquote(path))
             mime = node.get("media-type")
             info = {"filename": fileinfo.filename, "mime": mime}
             if mime.startswith("image/"):
@@ -496,7 +496,7 @@ class EPub(BookFile):
                 zip_file, working_dir, encrypted_files, content_id
             )
             self.__create_rights_file(zip_file, working_dir)
-        shutil.move(new_epub, self.path)
+        shutil.move(new_epub, self.path)  # type: ignore[attr-defined]
         self.close()
         self.__initialize()
 
@@ -512,7 +512,7 @@ class EPub(BookFile):
                 if info.filename != EPub.Entry.MIMETYPE
             ]:
                 zip_file.write(os.path.join(working_dir, entry), arcname=entry)
-        shutil.move(new_epub, self.path)
+        shutil.move(new_epub, self.path)  # type: ignore[attr-defined]
         self.close()
         self.__initialize()
 

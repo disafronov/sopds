@@ -80,10 +80,11 @@ class Huffcdic(object):
             maxcode = ((maxcode + 1) << (32 - codelen)) - 1
             return (codelen, term, maxcode)
 
-        self.dict1 = map(dict1_unpack, struct.unpack_from(">256L", huff, off1))
+        self.dict1 = list(map(dict1_unpack, struct.unpack_from(">256L", huff, off1)))
 
         dict2 = struct.unpack_from(">64L", huff, off2)
-        self.mincode, self.maxcode = (), ()
+        self.mincode: tuple = ()
+        self.maxcode: tuple = ()
         for codelen, mincode in enumerate((0,) + dict2[0::2]):
             self.mincode += (mincode << (32 - codelen),)
         for codelen, maxcode in enumerate((0,) + dict2[1::2]):
@@ -103,7 +104,7 @@ class Huffcdic(object):
             slice = cdic[18 + off : 18 + off + (blen & 0x7FFF)]
             return (slice, blen & 0x8000)
 
-        self.dictionary += map(getslice, struct.unpack_from(">%dH" % n, cdic, 16))
+        self.dictionary += list(map(getslice, struct.unpack_from(">%dH" % n, cdic, 16)))
 
     def pack(self, i):
         raise ValueError("not implement")

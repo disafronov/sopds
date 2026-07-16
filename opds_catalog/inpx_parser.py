@@ -7,6 +7,7 @@ Created on 14 нояб. 2016 г.
 # -*- coding: utf-8 -*-
 import os
 import zipfile
+from typing import Any
 
 # from opds_catalog import settings
 from constance import config
@@ -47,6 +48,9 @@ class Inpx:
         self.inpskip_callback = inpskip_callback
         self.TEST_ZIP = config.SOPDS_INPX_TEST_ZIP
         self.TEST_FILES = config.SOPDS_INPX_TEST_FILES
+        # Legacy aliases assigned by sopdscan (kept for backward compatibility).
+        self.INPX_TEST_ZIP = config.SOPDS_INPX_TEST_ZIP
+        self.INPX_TEST_FILES = config.SOPDS_INPX_TEST_FILES
         self.error = 0
 
     def parse(self):
@@ -98,7 +102,7 @@ class Inpx:
             finp = finpx.open(inp_file)
             for line in finp:
                 meta_list = line.split(self.inpx_separator)
-                meta_data = {}
+                meta_data: dict[str, Any] = {}
 
                 # Добавляем sFolder если он не определен
                 if not self.inpx_folders:
