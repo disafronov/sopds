@@ -4,8 +4,8 @@ import xml.parsers.expat
 class fb2tag:
     def __init__(self, tags):
         self.tags = tags
-        self.attrs = []
-        self.attrss = []
+        self.attrs: dict[str, str] = {}
+        self.attrss: list[dict[str, str]] = []
         self.index = -1
         self.size = len(self.tags)
         self.values = []
@@ -15,7 +15,7 @@ class fb2tag:
     def reset(self):
         self.index = -1
         self.values = []
-        self.attrs = []
+        self.attrs = {}
         self.attrss = []
         self.process_value = False
         self.current_value = ""
@@ -140,7 +140,7 @@ class fb2parser:
         self.stoptag = "description"
         self.process_description = True
         self.parse_error = 0
-        self.parse_errormsg = ""
+        self.parse_errormsg: str | Exception = ""
 
     def reset(self):
         self.process_description = True

@@ -1,4 +1,5 @@
 from random import randint
+from typing import Any
 
 from constance import config
 from django.contrib.auth import REDIRECT_FIELD_NAME, authenticate, login, logout
@@ -242,10 +243,10 @@ def SearchBooksView(request):
         op = OPDS_Paginator(
             books_count, 0, page_num, config.SOPDS_MAXITEMS, HALF_PAGES_LINKS
         )
-        items = []
+        items: list[Any] = []
 
         prev_title = ""
-        prev_authors_set = set()
+        prev_authors_set: set[Any] = set()
 
         # Начаинам анализ с последнего элемента на предидущей странице,
         # чторбы он "вытянул" с этой страницы
@@ -512,7 +513,7 @@ def CatalogsView(request):
     args["cat_id"] = cat_id
     args["current"] = "catalog"
 
-    breadcrumbs_list = []
+    breadcrumbs_list: list[tuple[str, int]] = []
     if cat:
         while cat.parent:
             breadcrumbs_list.insert(0, (cat.cat_name, cat.id))
@@ -671,7 +672,7 @@ def SeriesView(request):
 @vary_on_headers("HTTP_ACCEPT_LANGUAGE")
 @sopds_login(url="web:login")
 def GenresView(request):
-    args = {}
+    args: dict[str, Any] = {}
 
     if request.GET:
         section_id = int(request.GET.get("section", "0"))
@@ -714,6 +715,7 @@ def BSDelView(request):
     else:
         book = None
 
+    assert book is not None
     book = int(book)
 
     bookshelf.objects.filter(user=request.user, book=book).delete()
@@ -735,7 +737,7 @@ def hello(request):
 
 
 def LoginView(request):
-    args = {}
+    args: dict[str, Any] = {}
     args["breadcrumbs"] = [_("Login")]
     args.update(csrf(request))
     try:

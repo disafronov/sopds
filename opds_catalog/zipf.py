@@ -14,20 +14,23 @@ import stat
 import struct
 import sys
 import time
+from typing import Any
 
+zlib: Any = None
 try:
     import zlib  # We may need its compression method
 
     crc32 = zlib.crc32
 except ImportError:
-    zlib = None
     crc32 = binascii.crc32
 
+bz2: Any = None
 try:
     import bz2  # We may need its compression method
 except ImportError:
     bz2 = None
 
+lzma: Any = None
 try:
     import lzma  # We may need its compression method
 except ImportError:
@@ -272,14 +275,14 @@ def _EndRecData(fpin):
     except IOError:
         return None
     data = fpin.read()
+    endrec: list[Any]
     if (
         len(data) == sizeEndCentDir
         and data[0:4] == stringEndArchive
         and data[-2:] == b"\000\000"
     ):
         # the signature is correct and there's no comment, unpack structure
-        endrec = struct.unpack(structEndArchive, data)
-        endrec = list(endrec)
+        endrec = list(struct.unpack(structEndArchive, data))
 
         # Append a blank comment and record start offset
         endrec.append(b"")
@@ -318,6 +321,14 @@ def _EndRecData(fpin):
 
 class ZipInfo(object):
     """Class with attributes describing each file in the ZIP archive."""
+
+    # Attributes set by class ZipFile or decoded from headers; declared here
+    # for type-checking. Their actual values are assigned after construction.
+    CRC: int
+    compress_size: int
+    file_size: int
+    header_offset: int
+    _raw_time: int
 
     __slots__ = (
         "orig_filename",
@@ -454,7 +465,7 @@ class ZipInfo(object):
             tp, ln = unpack("<HH", extra[:4])
             if tp == 1:
                 if ln >= 24:
-                    counts = unpack("<QQQ", extra[4:28])
+                    counts: Any = unpack("<QQQ", extra[4:28])
                 elif ln == 16:
                     counts = unpack("<QQ", extra[4:20])
                 elif ln == 8:
@@ -495,6 +506,7 @@ class _ZipDecrypter:
         plain_text = map(zd, cypher_text)
     """
 
+    @staticmethod
     def _GenerateCRCTable():
         """Generate a CRC-32 table.
 
@@ -545,31 +557,40 @@ class _ZipDecrypter:
 class LZMACompressor:
 
     def __init__(self):
-        self._comp = None
+        self._comp: Any = None
 
     def _init(self):
-        props = lzma._encode_filter_properties({"id": lzma.FILTER_LZMA1})
-        self._comp = lzma.LZMACompressor(
-            lzma.FORMAT_RAW,
-            filters=[lzma._decode_filter_properties(lzma.FILTER_LZMA1, props)],
+        # These are private helpers, hidden by the typeshed lzma stub but
+        # available at runtime.
+        props = lzma._encode_filter_properties(  # type: ignore[attr-defined]
+            {"id": lzma.FILTER_LZMA1}
         )
-        return struct.pack("<BBH", 9, 4, len(props)) + props
+        comp = lzma.LZMACompressor(
+            lzma.FORMAT_RAW,
+            filters=[  # type: ignore[attr-defined]
+                lzma._decode_filter_properties(lzma.FILTER_LZMA1, props)
+            ],
+        )
+        self._comp = comp
+        return struct.pack("<BBH", 9, 4, len(props)) + props, comp
 
     def compress(self, data):
         if self._comp is None:
-            return self._init() + self._comp.compress(data)
+            header, comp = self._init()
+            return header + comp.compress(data)
         return self._comp.compress(data)
 
     def flush(self):
         if self._comp is None:
-            return self._init() + self._comp.flush()
+            header, comp = self._init()
+            return header + comp.flush()
         return self._comp.flush()
 
 
 class LZMADecompressor:
 
     def __init__(self):
-        self._decomp = None
+        self._decomp: Any = None
         self._unconsumed = b""
         self.eof = False
 
@@ -582,10 +603,12 @@ class LZMADecompressor:
             if len(self._unconsumed) <= 4 + psize:
                 return b""
 
+            # Private helper hidden by the typeshed lzma stub but available
+            # at runtime.
             self._decomp = lzma.LZMADecompressor(
                 lzma.FORMAT_RAW,
                 filters=[
-                    lzma._decode_filter_properties(
+                    lzma._decode_filter_properties(  # type: ignore[attr-defined]
                         lzma.FILTER_LZMA1, self._unconsumed[4 : 4 + psize]
                     )
                 ],
@@ -743,6 +766,7 @@ class ZipExtFile(io.BufferedIOBase):
             # separate newlines - '\r', '\n' due to coincidental readaheads.
             #
             match = self.PATTERN.search(readahead)
+            assert match is not None
             newline = match.group("newline")
             if newline is not None:
                 if self.newlines is None:
@@ -821,7 +845,7 @@ class ZipExtFile(io.BufferedIOBase):
         if self._eof and self._running_crc != self._expected_crc:
             raise BadZipFile("Bad CRC-32 for file %r" % self.name)
 
-    def read1(self, n):
+    def read1(self, n: Any = -1) -> Any:
         """Read up to n bytes with at most one read() system call."""
 
         if n is None or n < 0:
@@ -952,7 +976,7 @@ class ZipFile:
         if isinstance(file, str):
             # No, it's a filename
             self._filePassed = 0
-            self.filename = file
+            self.filename: Any = file
             modeDict = {"r": "rb", "w": "wb", "a": "r+b"}
             try:
                 self.fp = io.open(file, modeDict[mode])
@@ -1005,6 +1029,7 @@ class ZipFile:
     def _RealGetContents(self):
         """Read in the table of contents for the ZIP file."""
         fp = self.fp
+        assert fp is not None
         try:
             endrec = _EndRecData(fp)
         except IOError:
@@ -1033,7 +1058,7 @@ class ZipFile:
         fp = io.BytesIO(data)
         total = 0
         while total < size_cd:
-            centdir = fp.read(sizeCentralDir)
+            centdir: Any = fp.read(sizeCentralDir)
             if len(centdir) != sizeCentralDir:
                 raise BadZipFile("Truncated central directory")
             centdir = struct.unpack(structCentralDir, centdir)
@@ -1041,7 +1066,7 @@ class ZipFile:
                 raise BadZipFile("Bad magic number for central directory")
             if self.debug > 2:
                 print(centdir)
-            filename = fp.read(centdir[_CD_FILENAME_LENGTH])
+            filename: Any = fp.read(centdir[_CD_FILENAME_LENGTH])
             flags = centdir[5]
             if flags & 0x800:
                 # UTF-8 file names extension
@@ -1770,8 +1795,14 @@ class PyZipFile(ZipFile):
         file_py = pathname + ".py"
         file_pyc = pathname + ".pyc"
         file_pyo = pathname + ".pyo"
-        pycache_pyc = imp_util.cache_from_source(file_py, optimized=True)
-        pycache_pyo = imp_util.cache_from_source(file_py, optimized=False)
+        # `optimized` was the historical kwarg name; typeshed renamed it to
+        # `optimization`. Keep the legacy call for older interpreters.
+        pycache_pyc = imp_util.cache_from_source(  # type: ignore[call-overload]
+            file_py, optimized=True
+        )
+        pycache_pyo = imp_util.cache_from_source(  # type: ignore[call-overload]
+            file_py, optimized=False
+        )
         if self._optimize == -1:
             # legacy mode: use whatever file is present
             if (

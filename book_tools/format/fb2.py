@@ -15,7 +15,7 @@ class FB2StructureException(Exception):
     def __init__(self, error):
         Exception.__init__(self, "fb2 verification failed: %s" % error)
         if isinstance(error, Exception):
-            print(traceback.print_exc())
+            traceback.print_exc()
 
 
 class Namespace(object):

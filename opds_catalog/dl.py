@@ -43,7 +43,7 @@ def getFileData(book):
     if book.cat_type == opdsdb.CAT_NORMAL:
         file_path = os.path.join(full_path, book.filename)
         try:
-            fo = codecs.open(file_path, "rb")
+            fo = open(file_path, "rb")
             # s = fo.read()
         except FileNotFoundError:
             # s = None
@@ -60,6 +60,7 @@ def getFileData(book):
             fo = None
 
     dio = io.BytesIO()
+    assert fo is not None
     dio.write(fo.read())
     dio.seek(0)
 
@@ -120,10 +121,11 @@ def getFileDataConv(book, convert_type):
     # У следующий строки 2 функции 1-получение информации по
     # конвертации и 2- ожидание конца конвертации
     # В силу 2й функции ее удаление приведет к ошибке выдачи сконвертированного файла
+    assert proc.stdout is not None
     proc.stdout.readlines()
 
     if os.path.isfile(tmp_conv_path):
-        fo = codecs.open(tmp_conv_path, "rb")
+        fo = open(tmp_conv_path, "rb")
     else:
         return None
 
@@ -264,7 +266,10 @@ def Cover(request, book_id, thumbnail=False):
         response["Content-Type"] = "image/jpeg"
         if thumbnail:
             thumb = Image.open(io.BytesIO(image)).convert("RGB")
-            thumb.thumbnail((settings.THUMB_SIZE, settings.THUMB_SIZE), Image.ANTIALIAS)
+            thumb.thumbnail(
+                (settings.THUMB_SIZE, settings.THUMB_SIZE),
+                Image.Resampling.LANCZOS,
+            )
             tfile = io.BytesIO()
             thumb.save(tfile, "JPEG")
             image = tfile.getvalue()
@@ -320,7 +325,8 @@ def Cover0(request, book_id, thumbnail=False):
                     response["Content-Type"] = "image/jpeg"
                     thumb = Image.open(io.BytesIO(dstr)).convert("RGB")
                     thumb.thumbnail(
-                        (settings.THUMB_SIZE, settings.THUMB_SIZE), Image.ANTIALIAS
+                        (settings.THUMB_SIZE, settings.THUMB_SIZE),
+                        Image.Resampling.LANCZOS,
                     )
                     tfile = io.BytesIO()
                     thumb.save(tfile, "JPEG")
@@ -398,6 +404,7 @@ def ConvertFB2(request, book_id, convert_type):
     tmp_conv_path = os.path.join(config.SOPDS_TEMP_DIR, dlfilename)
     popen_args = [converter_path, file_path, tmp_conv_path]
     proc = subprocess.Popen(popen_args, shell=False, stdout=subprocess.PIPE)
+    assert proc.stdout is not None
     proc.stdout.readlines()
 
     if os.path.isfile(tmp_conv_path):
