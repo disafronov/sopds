@@ -1,18 +1,21 @@
+from __future__ import annotations
+
 import xml.parsers.expat
+from typing import BinaryIO
 
 
 class fb2tag:
-    def __init__(self, tags):
+    def __init__(self, tags: tuple[str, ...]) -> None:
         self.tags = tags
         self.attrs: dict[str, str] = {}
         self.attrss: list[dict[str, str]] = []
         self.index = -1
         self.size = len(self.tags)
-        self.values = []
+        self.values: list[str] = []
         self.process_value = False
         self.current_value = ""
 
-    def reset(self):
+    def reset(self) -> None:
         self.index = -1
         self.values = []
         self.attrs = {}
@@ -20,7 +23,7 @@ class fb2tag:
         self.process_value = False
         self.current_value = ""
 
-    def tagopen(self, tag, attrs=[]):
+    def tagopen(self, tag: str, attrs: dict[str, str] = {}) -> bool:
         result = False
         if (self.index + 1) < self.size:
             if self.tags[self.index + 1] == tag:
@@ -29,10 +32,9 @@ class fb2tag:
             self.attrs = attrs
             self.attrss.append(attrs)
             result = True
-        # Возвращаем True если дошли до последнего значения дерева тэга
         return result
 
-    def tagclose(self, tag):
+    def tagclose(self, tag: str) -> None:
         if self.index >= 0:
             if self.tags[self.index] == tag:
                 self.index -= 1
@@ -40,7 +42,7 @@ class fb2tag:
                     self.values.append(self.current_value)
                 self.process_value = False
 
-    def setvalue(self, value):
+    def setvalue(self, value: str) -> None:
         if (self.index + 1) == self.size:
             if self.process_value is False:
                 self.current_value = value
@@ -48,23 +50,23 @@ class fb2tag:
             else:
                 self.current_value += value
 
-    def getvalue(self):
+    def getvalue(self) -> list[str]:
         return self.values
 
-    def gettext(self, divider="\n"):
+    def gettext(self, divider: str = "\n") -> str:
         result = ""
         if len(self.values) > 0:
             result = divider.join(self.values)
         return result
 
-    def getattr(self, attr):
+    def getattr(self, attr: str) -> str | None:
         if len(self.attrs) > 0:
             val = self.attrs.get(attr)
         else:
             val = None
         return val
 
-    def getattrs(self, attr):
+    def getattrs(self, attr: str) -> list[str | None]:
         if len(self.attrss) > 0:
             val = [a.get(attr) for a in self.attrss if attr in a]
         else:
@@ -73,21 +75,21 @@ class fb2tag:
 
 
 class fb2cover(fb2tag):
-    def __init__(self, tags):
+    def __init__(self, tags: tuple[str, ...]) -> None:
         self.iscover = False
         self.cover_name = ""
-        self._cover_data = []
+        self._cover_data: list[str] = []
         self.isfind = False
         fb2tag.__init__(self, tags)
 
-    def reset(self):
+    def reset(self) -> None:
         self.iscover = False
         self.cover_name = ""
         self._cover_data = []
         self.isfind = False
         fb2tag.reset(self)
 
-    def tagopen(self, tag, attrs=[]):
+    def tagopen(self, tag: str, attrs: dict[str, str] = {}) -> bool:
         result = fb2tag.tagopen(self, tag, attrs)
         if result:
             idvalue = self.getattr("id")
@@ -97,32 +99,32 @@ class fb2cover(fb2tag):
                     self.iscover = True
         return result
 
-    def tagclose(self, tag):
+    def tagclose(self, tag: str) -> None:
         if self.iscover:
             self.isfind = True
             self.iscover = False
         fb2tag.tagclose(self, tag)
 
-    def setcovername(self, cover_name):
+    def setcovername(self, cover_name: str | None) -> None:
         if cover_name is not None and cover_name != "":
             self.cover_name = cover_name
 
-    def add_data(self, data):
+    def add_data(self, data: str) -> None:
         if self.iscover:
             if data != "\\n":
                 self._cover_data.append(data)
 
     @property
-    def cover_data(self):
+    def cover_data(self) -> str:
         return "".join(self._cover_data)
 
     @cover_data.setter
-    def cover_data(self, value):
+    def cover_data(self, value: str) -> None:
         self._cover_data = [value]
 
 
 class fb2parser:
-    def __init__(self, readcover=0):
+    def __init__(self, readcover: int = 0) -> None:
         self.rc = readcover
         self.author_first = fb2tag(
             ("description", "title-info", "author", "first-name")
@@ -142,7 +144,7 @@ class fb2parser:
         self.parse_error = 0
         self.parse_errormsg: str | Exception = ""
 
-    def reset(self):
+    def reset(self) -> None:
         self.process_description = True
         self.parse_error = 0
         self.author_first.reset()
@@ -157,7 +159,7 @@ class fb2parser:
             self.cover_name.reset()
             self.cover_image.reset()
 
-    def start_element(self, name, attrs):
+    def start_element(self, name: str, attrs: dict[str, str]) -> None:
         name = name.lower()
         if self.process_description:
             self.author_first.tagopen(name)
@@ -173,9 +175,11 @@ class fb2parser:
                     cover_name = self.cover_name.getattr("l:href")
                     if cover_name == "" or cover_name is None:
                         cover_name = self.cover_name.getattr("xlink:href")
-                    # Если имя файла не начинается с # то значит
-                    # данных локально в файле fb2 - нет
-                    if len(cover_name) > 0 and cover_name[0] == "#":
+                    if (
+                        cover_name is not None
+                        and len(cover_name) > 0
+                        and cover_name[0] == "#"
+                    ):
                         cover_name = cover_name.strip("#")
                     else:
                         cover_name = None
@@ -183,7 +187,7 @@ class fb2parser:
         if self.rc != 0:
             self.cover_image.tagopen(name, attrs)
 
-    def end_element(self, name):
+    def end_element(self, name: str) -> None:
         name = name.lower()
         if self.process_description:
             self.author_first.tagclose(name)
@@ -201,7 +205,6 @@ class fb2parser:
             if self.cover_image.isfind:
                 raise StopIteration
 
-        # Выравниваем количество last_name и first_name
         if name == "author":
             if len(self.author_last.getvalue()) > len(self.author_first.getvalue()):
                 self.author_first.values.append(" ")
@@ -217,7 +220,7 @@ class fb2parser:
             else:
                 raise StopIteration
 
-    def char_data(self, data):
+    def char_data(self, data: str) -> None:
         if self.process_description:
             self.author_first.setvalue(data)
             self.author_last.setvalue(data)
@@ -229,7 +232,7 @@ class fb2parser:
         if self.rc != 0:
             self.cover_image.add_data(data)
 
-    def parse(self, f, hsize=0):
+    def parse(self, f: BinaryIO, hsize: int = 0) -> None:
         self.reset()
         parser = xml.parsers.expat.ParserCreate()
         parser.StartElementHandler = self.start_element

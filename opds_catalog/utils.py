@@ -1,12 +1,15 @@
+from __future__ import annotations
+
 #######################################################################
 #
 # Вспомогательные функции
-#
 
 
-def translit(s):
+def translit(s: str) -> str:
     """Russian translit: converts 'привет'->'privet'"""
-    assert s is not str, "Error: argument MUST be string"
+    assert (
+        s is not str  # type: ignore[comparison-overlap]
+    ), "Error: argument MUST be string"
 
     table1 = str.maketrans(
         "абвгдеёзийклмнопрстуфхъыьэАБВГДЕЁЗИЙКЛМНОПРСТУФХЪЫЬЭ",
@@ -42,5 +45,5 @@ def translit(s):
     return s
 
 
-def to_ascii(s):
+def to_ascii(s: str) -> str:
     return s.encode("ascii", "replace").decode("utf-8")

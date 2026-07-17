@@ -5,6 +5,7 @@ import re
 import struct
 import sys
 from collections import OrderedDict
+from typing import Any, BinaryIO
 
 from book_tools.pymobi import compression
 from book_tools.pymobi.util import decodeVarint, hexdump, toByte, toStr
@@ -253,30 +254,30 @@ class BookMobi(object):
         ("unknown248", ">L", 248),
         ("unknown252", ">L", 252),
     ]
-    header: "dict" = OrderedDict()
-    records: "dict" = OrderedDict()
-    palmdoc: "dict" = OrderedDict()
-    mobi: "dict" = OrderedDict()
-    mobi_exth: "dict" = OrderedDict()
-    book: "dict" = OrderedDict()
-    compression: object = None  # type: ignore[assignment]
+    header: "OrderedDict[str, Any]" = OrderedDict()
+    records: "OrderedDict[int, Any]" = OrderedDict()
+    palmdoc: "OrderedDict[str, Any]" = OrderedDict()
+    mobi: "OrderedDict[str, Any]" = OrderedDict()
+    mobi_exth: "OrderedDict[int, Any]" = OrderedDict()
+    book: "OrderedDict[str, Any]" = OrderedDict()
+    compression: Any = None
 
-    def __init__(self, file):
+    def __init__(self, file: str | BinaryIO) -> None:
         if isinstance(file, str):
-            f = open(file, "rb")
+            opened_file: BinaryIO = open(file, "rb")
         else:
-            f = file
+            opened_file = file
 
-        self.f = f
+        self.f = opened_file
         self.f.seek(0, 0)
         # palm database header
-        header = f.read(78)
+        header = self.f.read(78)
         for key, u_fmt, offset in self.palmdb_format:
             (value,) = struct.unpack_from(u_fmt, header, offset)
             self.header[key] = value
         # palm database record
-        f.seek(78)
-        records = f.read(self.header["numberOfRecords"] * 8)
+        self.f.seek(78)
+        records = self.f.read(self.header["numberOfRecords"] * 8)
         for count in range(0, self.header["numberOfRecords"]):
             offset, value = struct.unpack_from(">LL", records, count * 8)
             attributes = value & 0xFF000000
@@ -386,22 +387,22 @@ class BookMobi(object):
             )
             self.book["srcs"] = self.mobi["srcsRecordNumber"] != 0xFFFFFFFF
 
-    def __getitem__(self, name):
+    def __getitem__(self, name: str) -> Any:
         return self.book.get(name)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.book)
 
-    def __iter__(self):
+    def __iter__(self) -> Any:
         return iter(self.book.values())
 
-    def isMobipocket(self):
-        return self.book["ident"] == pd_file_code["MobiPocket"]
+    def isMobipocket(self) -> bool:
+        return bool(self.book["ident"] == pd_file_code["MobiPocket"])
 
-    def isPalmdoc(self):
-        return self.book["ident"] == pd_file_code["PalmDOC"]
+    def isPalmdoc(self) -> bool:
+        return bool(self.book["ident"] == pd_file_code["PalmDOC"])
 
-    def unpackFunction(self):
+    def unpackFunction(self) -> Any:
         compression_class = compression_type[self.palmdoc["compression"]][1]
         self.compression = compression_class()
         if isinstance(self.compression, compression.Huffcdic):
@@ -413,10 +414,10 @@ class BookMobi(object):
         if sys.version_info[0] < 3:
             unpack = self.compression.unpack
         else:
-            unpack = self.compression.unpack3  # type: ignore[attr-defined]
+            unpack = self.compression.unpack3
         return unpack
 
-    def typeDesc(self, types, value):
+    def typeDesc(self, types: dict[Any, Any], value: Any) -> Any:
         if value in types:
             desc = types[value]
             if isinstance(desc, tuple):
@@ -426,7 +427,7 @@ class BookMobi(object):
         else:
             return "unknown"
 
-    def loadRecord(self, record_index):
+    def loadRecord(self, record_index: int) -> bytes:
         """
         load palm database's record
         """
@@ -439,7 +440,7 @@ class BookMobi(object):
             record = self.f.read(offset2 - offset)
         return record
 
-    def datetimeFromValue(self, value):
+    def datetimeFromValue(self, value: int) -> datetime.datetime:
         """
         If the time has the top bit set, it's an unsigned 32-bit number
         counting from 1st Jan 1904
@@ -454,10 +455,10 @@ class BookMobi(object):
         time += datetime.timedelta(seconds=value)
         return time
 
-    def decrypt(self, record):
+    def decrypt(self, record: bytes) -> bytes:
         return record
 
-    def imageExt(self, record):
+    def imageExt(self, record: bytes) -> str:
         (ident,) = struct.unpack_from(">L", record, 0)
         if ident == 0x47494638:
             return ".gif"
@@ -469,7 +470,7 @@ class BookMobi(object):
         (ident,) = struct.unpack_from(">4s", record, 0)
         return ".%s" % ident
 
-    def saveRecordImage(self, num, basename):
+    def saveRecordImage(self, num: int, basename: str) -> str:
         rec = self.loadRecord(num)
         ext = self.imageExt(rec)
         img_file = "%s%s" % (basename, ext)
@@ -477,8 +478,8 @@ class BookMobi(object):
             f.write(rec)
         return os.path.basename(img_file)
 
-    def loadTextResource(self, data, basename):
-        def repl(mo):
+    def loadTextResource(self, data: bytes, basename: str) -> bytes:
+        def repl(mo: "re.Match[bytes]") -> bytes:
             img_idx = int(mo.group(1))
             num = img_idx_base + img_idx - 1
             img_basename = "%s_img_%05d" % (basename, img_idx)
@@ -512,7 +513,7 @@ class BookMobi(object):
         print("")
         return data
 
-    def unpackMobi(self, output_file):
+    def unpackMobi(self, output_file: str) -> None:
         rec_num = self.palmdoc["recordCount"]
         text_length = self.palmdoc["textLength"]
         unpack = self.unpackFunction()
@@ -571,7 +572,7 @@ class BookMobi(object):
             self.saveRecordImage(cover_rn, "%s_cover" % basename)
         print("Unpack MOBI successfully")
 
-    def unpackMobiCover(self):
+    def unpackMobiCover(self) -> bytes | None:
         if 201 in self.mobi_exth:
             (cover_rn,) = struct.unpack(">L", self.mobi_exth[201])
             cover_rn += self.mobi["firstImageIndex"]
@@ -579,7 +580,7 @@ class BookMobi(object):
             return rec
         return None
 
-    def removeSrcs(self, outmobi, outsrcs=None):
+    def removeSrcs(self, outmobi: str, outsrcs: str | None = None) -> None:
         srcs_rn = self.mobi["srcsRecordNumber"]
         srcs_rc = self.mobi["srcsRecordCount"]
         print("Title: %s" % self.book["title"])

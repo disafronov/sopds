@@ -1,8 +1,9 @@
 import base64
+from typing import Optional
 
 from constance import config
 from django.contrib import auth
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.middleware.cache import (
     FetchFromCacheMiddleware as DjangoFetchFromCacheMiddleware,
 )
@@ -13,7 +14,7 @@ from django.utils.deprecation import MiddlewareMixin
 class BasicAuthMiddleware(object):
     header = "HTTP_AUTHORIZATION"
 
-    def unauthed(self):
+    def unauthed(self) -> HttpResponse:
         response = HttpResponse(
             """<html><title>Auth required</title><body>
                                 <h1>Authorization Required</h1></body></html>""",
@@ -23,9 +24,9 @@ class BasicAuthMiddleware(object):
         response.status_code = 401
         return response
 
-    def process_request(self, request):
+    def process_request(self, request: HttpRequest) -> Optional[HttpResponse]:
         if not config.SOPDS_AUTH:
-            return
+            return None
 
         # AuthenticationMiddleware is required so that request.user exists.
         # if not hasattr(request, 'user'):
@@ -57,15 +58,17 @@ class BasicAuthMiddleware(object):
 
 class SOPDSLocaleMiddleware(MiddlewareMixin):
 
-    def process_request(self, request):
-        request.LANG = config.SOPDS_LANGUAGE
-        translation.activate(request.LANG)
-        request.LANGUAGE_CODE = request.LANG
+    def process_request(self, request: HttpRequest) -> None:
+        # LANG is a custom request attribute attached at runtime by this
+        # middleware; django-stubs does not model it.
+        request.LANG = config.SOPDS_LANGUAGE  # type: ignore[attr-defined]
+        translation.activate(request.LANG)  # type: ignore[attr-defined]
+        request.LANGUAGE_CODE = request.LANG  # type: ignore[attr-defined]
 
 
 class FetchFromCacheMiddleware(DjangoFetchFromCacheMiddleware):
 
-    def process_request(self, request):
+    def process_request(self, request: HttpRequest) -> Optional[HttpResponse]:
         if not request.user.is_authenticated:
             return None
         else:

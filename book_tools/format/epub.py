@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import os
 import shutil
 import zipfile
 from tempfile import mkstemp
+from typing import Any, BinaryIO
 from urllib.parse import unquote
 
 from lxml import etree
@@ -43,18 +46,18 @@ class EPub(BookFile):
     ALGORITHM_AES128 = Namespace.ENCRYPTION + "aes128-cbc"
 
     class StructureException(Exception):
-        def __init__(self, message):
+        def __init__(self, message: str) -> None:
             Exception.__init__(self, "ePub verification failed: " + message)
 
-    def __init__(self, file, original_filename):
+    def __init__(self, file: BinaryIO, original_filename: str) -> None:
         BookFile.__init__(self, file, original_filename, Mimetype.EPUB)
-        self.root_filename = None
-        self.cover_fileinfos = []
+        self.root_filename: str | None = None
+        self.cover_fileinfos: list[dict[str, str]] = []
 
-        self.__zip_file: "zipfile.ZipFile" = None  # type: ignore[assignment]
+        self.__zip_file: zipfile.ZipFile = None  # type: ignore[assignment]
         self.__initialize()
 
-    def __initialize(self):
+    def __initialize(self) -> None:
         self.file.seek(0, 0)
         self.__zip_file = zipfile.ZipFile(self.file)
         self.issues = []
@@ -86,22 +89,28 @@ class EPub(BookFile):
             self.close()
             raise EPub.StructureException(str(error))
 
-    def close(self):
+    def close(self) -> None:
         self.__zip_file.close()
 
-    def __exit__(self, kind, value, traceback):
+    def __exit__(
+        self,
+        kind: type[BaseException] | None,
+        value: BaseException | None,
+        traceback: Any,
+    ) -> None:
         self.__zip_file.__exit__(kind, value, traceback)
 
-    def __etree_from_entry(self, info):
-        with self.__zip_file.open(info) as entry:
+    def __etree_from_entry(self, info: str | zipfile.ZipInfo) -> etree._Element:
+        resolved = self.__zip_file.getinfo(info) if isinstance(info, str) else info
+        with self.__zip_file.open(resolved) as entry:
             try:
                 return etree.fromstring(entry.read(1048576))
             except Exception:
                 raise EPub.StructureException(
-                    "'" + info.filename + "' is not a valid XML"
+                    "'" + resolved.filename + "' is not a valid XML"
                 )
 
-    def __extract_metainfo(self):
+    def __extract_metainfo(self) -> None:
         root_info = self.__get_root_info()
         self.root_filename = root_info.filename
         tree = self.__etree_from_entry(root_info)
@@ -167,23 +176,23 @@ class EPub(BookFile):
             prefix += "/"
         self.cover_fileinfos = self.__find_cover(tree, prefix)
 
-    def __find_cover(self, tree, prefix):
+    def __find_cover(self, tree: etree._Element, prefix: str) -> list[dict[str, str]]:
         namespaces = {"opf": EPub.Namespace.OPF, "dc": EPub.Namespace.DUBLIN_CORE}
 
-        def xpath(query):
+        def xpath(query: str) -> etree._Element:
             return tree.xpath(query, namespaces=namespaces)[0]
 
-        def item_for_href(ref):
+        def item_for_href(ref: str) -> etree._Element:
             return xpath('/opf:package/opf:manifest/opf:item[@href="%s"]' % ref)
 
-        def image_infos(node):
+        def image_infos(node: etree._Element) -> list[dict[str, str]]:
             path = os.path.normpath(prefix + node.get("href")).replace("\\", "/")
             try:
                 fileinfo = self.__zip_file.getinfo(path)
             except Exception:
                 fileinfo = self.__zip_file.getinfo(unquote(path))
             mime = node.get("media-type")
-            info = {"filename": fileinfo.filename, "mime": mime}
+            info: dict[str, str] = {"filename": fileinfo.filename, "mime": mime}
             if mime.startswith("image/"):
                 return [info]
             elif mime == "application/xhtml+xml":
@@ -265,7 +274,7 @@ class EPub(BookFile):
 
         return []
 
-    def __get_root_info(self):
+    def __get_root_info(self) -> zipfile.ZipInfo:
         try:
             container_info = self.__zip_file.getinfo(EPub.Entry.CONTAINER)
         except Exception:
@@ -295,15 +304,15 @@ class EPub(BookFile):
 
         raise EPub.StructureException("OPF entry not found")
 
-    def __contains_entry(self, name):
+    def __contains_entry(self, name: str) -> bool:
         try:
             self.__zip_file.getinfo(name)
             return True
         except KeyError:
             return False
 
-    def __extract_content_ids(self):
-        content_ids = set()
+    def __extract_content_ids(self) -> list[str]:
+        content_ids: set[str] = set()
         try:
             tree = self.__etree_from_entry(EPub.Entry.ENCRYPTION)
             ns = {
@@ -322,10 +331,10 @@ class EPub(BookFile):
             pass
         return list(content_ids)
 
-    def get_encryption_info(self):
-        UNKNOWN_ENCRYPTION = {"method": "unknown"}
+    def get_encryption_info(self) -> dict[str, Any]:
+        UNKNOWN_ENCRYPTION: dict[str, Any] = {"method": "unknown"}
 
-        algo = None
+        algo: str | None = None
 
         if self.__contains_entry(EPub.Entry.ENCRYPTION):
             try:
@@ -380,15 +389,21 @@ class EPub(BookFile):
 
         return {}
 
-    def __save_tree(self, zip_file, filename, tree, working_dir):
+    def __save_tree(
+        self,
+        zip_file: zipfile.ZipFile,
+        filename: str,
+        tree: etree._ElementTree,
+        working_dir: str,
+    ) -> None:
         path = os.path.join(working_dir, filename)
         with open(path, "w") as pfile:
             tree.write(pfile, pretty_print=True)
         zip_file.write(path, arcname=filename)
 
-    def __add_encryption_section(self, index, root, uri, content_id):
-        # See http://www.marlin-community.com/files/marlin-EPUB-extension-v1.0.pdf
-        # section 4.2.1
+    def __add_encryption_section(
+        self, index: int, root: etree._Element, uri: str, content_id: str
+    ) -> None:
         key_name = EPub.CONTENT_ID_PREFIX + content_id
 
         enc_data = etree.SubElement(
@@ -418,8 +433,12 @@ class EPub(BookFile):
         )
 
     def __create_encryption_file(
-        self, zip_file, working_dir, encrypted_files, content_id
-    ):
+        self,
+        zip_file: zipfile.ZipFile,
+        working_dir: str,
+        encrypted_files: list[str],
+        content_id: str,
+    ) -> None:
         namespaces = {
             None: EPub.Namespace.CONTAINER,
             "enc": EPub.Namespace.ENCRYPTION,
@@ -437,7 +456,7 @@ class EPub(BookFile):
 
         self.__save_tree(zip_file, EPub.Entry.ENCRYPTION, tree, working_dir)
 
-    def __create_rights_file(self, zip_file, working_dir):
+    def __create_rights_file(self, zip_file: zipfile.ZipFile, working_dir: str) -> None:
         namespaces = {None: EPub.Namespace.MARLIN}
         root = etree.Element(
             etree.QName(EPub.Namespace.MARLIN, "Marlin"), nsmap=namespaces
@@ -457,7 +476,13 @@ class EPub(BookFile):
         ).text = EPub.TOKEN_URL
         self.__save_tree(zip_file, EPub.Entry.RIGHTS, tree, working_dir)
 
-    def encrypt(self, key, content_id, working_dir, files_to_keep=None):
+    def encrypt(
+        self,
+        key: bytes,
+        content_id: str,
+        working_dir: str,
+        files_to_keep: list[str] | None = None,
+    ) -> None:
         if self.get_encryption_info():
             raise Exception(
                 "Cannot encrypt file %s, it is already encrypted" % self.file.name
@@ -469,6 +494,7 @@ class EPub(BookFile):
                 EPub.Entry.METADATA,
                 EPub.Entry.CONTAINER,
             ]
+            assert self.root_filename is not None
             files_to_keep += [self.root_filename]
             files_to_keep += [info["filename"] for info in self.cover_fileinfos]
 
@@ -478,7 +504,7 @@ class EPub(BookFile):
         os.close(fd)
         with zipfile.ZipFile(new_epub, "w", zipfile.ZIP_DEFLATED) as zip_file:
             zip_file.writestr(EPub.Entry.MIMETYPE, Mimetype.EPUB, zipfile.ZIP_STORED)
-            encrypted_files = []
+            encrypted_files: list[str] = []
             for entry in [
                 info.filename
                 for info in list_zip_file_infos(self.__zip_file)
@@ -501,7 +527,7 @@ class EPub(BookFile):
         self.close()
         self.__initialize()
 
-    def repair(self, working_dir):
+    def repair(self, working_dir: str) -> None:
         self.__zip_file.extractall(path=working_dir)
 
         fd, new_epub = mkstemp(dir=working_dir)
@@ -518,7 +544,7 @@ class EPub(BookFile):
         self.close()
         self.__initialize()
 
-    def extract_cover_internal(self, working_dir):
+    def extract_cover_internal(self, working_dir: str) -> tuple[str | None, bool]:
         if len(self.cover_fileinfos) == 0:
             return (None, False)
         name = self.cover_fileinfos[-1]["filename"]
@@ -531,7 +557,7 @@ class EPub(BookFile):
             shutil.rmtree(os.path.join(working_dir, split[0]))
         return (split[-1] if len(split) > 0 else None, False)
 
-    def extract_cover_memory(self):
+    def extract_cover_memory(self) -> bytes | None:
         if len(self.cover_fileinfos) == 0:
             return None
         name = self.cover_fileinfos[-1]["filename"]

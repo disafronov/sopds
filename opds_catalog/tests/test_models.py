@@ -25,7 +25,7 @@ class modelsTestCase(TestCase):
     if main_settings.USE_TZ:
         testdatetime = testdatetime.replace(tzinfo=timezone.get_current_timezone())
 
-    def setUp(self):
+    def setUp(self) -> None:
         opdsdb.clear_all()
         book = Book.objects.create(
             filename="testbook.fb2",
@@ -64,7 +64,7 @@ class modelsTestCase(TestCase):
         bookshelf.objects.create(user=user, book=book, readtime=self.testdatetime)
         Counter.objects.update_known_counters()
 
-    def test_Book(self):
+    def test_Book(self) -> None:
         """Тестирование соответствия структуры модели Book и работоспособности БД"""
         book = Book.objects.get(title="Книга")
         self.assertEqual(book.filename, "testbook.fb2")
@@ -83,7 +83,7 @@ class modelsTestCase(TestCase):
         self.assertEqual(book.catalog.cat_name, ".")
         self.assertEqual(book.catalog.cat_type, 0)
 
-    def test_Author(self):
+    def test_Author(self) -> None:
         """Тестирование соответствия структуры моделей Author и bauthor и \
 работоспособности БД"""
         book = Book.objects.get(title="Книга")
@@ -93,7 +93,7 @@ class modelsTestCase(TestCase):
             "ШЕЛЕПНЕВ ДМИТРИЙ",
         )
 
-    def test_Genre(self):
+    def test_Genre(self) -> None:
         """Тестирование соответствия структуры моделей Genre и bgenre и \
 работоспособности БД"""
         book = Book.objects.get(title="Книга")
@@ -101,7 +101,7 @@ class modelsTestCase(TestCase):
         self.assertEqual(book.genres.get(genre="fantastic0").section, "fantastic1")
         self.assertEqual(book.genres.get(genre="fantastic0").subsection, "fantastic2")
 
-    def test_Series(self):
+    def test_Series(self) -> None:
         """Тестирование соответствия структуры моделей Series и bseries и \
 работоспособности БД"""
         book = Book.objects.get(title="Книга")
@@ -111,7 +111,7 @@ class modelsTestCase(TestCase):
         self.assertEqual(ser.search_ser, "MYWORK")
         self.assertEqual(bseries.objects.get(ser=ser).ser_no, 1)
 
-    def test_bookshelf(self):
+    def test_bookshelf(self) -> None:
         """Тестирование соответствия структуры модели bookshelf и \
 работоспособности БД"""
         user = User.objects.get(username="testuser")
@@ -119,7 +119,7 @@ class modelsTestCase(TestCase):
         self.assertEqual(bookshelf.objects.filter(user=user).count(), 1)
         self.assertEqual(bookshelf.objects.get(user=user).book.title, "Книга")
 
-    def test_Counter(self):
+    def test_Counter(self) -> None:
         """Тестирование соответствия структуры модели Counter, менеджера \
 CounterManager и работоспособности БД"""
         self.assertEqual(Counter.objects.get_counter(models.counter_allbooks), 1)

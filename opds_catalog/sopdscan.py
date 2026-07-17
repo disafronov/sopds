@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import annotations
+
 import datetime
 import logging
 import os
@@ -17,8 +19,8 @@ from opds_catalog import fb2parse, inpx_parser, opdsdb
 
 
 class opdsScanner:
-    def __init__(self, logger=None):
-        self.fb2parser = None
+    def __init__(self, logger: logging.Logger | None = None) -> None:
+        self.fb2parser: Any = None
         self.init_parser()
 
         if logger:
@@ -28,23 +30,26 @@ class opdsScanner:
             self.logger.setLevel(logging.CRITICAL)
         self.init_stats()
 
-    def init_stats(self):
+    def init_stats(self) -> None:
         self.t1 = datetime.timedelta(seconds=time.time())
         self.t2 = self.t1
         self.t3 = self.t1
         self.books_added = 0
         self.books_skipped = 0
-        self.books_deleted = 0
+        self.books_deleted: int | tuple[int, dict[str, int]] = 0
         self.arch_scanned = 0
         self.arch_skipped = 0
         self.bad_archives = 0
         self.bad_books = 0
         self.books_in_archives = 0
+        self.inp_cat: Any = None
+        self.zip_file: Any = None
+        self.rel_path: str | None = None
 
-    def init_parser(self):
+    def init_parser(self) -> None:
         self.fb2parser = fb2parse.fb2parser(False)
 
-    def log_options(self):
+    def log_options(self) -> None:
         self.logger.info(" ***** Starting sopds-scan...")
         self.logger.debug("OPTIONS SET")
         if config.SOPDS_ROOT_LIB is not None:
@@ -58,7 +63,7 @@ class opdsScanner:
         if config.SOPDS_FB2SAX is not None:
             self.logger.info("FB2SAX = %s" % config.SOPDS_FB2SAX)
 
-    def log_stats(self):
+    def log_stats(self) -> None:
         self.t2 = datetime.timedelta(seconds=time.time())
         self.logger.info("Books added      : " + str(self.books_added))
         self.logger.info("Books skipped    : " + str(self.books_skipped))
@@ -86,12 +91,12 @@ class opdsScanner:
             + " seconds."
         )
 
-    def scan_all(self):
+    def scan_all(self) -> None:
         self.init_stats()
         self.log_options()
-        self.inp_cat: Any = None
-        self.zip_file: Any = None
-        self.rel_path: str | None = None
+        self.inp_cat = None
+        self.zip_file = None
+        self.rel_path = None
 
         opdsdb.avail_check_prepare()
 
@@ -128,7 +133,7 @@ class opdsScanner:
 
         self.log_stats()
 
-    def inpskip_callback(self, inpx, inp_file, inp_size):
+    def inpskip_callback(self, inpx: str, inp_file: str, inp_size: int) -> int:
 
         self.rel_path = os.path.relpath(
             os.path.join(inpx, inp_file), config.SOPDS_ROOT_LIB
@@ -189,7 +194,7 @@ class opdsScanner:
                 ser = opdsdb.addseries(s.strip())
                 opdsdb.addbseries(book, ser, 0)
 
-    def processinpx(self, name, full_path, file):
+    def processinpx(self, name: str, full_path: str, file: str) -> None:
         rel_file = os.path.relpath(file, config.SOPDS_ROOT_LIB)
         inpx_size = os.path.getsize(file)
         if config.SOPDS_INPX_SKIP_UNCHANGED and opdsdb.inpx_skip(rel_file, inpx_size):
@@ -202,7 +207,7 @@ class opdsScanner:
             inpx.INPX_TEST_FILES = config.SOPDS_INPX_TEST_FILES
             inpx.parse()
 
-    def processzip(self, name, full_path, file):
+    def processzip(self, name: str, full_path: str, file: str) -> None:
         rel_file = os.path.relpath(file, config.SOPDS_ROOT_LIB)
         zsize = os.path.getsize(file)
         if opdsdb.arc_skip(rel_file, zsize):
@@ -239,7 +244,15 @@ class opdsScanner:
                 zip_process_error = 1
             self.bad_archives += zip_process_error
 
-    def processfile(self, name, full_path, file, cat, archive=0, file_size=0):
+    def processfile(
+        self,
+        name: str,
+        full_path: str,
+        file: Any,
+        cat: Any,
+        archive: int = 0,
+        file_size: int = 0,
+    ) -> None:
         n, e = os.path.splitext(name)
         if e.lower() in config.SOPDS_BOOK_EXTENSIONS.split():
             rel_path = os.path.relpath(full_path, config.SOPDS_ROOT_LIB)

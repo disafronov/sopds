@@ -1,7 +1,11 @@
+from __future__ import annotations
+
 import logging
 import os
 import signal
 import sys
+from argparse import ArgumentParser
+from typing import Any
 
 from apscheduler.schedulers.blocking import BlockingScheduler
 from constance import config
@@ -18,9 +22,16 @@ from opds_catalog.sopdscan import opdsScanner
 
 class Command(BaseCommand):
     help = "Scan Books Collection."
-    scan_is_active = False
+    scan_is_active: bool = False
+    pidfile: str = ""
+    logger: logging.Logger = logging.getLogger("")
+    sched: BlockingScheduler | None = None  # Initialized in start(); annotations only.
+    SCAN_SHED_DAY: str = ""
+    SCAN_SHED_DOW: str = ""
+    SCAN_SHED_HOUR: str = ""
+    SCAN_SHED_MIN: str = ""
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: ArgumentParser) -> None:
         parser.add_argument("command", help="Use [ scan | start | stop | restart ]")
         parser.add_argument(
             "--verbose",
@@ -37,7 +48,7 @@ class Command(BaseCommand):
             help="Daemonize server",
         )
 
-    def handle(self, *args, **options):
+    def handle(self, *args: Any, **options: Any) -> None:
         self.pidfile = os.path.join(main_settings.BASE_DIR, config.SOPDS_SCANNER_PID)
         action = options["command"]
         self.logger = logging.getLogger("")
@@ -78,7 +89,7 @@ class Command(BaseCommand):
             pid = open(self.pidfile, "r").read()
             self.restart(pid)
 
-    def scan(self):
+    def scan(self) -> None:
         if self.scan_is_active:
             self.stdout.write("Scan process already active. Skip currend job.")
             return
@@ -86,7 +97,8 @@ class Command(BaseCommand):
         self.scan_is_active = True
 
         if connection.connection and not connection.is_usable():
-            del connections._connections.default
+            # Access the private per-connection cache to drop a dead connection.
+            del connections._connections.default  # type: ignore[attr-defined]
 
         scanner = opdsScanner(self.logger)
         with transaction.atomic():
@@ -94,7 +106,7 @@ class Command(BaseCommand):
         Counter.objects.update_known_counters()
         self.scan_is_active = False
 
-    def update_shedule(self):
+    def update_shedule(self) -> None:
         self.SCAN_SHED_DAY = config.SOPDS_SCAN_SHED_DAY
         self.SCAN_SHED_DOW = config.SOPDS_SCAN_SHED_DOW
         self.SCAN_SHED_HOUR = config.SOPDS_SCAN_SHED_HOUR
@@ -108,6 +120,8 @@ class Command(BaseCommand):
                 self.SCAN_SHED_DAY,
             )
         )
+        # self.sched is always assigned in start() before any scheduled job runs.
+        assert self.sched is not None
         self.sched.reschedule_job(
             "scan",
             trigger="cron",
@@ -117,9 +131,10 @@ class Command(BaseCommand):
             minute=self.SCAN_SHED_MIN,
         )
 
-    def check_settings(self):
+    def check_settings(self) -> None:
         if connection.connection and not connection.is_usable():
-            del connections._connections.default
+            # Access the private per-connection cache to drop a dead connection.
+            del connections._connections.default  # type: ignore[attr-defined]
         settings.constance_update_all()
         if not (
             self.SCAN_SHED_MIN == config.SOPDS_SCAN_SHED_MIN
@@ -133,9 +148,11 @@ class Command(BaseCommand):
             self.stdout.write(
                 "Startup scannyng directly by SOPDS_SCAN_START_DIRECTLY flag."
             )
+            # self.sched is always assigned in start() before any scheduled job runs.
+            assert self.sched is not None
             self.sched.add_job(self.scan, id="scan_directly")
 
-    def start(self):
+    def start(self) -> None:
         writepid(self.pidfile)
         self.SCAN_SHED_DAY = config.SOPDS_SCAN_SHED_DAY
         self.SCAN_SHED_DOW = config.SOPDS_SCAN_SHED_DOW
@@ -168,27 +185,28 @@ class Command(BaseCommand):
         except (KeyboardInterrupt, SystemExit):
             pass
 
-    def stop(self, pid):
+    def stop(self, pid: str) -> None:
         try:
             os.kill(int(pid), signal.SIGTERM)
         except OSError as e:
             self.stdout.write("Error stopping sopds_scanner: %s" % str(e))
 
-    def restart(self, pid):
+    def restart(self, pid: str) -> None:
         self.stop(pid)
         self.start()
 
 
-def writepid(pid_file):
+def writepid(pid_file: str) -> None:
     """
     Write the process ID to disk.
     """
     fp = open(pid_file, "w")
     fp.write(str(os.getpid()))
     fp.close()
+    return None
 
 
-def daemonize():
+def daemonize() -> None:
     """
     Detach from the terminal and continue as a daemon.
     """
@@ -216,3 +234,4 @@ def daemonize():
     #                raise
     os.close(std_in.fileno())
     os.close(std_out.fileno())
+    return None

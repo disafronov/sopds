@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+import datetime
+from typing import Optional, cast
+
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
@@ -140,30 +145,30 @@ class bookshelf(models.Model):
 
 
 class CounterManager(models.Manager):
-    def update(self, counter_name, counter_value):
+    def set_counter(self, counter_name: str, counter_value: int) -> None:
         self.update_or_create(
             name=counter_name,
             defaults={"value": counter_value, "update_time": timezone.now()},
         )
 
-    def update_known_counters(self):
-        self.update(counter_allbooks, Book.objects.all().count())
-        self.update(counter_allcatalogs, Catalog.objects.all().count())
-        self.update(counter_allauthors, Author.objects.all().count())
-        self.update(counter_allgenres, Genre.objects.all().count())
-        self.update(counter_allseries, Series.objects.all().count())
+    def update_known_counters(self) -> None:
+        self.set_counter(counter_allbooks, Book.objects.all().count())
+        self.set_counter(counter_allcatalogs, Catalog.objects.all().count())
+        self.set_counter(counter_allauthors, Author.objects.all().count())
+        self.set_counter(counter_allgenres, Genre.objects.all().count())
+        self.set_counter(counter_allseries, Series.objects.all().count())
 
-    def get_counter(self, counter_name):
+    def get_counter(self, counter_name: str) -> int:
         try:
-            counter = self.get(name=counter_name).value
+            counter = cast("Counter", self.get(name=counter_name)).value
         except ObjectDoesNotExist:
             counter = 0
 
         return counter
 
-    def get_lastscan(self):
+    def get_lastscan(self) -> Optional[datetime.datetime]:
         try:
-            lastscan = self.get(name="allbooks").update_time
+            lastscan = cast("Counter", self.get(name="allbooks")).update_time
         except ObjectDoesNotExist:
             lastscan = None
 

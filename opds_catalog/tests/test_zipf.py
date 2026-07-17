@@ -11,10 +11,10 @@ class zipTestCase(TestCase):
     test_zip = "books.zip"
     test_bad_zip = "badfile.zip"
 
-    def setUp(self):
+    def setUp(self) -> None:
         pass
 
-    def test_zip_valid(self):
+    def test_zip_valid(self) -> None:
         z = zipfile.ZipFile(
             os.path.join(self.test_ROOTLIB, self.test_zip), "r", allowZip64=True
         )
@@ -26,7 +26,7 @@ class zipTestCase(TestCase):
         self.assertEqual(file.read(38), b'<?xml version="1.0" encoding="utf-8"?>')
         file.close()
 
-    def test_zip_novalid(self):
+    def test_zip_novalid(self) -> None:
         bad_file_count = 0
         try:
             zipfile.ZipFile(

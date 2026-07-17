@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import annotations
+
 import os
 import re
+from typing import Any
 
 from django.db import connection, transaction
+from django.db.backends.utils import CursorWrapper
 from django.db.models import Q
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_noop as _noop
@@ -65,21 +69,21 @@ unknown_genre = _(unknown_genre_en)
 utfhigh = re.compile("[\U00010000-\U0010ffff]")
 
 
-def pg_optimize(verbose=False):
+def pg_optimize(verbose: bool = False) -> None:
     """TODO: Table optimizations for Postgre"""
     if connection.vendor != "postgresql":
         if verbose:
             print("No PostgreSql connection backend detected...")
     else:
         print("Start PostgreSql tables optimization...")
-        cursor = connection.cursor()
+        cursor: CursorWrapper = connection.cursor()
         cursor.execute("alter table opds_catalog_book SET ( fillfactor = 50)")
         cursor.execute("VACUUM FULL opds_catalog_book")
         print("PostgreSql tables internal structure optimized...")
 
 
-def clear_all(verbose=False):
-    cursor = connection.cursor()
+def clear_all(verbose: bool = False) -> None:
+    cursor: CursorWrapper = connection.cursor()
     cursor.execute("delete from opds_catalog_bseries")
     cursor.execute("delete from opds_catalog_bauthor")
     cursor.execute("delete from opds_catalog_bgenre")
@@ -92,8 +96,8 @@ def clear_all(verbose=False):
     cursor.execute("delete from opds_catalog_counter")
 
 
-def clear_genres(verbose=False):
-    cursor = connection.cursor()
+def clear_genres(verbose: bool = False) -> None:
+    cursor: CursorWrapper = connection.cursor()
     cursor.execute("delete from opds_catalog_genre")
 
 
@@ -108,12 +112,12 @@ def clear_genres(verbose=False):
 #
 
 
-def p(s, size):
+def p(s: str, size: int) -> str:
     new = utfhigh.sub("", s[:size])
     return new
 
 
-def getlangcode(s):
+def getlangcode(s: str) -> int:
     langcode = 9
     if len(s) == 0:
         return langcode
@@ -124,16 +128,16 @@ def getlangcode(s):
     return langcode
 
 
-def avail_check_prepare():
+def avail_check_prepare() -> None:
     Book.objects.filter(~Q(avail=0)).update(avail=1)
 
 
-def books_del_logical():
+def books_del_logical() -> int:
     row_count = Book.objects.filter(avail=1).update(avail=0)
     return row_count
 
 
-def books_del_phisical():
+def books_del_phisical() -> tuple[int, dict[str, int]]:
     row_count = Book.objects.filter(avail__lte=1).delete()
     # TODO: Разобратся нужно ли удалять записи в таблицах связи ManyToMany
     # или они сами удалятся?
@@ -144,7 +148,7 @@ def books_del_phisical():
     return row_count
 
 
-def arc_skip(arcpath, arcsize):
+def arc_skip(arcpath: str, arcsize: int) -> int:
     """
     Выясняем изменялся ли архив (ZIP или INP-файл)
     если нет, то пытаемся пропустить сканирование, устанавливая для всех книг из
@@ -174,7 +178,7 @@ def arc_skip(arcpath, arcsize):
     return 0
 
 
-def inp_skip(arcpath, arcsize):
+def inp_skip(arcpath: str, arcsize: int) -> int:
     """
     Выясняем изменялся ли INPX-файл)
     если нет, то пытаемся пропустить сканирование, устанавливая для всех книг из
@@ -204,7 +208,7 @@ def inp_skip(arcpath, arcsize):
     return 0
 
 
-def inpx_skip(arcpath, arcsize):
+def inpx_skip(arcpath: str, arcsize: int) -> int:
     """
     Выясняем изменялся ли INPX-файл)
     если нет, то пытаемся пропустить сканирование, устанавливая для всех книг из
@@ -234,7 +238,7 @@ def inpx_skip(arcpath, arcsize):
     return 0
 
 
-def findcat(cat_name):
+def findcat(cat_name: str) -> Catalog | None:
     head, tail = os.path.split(cat_name)
     try:
         catalog = Catalog.objects.get(
@@ -246,7 +250,7 @@ def findcat(cat_name):
     return catalog
 
 
-def addcattree(cat_name, archive=0, size=0):
+def addcattree(cat_name: str, archive: int = 0, size: int = 0) -> Catalog:
     catalog = findcat(cat_name)
     if catalog:
         return catalog
@@ -267,7 +271,7 @@ def addcattree(cat_name, archive=0, size=0):
     return new_cat
 
 
-def findbook(name, path, setavail=0):
+def findbook(name: str, path: str, setavail: int = 0) -> Book | None:
     # Здесь специально не делается проверка avail, т.к. если удаление было логическим,
     # а книга была восстановлена в своем старом месте
     # то произойдет восстановление записи об этой книги а не добавится новая
@@ -286,8 +290,17 @@ def findbook(name, path, setavail=0):
 
 
 def addbook(
-    name, path, cat, exten, title, annotation, docdate, lang, size=0, archive=0
-):
+    name: str,
+    path: str,
+    cat: Catalog,
+    exten: str,
+    title: str,
+    annotation: str,
+    docdate: str,
+    lang: str,
+    size: int = 0,
+    archive: int = 0,
+) -> Book:
     book = Book.objects.create(
         filename=name[:SIZE_BOOK_FILENAME],
         path=path[:SIZE_BOOK_PATH],
@@ -306,16 +319,16 @@ def addbook(
     return book
 
 
-def findauthor(full_name):
+def findauthor(full_name: str) -> Any:
     try:
-        author = Author.objects.filter(full_name=full_name[:SIZE_AUTHOR_NAME])[:1]
+        author: Any = Author.objects.filter(full_name=full_name[:SIZE_AUTHOR_NAME])[:1]
     except Author.DoesNotExist:
         author = None
 
     return author
 
 
-def addauthor(full_name):
+def addauthor(full_name: str) -> Author:
     author, created = Author.objects.get_or_create(
         full_name=full_name[:SIZE_AUTHOR_NAME],
         defaults={
@@ -326,28 +339,28 @@ def addauthor(full_name):
     return author
 
 
-def addbauthor(book, author):
+def addbauthor(book: Book, author: Author) -> None:
     ba = bauthor(book=book, author=author)
     ba.save()
 
 
-def addgenre(genre):
+def addgenre(genre_name: str) -> Genre:
     genre, created = Genre.objects.get_or_create(
-        genre=genre[:SIZE_GENRE],
+        genre=genre_name[:SIZE_GENRE],
         defaults={
             "section": unknown_genre,
-            "subsection": genre[:SIZE_GENRE_SUBSECTION],
+            "subsection": genre_name[:SIZE_GENRE_SUBSECTION],
         },
     )
     return genre
 
 
-def addbgenre(book, genre):
+def addbgenre(book: Book, genre: Genre) -> None:
     bg = bgenre(book=book, genre=genre)
     bg.save()
 
 
-def addseries(ser):
+def addseries(ser: str) -> Series:
     series, created = Series.objects.get_or_create(
         ser=ser[:SIZE_SERIES],
         defaults={
@@ -358,14 +371,14 @@ def addseries(ser):
     return series
 
 
-def addbseries(book, ser, ser_no):
+def addbseries(book: Book, ser: Series, ser_no: int) -> None:
     bs = bseries(book=book, ser=ser, ser_no=ser_no)
     bs.save()
 
 
-def set_autocommit(autocommit):
+def set_autocommit(autocommit: bool) -> None:
     transaction.set_autocommit(autocommit)
 
 
-def commit():
+def commit() -> None:
     transaction.commit()

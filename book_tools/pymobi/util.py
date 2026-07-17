@@ -1,14 +1,16 @@
-def toStr(src, coding="utf-8"):
+def toStr(src: bytes | str, coding: str = "utf-8") -> str:
     """for python3"""
-    return src.decode(coding)
+    if isinstance(src, bytes):
+        return src.decode(coding)
+    return src
 
 
-def toByte(src, coding="utf-8"):
+def toByte(src: str, coding: str = "utf-8") -> bytes:
     """for python3"""
     return src.encode(coding)
 
 
-def hexdump(src, length=16, sep="."):
+def hexdump(src: bytes | str, length: int = 16, sep: str = ".") -> None:
     """
     hexdump implementation in Python
     paste from https://gist.github.com/7h3rAm/5603718
@@ -35,7 +37,7 @@ def hexdump(src, length=16, sep="."):
     print("".join(lines))
 
 
-def decodeVarint(vint):
+def decodeVarint(vint: int) -> int:
     """backward-encoded Mobipocket variable-width integer."""
     fint = 0
     bitpos = 0
@@ -48,7 +50,7 @@ def decodeVarint(vint):
     return fint
 
 
-def encodeVarint(fint):
+def encodeVarint(fint: int) -> int:
     """backward-encoded Mobipocket variable-width integer."""
     vint = 0
     bitpos = 0

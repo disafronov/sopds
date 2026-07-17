@@ -2,18 +2,18 @@ import struct
 
 
 class Uncompression(object):
-    def pack(self, data):
+    def pack(self, data: bytes) -> bytes:
         return data
 
-    def unpack(self, data):
+    def unpack(self, data: bytes) -> bytes:
         return data
 
 
 class Palmdoc(object):
-    def pack(self, i):
+    def pack(self, i: bytes) -> bytes:
         raise ValueError("not implement")
 
-    def unpack(self, i):
+    def unpack(self, i: str) -> str:
         o, p = "", 0
         while p < len(i):
             c = ord(i[p])
@@ -38,7 +38,7 @@ class Palmdoc(object):
                             o += o[-m]
         return o
 
-    def unpack3(self, i):
+    def unpack3(self, i: bytes) -> bytes:
         o, p = b"", 0
         while p < len(i):
             c = i[p]
@@ -67,12 +67,12 @@ class Palmdoc(object):
 class Huffcdic(object):
     q = struct.Struct(">Q").unpack_from
 
-    def loadHuff(self, huff):
-        if huff[0:8] != "HUFF\x00\x00\x00\x18":
+    def loadHuff(self, huff: bytes) -> None:
+        if huff[0:8] != b"HUFF\x00\x00\x00\x18":
             raise ValueError("invalid huff header")
         off1, off2 = struct.unpack_from(">LL", huff, 8)
 
-        def dict1_unpack(v):
+        def dict1_unpack(v: int) -> tuple[int, int, int]:
             codelen, term, maxcode = v & 0x1F, v & 0x80, v >> 8
             assert codelen != 0
             if codelen <= 8:
@@ -80,49 +80,52 @@ class Huffcdic(object):
             maxcode = ((maxcode + 1) << (32 - codelen)) - 1
             return (codelen, term, maxcode)
 
-        self.dict1 = list(map(dict1_unpack, struct.unpack_from(">256L", huff, off1)))
+        self.dict1: list[tuple[int, int, int]] = list(
+            map(dict1_unpack, struct.unpack_from(">256L", huff, off1))
+        )
 
         dict2 = struct.unpack_from(">64L", huff, off2)
-        self.mincode: tuple = ()
-        self.maxcode: tuple = ()
+        self.mincode: tuple[int, ...] = ()
+        self.maxcode: tuple[int, ...] = ()
         for codelen, mincode in enumerate((0,) + dict2[0::2]):
             self.mincode += (mincode << (32 - codelen),)
         for codelen, maxcode in enumerate((0,) + dict2[1::2]):
             self.maxcode += (((maxcode + 1) << (32 - codelen)) - 1,)
 
-        self.dictionary = []
+        self.dictionary: list[tuple[str | bytes, int] | None] = []
 
-    def loadCdic(self, cdic):
-        if cdic[0:8] != "CDIC\x00\x00\x00\x10":
+    def loadCdic(self, cdic: bytes) -> None:
+        if cdic[0:8] != b"CDIC\x00\x00\x00\x10":
             raise ValueError("invalid cdic header")
         phrases, bits = struct.unpack_from(">LL", cdic, 8)
         n = min(1 << bits, phrases - len(self.dictionary))
         h = struct.Struct(">H").unpack_from
 
-        def getslice(off):
+        def getslice(off: int) -> tuple[bytes, int]:
             (blen,) = h(cdic, 16 + off)
             slice = cdic[18 + off : 18 + off + (blen & 0x7FFF)]
             return (slice, blen & 0x8000)
 
         self.dictionary += list(map(getslice, struct.unpack_from(">%dH" % n, cdic, 16)))
 
-    def pack(self, i):
+    def pack(self, i: bytes) -> bytes:
         raise ValueError("not implement")
 
-    def unpack(self, data):
+    def unpack(self, data: str) -> str:
         q = Huffcdic.q
 
         bitsleft = len(data) * 8
         data += "\x00\x00\x00\x00\x00\x00\x00\x00"
         pos = 0
-        (x,) = q(data, pos)
+        # Legacy code passes str to struct.unpack_from (works at runtime in py3).
+        (x,) = q(data, pos)  # type: ignore[arg-type]
         n = 32
 
         s = ""
         while True:
             if n <= 0:
                 pos += 4
-                (x,) = q(data, pos)
+                (x,) = q(data, pos)  # type: ignore[arg-type]
                 n += 32
             code = (x >> n) & ((1 << 32) - 1)
 

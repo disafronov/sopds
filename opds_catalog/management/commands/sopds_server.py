@@ -1,6 +1,10 @@
+from __future__ import annotations
+
 import os
 import signal
 import sys
+from argparse import ArgumentParser
+from typing import Any
 
 # from opds_catalog.settings import SERVER_LOG, SERVER_PID
 # from opds_cgit branchtalog import settings
@@ -12,8 +16,11 @@ from django.core.management.base import BaseCommand
 
 class Command(BaseCommand):
     help = "HTTP/OPDS built-in server"
+    pidfile: str = ""
+    addr: str = ""
+    port: int = 0
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: ArgumentParser) -> None:
         parser.add_argument("command", help="Use [ start | stop | restart ]")
         parser.add_argument(
             "--host",
@@ -33,7 +40,7 @@ class Command(BaseCommand):
             help="Daemonize server",
         )
 
-    def handle(self, *args, **options):
+    def handle(self, *args: Any, **options: Any) -> None:
         self.pidfile = os.path.join(main_settings.BASE_DIR, config.SOPDS_SERVER_PID)
         action = options["command"]
         self.addr = options["host"]
@@ -54,24 +61,24 @@ class Command(BaseCommand):
             pid = open(self.pidfile, "r").read()
             self.restart(pid)
 
-    def start(self):
+    def start(self) -> None:
         writepid(self.pidfile)
         call_command(
             "runserver", addrport="%s:%s" % (self.addr, self.port), use_reloader=False
         )
 
-    def stop(self, pid):
+    def stop(self, pid: str) -> None:
         try:
             os.kill(int(pid), signal.SIGTERM)
         except OSError as e:
             self.stdout.write("Error stopping sopds_server: %s" % str(e))
 
-    def restart(self, pid):
+    def restart(self, pid: str) -> None:
         self.stop(pid)
         self.start()
 
 
-def writepid(pid_file):
+def writepid(pid_file: str) -> None:
     """
     Write the process ID to disk.
     """
@@ -80,7 +87,7 @@ def writepid(pid_file):
     fp.close()
 
 
-def daemonize():
+def daemonize() -> None:
     """
     Detach from the terminal and continue as a daemon.
     """
@@ -108,3 +115,4 @@ def daemonize():
     #                raise
     os.close(std_in.fileno())
     os.close(std_out.fileno())
+    return None

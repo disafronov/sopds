@@ -1,8 +1,12 @@
-from typing import Any
+from __future__ import annotations
+
+from typing import Any, cast
 
 from constance import config
+from django.contrib.auth.models import User
 from django.contrib.syndication.views import Feed
 from django.db.models import Count, Min
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.urls import reverse
 from django.utils import timezone
@@ -25,11 +29,19 @@ from opds_catalog.models import (
 )
 from opds_catalog.opds_paginator import Paginator as OPDS_Paginator
 
+# RSS/Atom item payloads built by the Feed subclasses below are plain dicts
+# whose values are heterogeneous (counters, querysets, strings...). Typing
+# them as ``Any`` keeps the syndication layer loose while still enforcing
+# function signatures.
+ItemDict = dict[str, Any]
+# Objects returned by ``get_object`` are heterogeneous too.
+FeedObject = Any
+
 
 class AuthFeed(Feed):
     request: Any = None
 
-    def __call__(self, request, *args, **kwargs):
+    def __call__(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         self.request = request
         if config.SOPDS_AUTH:
             if request.user.is_authenticated:
@@ -45,7 +57,7 @@ class AuthFeed(Feed):
 
 
 class opdsEnclosure(Enclosure):
-    def __init__(self, url, mime_type, rel):
+    def __init__(self, url: str, mime_type: str, rel: str) -> None:
         self.rel = rel
         super(opdsEnclosure, self).__init__(url, 0, mime_type)
 
@@ -54,7 +66,7 @@ class opdsFeed(Atom1Feed):
     # content_type = 'text/xml; charset=utf-8'
     content_type = "application/atom+xml; charset=utf-8"
 
-    def root_attributes(self):
+    def root_attributes(self) -> dict[str, str]:
         attrs = {}
         # attrs = super(opdsFeed, self).root_attributes()
         attrs["xmlns"] = "http://www.w3.org/2005/Atom"
@@ -63,7 +75,7 @@ class opdsFeed(Atom1Feed):
         # attrs['xmlns:opds'] = "http://opds-spec.org/2010/catalog"
         return attrs
 
-    def add_root_elements(self, handler):
+    def add_root_elements(self, handler: Any) -> None:
         handler._short_empty_elements = True
         # super(opdsFeed, self).add_root_elements(handler)
         handler.characters("\n")
@@ -146,7 +158,7 @@ class opdsFeed(Atom1Feed):
             )
             handler.characters("\n")
 
-    def add_item_elements(self, handler, item):
+    def add_item_elements(self, handler: Any, item: ItemDict) -> None:
         disable_item_links = item.get("disable_item_links")
         handler.characters("\n")
         handler.addQuickElement("id", item["unique_id"])
@@ -238,10 +250,10 @@ class MainFeed(AuthFeed):
     title = settings.TITLE
     subtitle = settings.SUBTITLE
 
-    def link(self):
+    def link(self) -> str:
         return reverse("opds_catalog:main")
 
-    def feed_extra_kwargs(self, obj):
+    def feed_extra_kwargs(self, obj: Any) -> dict[str, Any]:
         return {
             "searchTerm_url": "%s%s"
             % (reverse("opds_catalog:opensearch"), "{searchTerms}/"),
@@ -250,7 +262,7 @@ class MainFeed(AuthFeed):
             "description_mime_type": "text",
         }
 
-    def items(self):
+    def items(self) -> Any:
         mainitems = [
             {
                 "id": 1,
@@ -331,31 +343,31 @@ class MainFeed(AuthFeed):
 
         return mainitems
 
-    def item_link(self, item):
+    def item_link(self, item: ItemDict) -> str:
         return reverse(item["link"])
 
-    def item_title(self, item):
-        return item["title"]
+    def item_title(self, item: ItemDict) -> str:
+        return cast(str, item["title"])
 
-    def item_description(self, item):
-        return item["descr"] % item["counters"]
+    def item_description(self, item: ItemDict) -> str:
+        return cast(str, item["descr"] % item["counters"])
 
-    def item_guid(self, item):
+    def item_guid(self, item: ItemDict) -> str:
         return "m:%s" % item["id"]
 
-    def item_updateddate(self):
+    def item_updateddate(self, item: ItemDict | None = None) -> Any:
         return timezone.now()
 
-    def item_enclosures(self, item):
-        return (
+    def item_enclosures(self, item: ItemDict) -> list[Any]:
+        return [
             opdsEnclosure(
                 reverse(item["link"]),
                 "application/atom+xml;profile=opds-catalog;kind=navigation",
                 "subsection",
-            ),
-        )
+            )
+        ]
 
-    def item_extra_kwargs(self, item):
+    def item_extra_kwargs(self, item: ItemDict) -> dict[str, Any]:
         disable_item_links = list(item["counters"].values())[0] == 0
         return {"disable_item_links": disable_item_links}
 
@@ -364,16 +376,24 @@ class CatalogsFeed(AuthFeed):
     feed_type = opdsFeed
     subtitle = settings.SUBTITLE
 
-    def get_object(self, request, cat_id=None, page=1):
-        if not isinstance(page, int):
-            page = int(page)
+    def get_object(
+        self,
+        request: HttpRequest,
+        cat_id: int | None = None,
+        page: int = 1,
+    ) -> tuple[list[ItemDict], Catalog | None, dict[str, Any]]:
         page_num = page if page > 0 else 1
 
+        cat: Catalog | None = None
         try:
             if cat_id is not None:
                 cat = Catalog.objects.get(id=cat_id)
             else:
-                cat = Catalog.objects.get(parent__id=cat_id)
+                # NOTE: when cat_id is None the parent lookup is effectively
+                # "no parent". django-stubs rejects ``None`` for the FK lookup,
+                # so we cast it away; at runtime ``parent__id=None`` matches the
+                # root catalog (parent IS NULL).
+                cat = Catalog.objects.get(parent__id=cast("int", cat_id))
         except Catalog.DoesNotExist:
             cat = None
 
@@ -389,10 +409,10 @@ class CatalogsFeed(AuthFeed):
         op = OPDS_Paginator(
             catalogs_count, books_count, page_num, config.SOPDS_MAXITEMS
         )
-        items = []
+        items: list[ItemDict] = []
 
         for row in catalogs_list[op.d1_first_pos : op.d1_last_pos + 1]:
-            p = {
+            p: ItemDict = {
                 "is_catalog": 1,
                 "title": row.cat_name,
                 "id": row.id,
@@ -401,43 +421,43 @@ class CatalogsFeed(AuthFeed):
             }
             items.append(p)
 
-        for row in books_list[op.d2_first_pos : op.d2_last_pos + 1]:
+        for book_row in books_list[op.d2_first_pos : op.d2_last_pos + 1]:
             p = {
                 "is_catalog": 0,
-                "lang_code": row.lang_code,
-                "filename": row.filename,
-                "path": row.path,
-                "registerdate": row.registerdate,
-                "id": row.id,
-                "annotation": strip_tags(row.annotation),
-                "docdate": row.docdate,
-                "format": row.format,
-                "title": row.title,
-                "filesize": row.filesize // 1000,
-                "authors": row.authors.values(),
-                "genres": row.genres.values(),
-                "series": row.series.values(),
-                "ser_no": row.bseries_set.values("ser_no"),
+                "lang_code": book_row.lang_code,
+                "filename": book_row.filename,
+                "path": book_row.path,
+                "registerdate": book_row.registerdate,
+                "id": book_row.id,
+                "annotation": strip_tags(book_row.annotation),
+                "docdate": book_row.docdate,
+                "format": book_row.format,
+                "title": book_row.title,
+                "filesize": book_row.filesize // 1000,
+                "authors": book_row.authors.values(),
+                "genres": book_row.genres.values(),
+                "series": book_row.series.values(),
+                "ser_no": book_row.bseries_set.values("ser_no"),
             }
             items.append(p)
 
         return items, cat, op.get_data_dict()
 
-    def title(self, obj):
+    def title(self, obj: Any) -> str:
         items, cat, paginator = obj
         if cat.parent:
             return "%s | %s | %s" % (settings.TITLE, _("By catalogs"), cat.path)
         else:
             return "%s | %s" % (settings.TITLE, _("By catalogs"))
 
-    def link(self, obj):
+    def link(self, obj: Any) -> str:
         items, cat, paginator = obj
         return reverse(
             "opds_catalog:cat_page",
             kwargs={"cat_id": cat.id, "page": paginator["number"]},
         )
 
-    def feed_extra_kwargs(self, obj):
+    def feed_extra_kwargs(self, obj: Any) -> dict[str, Any]:
         items, cat, paginator = obj
         start_url = reverse("opds_catalog:main")
         if paginator["has_previous"]:
@@ -464,18 +484,18 @@ class CatalogsFeed(AuthFeed):
             "next_url": next_url,
         }
 
-    def items(self, obj):
+    def items(self, obj: Any) -> Any:
         items, cat, paginator = obj
         return items
 
-    def item_title(self, item):
-        return item["title"]
+    def item_title(self, item: ItemDict) -> str:
+        return cast(str, item["title"])
 
-    def item_guid(self, item):
+    def item_guid(self, item: ItemDict) -> str:
         gp = "c:" if item["is_catalog"] else "b:"
         return "%s%s" % (gp, item["id"])
 
-    def item_link(self, item):
+    def item_link(self, item: ItemDict) -> str:
         if item["is_catalog"]:
             return reverse("opds_catalog:cat_tree", kwargs={"cat_id": item["id"]})
         else:
@@ -483,15 +503,15 @@ class CatalogsFeed(AuthFeed):
                 "opds_catalog:download", kwargs={"book_id": item["id"], "zip_flag": 0}
             )
 
-    def item_enclosures(self, item):
+    def item_enclosures(self, item: ItemDict) -> list[Any]:
         if item["is_catalog"]:
-            return (
+            return [
                 opdsEnclosure(
                     reverse("opds_catalog:cat_tree", kwargs={"cat_id": item["id"]}),
                     "application/atom+xml;profile=opds-catalog;kind=navigation",
                     "subsection",
-                ),
-            )
+                )
+            ]
         else:
             mime = mime_detector.fmt(item["format"])
             enclosure = [
@@ -553,9 +573,9 @@ class CatalogsFeed(AuthFeed):
 
             return enclosure
 
-    def item_description(self, item):
+    def item_description(self, item: ItemDict) -> str:
         if item["is_catalog"]:
-            return item["title"]
+            return cast(str, item["title"])
         else:
             s = "<b> Book name: </b>%(title)s<br/>"
             if item["authors"]:
@@ -584,7 +604,7 @@ class CatalogsFeed(AuthFeed):
             }
 
 
-def OpenSearch(request):
+def OpenSearch(request: HttpRequest) -> HttpResponse:
     """
     Выводим шаблон поиска
     """
@@ -595,13 +615,13 @@ class SearchTypesFeed(AuthFeed):
     feed_type = opdsFeed
     subtitle = settings.SUBTITLE
 
-    def get_object(self, request, searchterms=""):
+    def get_object(self, request: HttpRequest, searchterms: str = "") -> Any:
         return searchterms.replace("+", " ")
 
-    def link(self, obj):
+    def link(self, obj: Any) -> str:
         return "%s%s" % (reverse("opds_catalog:opensearch"), "{searchTerms}/")
 
-    def feed_extra_kwargs(self, obj):
+    def feed_extra_kwargs(self, obj: Any) -> dict[str, Any]:
         return {
             "searchTerm_url": "%s%s"
             % (reverse("opds_catalog:opensearch"), "{searchTerms}/"),
@@ -609,7 +629,7 @@ class SearchTypesFeed(AuthFeed):
             "description_mime_type": "text",
         }
 
-    def items(self, obj):
+    def items(self, obj: Any) -> Any:
         return [
             {
                 "id": 1,
@@ -631,7 +651,7 @@ class SearchTypesFeed(AuthFeed):
             },
         ]
 
-    def item_link(self, item):
+    def item_link(self, item: ItemDict) -> str:
         if item["id"] == 1:
             return reverse(
                 "opds_catalog:searchbooks",
@@ -647,35 +667,35 @@ class SearchTypesFeed(AuthFeed):
                 "opds_catalog:searchseries",
                 kwargs={"searchtype": "m", "searchterms": item["term"]},
             )
-        return None
+        return ""
 
-    def item_title(self, item):
-        return item["title"]
+    def item_title(self, item: ItemDict) -> str:
+        return cast(str, item["title"])
 
-    def item_description(self, item):
-        return item["descr"]
+    def item_description(self, item: ItemDict) -> str:
+        return cast(str, item["descr"])
 
-    def item_guid(self, item):
+    def item_guid(self, item: ItemDict) -> str:
         return "st:%s" % item["id"]
 
-    def item_updateddate(self):
+    def item_updateddate(self, item: ItemDict | None = None) -> Any:
         return timezone.now()
 
-    def item_enclosures(self, item):
-        return (
+    def item_enclosures(self, item: ItemDict) -> list[Any]:
+        return [
             opdsEnclosure(
                 self.item_link(item),
                 "application/atom+xml;profile=opds-catalog;kind=navigation",
                 "subsection",
-            ),
-        )
+            )
+        ]
 
 
 class SearchBooksFeed(AuthFeed):
     feed_type = opdsFeed
     subtitle = settings.SUBTITLE
 
-    def title(self, obj):
+    def title(self, obj: Any) -> str:
         return "%s | %s (%s)" % (
             settings.TITLE,
             _("Books found"),
@@ -683,10 +703,13 @@ class SearchBooksFeed(AuthFeed):
         )
 
     def get_object(
-        self, request, searchtype="m", searchterms=None, searchterms0=None, page=1
-    ):
-        if not isinstance(page, int):
-            page = int(page)
+        self,
+        request: HttpRequest,
+        searchtype: str = "m",
+        searchterms: str | None = None,
+        searchterms0: str | None = None,
+        page: int = 1,
+    ) -> Any:
         page_num = page if page > 0 else 1
 
         # Поиск книг по подсроке
@@ -694,26 +717,26 @@ class SearchBooksFeed(AuthFeed):
             # books = Book.objects.extra(where=["upper(title) like %s"],
             #     params=["%%%s%%"%searchterms.upper()]).order_by('title','-docdate')
             books = Book.objects.filter(
-                search_title__contains=searchterms.upper()
+                search_title__contains=(searchterms or "").upper()
             ).order_by("search_title", "-docdate")
         # Поиск книг по начальной подстроке
         elif searchtype == "b":
             # books = Book.objects.extra(where=["upper(title) like %s"],
             #     params=["%s%%"%searchterms.upper()]).order_by('title','-docdate')
             books = Book.objects.filter(
-                search_title__startswith=searchterms.upper()
+                search_title__startswith=(searchterms or "").upper()
             ).order_by("search_title", "-docdate")
         # Поиск книг по точному совпадению наименования
         elif searchtype == "e":
             # books = Book.objects.extra(where=["upper(title)=%s"],
             #     params=["%s"%searchterms.upper()]).order_by('title','-docdate')
-            books = Book.objects.filter(search_title=searchterms.upper()).order_by(
-                "search_title", "-docdate"
-            )
+            books = Book.objects.filter(
+                search_title=(searchterms or "").upper()
+            ).order_by("search_title", "-docdate")
         # Поиск книг по автору
         elif searchtype == "a":
             try:
-                author_id = int(searchterms)
+                author_id = int(searchterms or "")
             except Exception:
                 author_id = 0
             books = Book.objects.filter(authors=author_id).order_by(
@@ -722,7 +745,7 @@ class SearchBooksFeed(AuthFeed):
         # Поиск книг по серии
         elif searchtype == "s":
             try:
-                ser_id = int(searchterms)
+                ser_id = int(searchterms or "")
             except Exception:
                 ser_id = 0
             # books = Book.objects.filter(series=ser_id).order_by(
@@ -733,8 +756,8 @@ class SearchBooksFeed(AuthFeed):
         # Поиск книг по автору и серии
         elif searchtype == "as":
             try:
-                ser_id = int(searchterms0)
-                author_id = int(searchterms)
+                ser_id = int(searchterms0 or "")
+                author_id = int(searchterms or "")
             except Exception:
                 ser_id = 0
                 author_id = 0
@@ -744,7 +767,7 @@ class SearchBooksFeed(AuthFeed):
         # Поиск книг по жанру
         elif searchtype == "g":
             try:
-                genre_id = int(searchterms)
+                genre_id = int(searchterms or "")
             except Exception:
                 genre_id = 0
             books = Book.objects.filter(genres=genre_id).order_by(
@@ -753,14 +776,14 @@ class SearchBooksFeed(AuthFeed):
         # Поиск книг на книжной полке
         elif searchtype == "u":
             if config.SOPDS_AUTH:
-                books = Book.objects.filter(bookshelf__user=request.user).order_by(
-                    "-bookshelf__readtime"
-                )
+                books = Book.objects.filter(
+                    bookshelf__user=cast("User", request.user)
+                ).order_by("-bookshelf__readtime")
             else:
                 books = Book.objects.filter(id=0)
         # Поиск дубликатов для книги
         elif searchtype == "d":
-            book_id = int(searchterms)
+            book_id = int(searchterms or "")
             mbook = Book.objects.get(id=book_id)
             books = (
                 Book.objects.filter(
@@ -795,7 +818,7 @@ class SearchBooksFeed(AuthFeed):
         finish = op.d1_last_pos
 
         for row in books[start : finish + 1]:
-            p = {
+            p: ItemDict = {
                 "doubles": 0,
                 "lang_code": row.lang_code,
                 "filename": row.filename,
@@ -854,16 +877,16 @@ class SearchBooksFeed(AuthFeed):
             "paginator": op.get_data_dict(),
         }
 
-    def get_link_kwargs(self, obj):
+    def get_link_kwargs(self, obj: Any) -> dict[str, Any]:
         kwargs = {"searchtype": obj["searchtype"], "searchterms": obj["searchterms"]}
         if obj.get("searchterms0") is not None:
             kwargs["searchterms0"] = obj["searchterms0"]
         return kwargs
 
-    def link(self, obj):
+    def link(self, obj: Any) -> str:
         return reverse("opds_catalog:searchbooks", kwargs=self.get_link_kwargs(obj))
 
-    def feed_extra_kwargs(self, obj):
+    def feed_extra_kwargs(self, obj: Any) -> dict[str, Any]:
         kwargs = self.get_link_kwargs(obj)
         if obj["paginator"]["has_previous"]:
             kwargs["page"] = obj["paginator"]["previous_page_number"]
@@ -885,24 +908,24 @@ class SearchBooksFeed(AuthFeed):
             "next_url": next_url,
         }
 
-    def items(self, obj):
+    def items(self, obj: Any) -> Any:
         return obj["books"]
 
-    def item_title(self, item):
-        return item["title"]
+    def item_title(self, item: ItemDict) -> str:
+        return cast(str, item["title"])
 
-    def item_guid(self, item):
+    def item_guid(self, item: ItemDict) -> str:
         return "b:%s" % (item["id"])
 
-    def item_link(self, item):
+    def item_link(self, item: ItemDict) -> str:
         return reverse(
             "opds_catalog:download", kwargs={"book_id": item["id"], "zip_flag": 0}
         )
 
-    def item_updateddate(self, item):
-        return item["registerdate"]
+    def item_updateddate(self, item: ItemDict) -> Any:
+        return cast(str, item["registerdate"])
 
-    def item_enclosures(self, item):
+    def item_enclosures(self, item: ItemDict) -> list[Any]:
         mime = mime_detector.fmt(item["format"])
         enclosure = [
             opdsEnclosure(
@@ -963,14 +986,14 @@ class SearchBooksFeed(AuthFeed):
 
         return enclosure
 
-    def item_extra_kwargs(self, item):
+    def item_extra_kwargs(self, item: ItemDict) -> dict[str, Any]:
         return {
             "authors": item["authors"],
             "genres": item["genres"],
             "doubles": item["id"] if item["doubles"] > 0 else None,
         }
 
-    def item_description(self, item):
+    def item_description(self, item: ItemDict) -> str:
         s = "<b> Book name: </b>%(title)s<br/>"
         if item["authors"]:
             s += _("<b>Authors: </b>%(authors)s<br/>")
@@ -1005,22 +1028,24 @@ class SelectSeriesFeed(AuthFeed):
     feed_type = opdsFeed
     subtitle = settings.SUBTITLE
 
-    def title(self, obj):
+    def title(self, obj: Any) -> str:
         return "%s | %s" % (settings.TITLE, _("Series by authors select"))
 
-    def get_object(self, request, searchtype, searchterms):
+    def get_object(
+        self, request: HttpRequest, searchtype: str, searchterms: str
+    ) -> Any:
         try:
-            author_id = int(searchterms)
+            author_id = int(searchterms or "")
         except Exception:
             author_id = 0
         return author_id
 
-    def link(self, obj):
+    def link(self, obj: Any) -> str:
         return reverse(
             "opds_catalog:searchbooks", kwargs={"searchtype": "as", "searchterms": obj}
         )
 
-    def feed_extra_kwargs(self, obj):
+    def feed_extra_kwargs(self, obj: Any) -> dict[str, Any]:
         return {
             "searchTerm_url": "%s%s"
             % (reverse("opds_catalog:opensearch"), "{searchTerms}/"),
@@ -1028,7 +1053,7 @@ class SelectSeriesFeed(AuthFeed):
             "description_mime_type": "text",
         }
 
-    def items(self, obj):
+    def items(self, obj: Any) -> Any:
         return [
             {
                 "id": 1,
@@ -1050,7 +1075,7 @@ class SelectSeriesFeed(AuthFeed):
             },
         ]
 
-    def item_link(self, item):
+    def item_link(self, item: ItemDict) -> str:
         if item["id"] == 1:
             return reverse(
                 "opds_catalog:searchseries",
@@ -1070,39 +1095,40 @@ class SelectSeriesFeed(AuthFeed):
                 "opds_catalog:searchbooks",
                 kwargs={"searchtype": "a", "searchterms": item["author"]},
             )
+        return ""
 
-    def item_title(self, item):
-        return item["title"]
+    def item_title(self, item: ItemDict) -> str:
+        return cast(str, item["title"])
 
-    def item_description(self, item):
-        return item["descr"]
+    def item_description(self, item: ItemDict) -> str:
+        return cast(str, item["descr"])
 
-    def item_guid(self, item):
+    def item_guid(self, item: ItemDict) -> str:
         return "as:%s" % item["id"]
 
-    def item_updateddate(self):
+    def item_updateddate(self, item: ItemDict | None = None) -> Any:
         return timezone.now()
 
-    def item_enclosures(self, item):
-        return (
+    def item_enclosures(self, item: ItemDict) -> list[Any]:
+        return [
             opdsEnclosure(
                 self.item_link(item),
                 "application/atom+xml;profile=opds-catalog;kind=navigation",
                 "subsection",
-            ),
-        )
+            )
+        ]
 
 
 class SearchAuthorsFeed(AuthFeed):
     feed_type = opdsFeed
     subtitle = settings.SUBTITLE
 
-    def title(self, obj):
+    def title(self, obj: Any) -> str:
         return "%s | %s" % (settings.TITLE, _("Authors found"))
 
-    def get_object(self, request, searchterms, searchtype, page=1):
-        if not isinstance(page, int):
-            page = int(page)
+    def get_object(
+        self, request: HttpRequest, searchterms: str, searchtype: str, page: int = 1
+    ) -> Any:
         page_num = page if page > 0 else 1
 
         if searchtype == "m":
@@ -1139,13 +1165,13 @@ class SearchAuthorsFeed(AuthFeed):
             "paginator": op.get_data_dict(),
         }
 
-    def link(self, obj):
+    def link(self, obj: Any) -> str:
         return reverse(
             "opds_catalog:searchauthors",
             kwargs={"searchtype": obj["searchtype"], "searchterms": obj["searchterms"]},
         )
 
-    def feed_extra_kwargs(self, obj):
+    def feed_extra_kwargs(self, obj: Any) -> dict[str, Any]:
         if obj["paginator"]["has_previous"]:
             prev_url = reverse(
                 "opds_catalog:searchauthors",
@@ -1178,45 +1204,45 @@ class SearchAuthorsFeed(AuthFeed):
             "next_url": next_url,
         }
 
-    def items(self, obj):
+    def items(self, obj: Any) -> Any:
         return obj["authors"]
 
-    def item_title(self, item):
-        return item["full_name"]
+    def item_title(self, item: ItemDict) -> str:
+        return cast(str, item["full_name"])
 
-    def item_description(self, item):
+    def item_description(self, item: ItemDict) -> str:
         return _("Books count: %s") % (Book.objects.filter(authors=item["id"]).count())
 
-    def item_guid(self, item):
+    def item_guid(self, item: ItemDict) -> str:
         return "a:%s" % (item["id"])
 
-    def item_link(self, item):
+    def item_link(self, item: ItemDict) -> str:
         return reverse(
             "opds_catalog:searchbooks",
             kwargs={"searchtype": "as", "searchterms": item["id"]},
         )
 
-    def item_enclosures(self, item):
-        return (
+    def item_enclosures(self, item: ItemDict) -> list[Any]:
+        return [
             opdsEnclosure(
                 self.item_link(item),
                 "application/atom+xml;profile=opds-catalog;kind=navigation",
                 "subsection",
-            ),
-        )
+            )
+        ]
 
 
 class SearchSeriesFeed(AuthFeed):
     feed_type = opdsFeed
     subtitle = settings.SUBTITLE
 
-    def title(self, obj):
+    def title(self, obj: Any) -> str:
         return "%s | %s" % (settings.TITLE, _("Series found"))
 
-    def get_object(self, request, searchterms, searchtype, page=1):
+    def get_object(
+        self, request: HttpRequest, searchterms: str, searchtype: str, page: int = 1
+    ) -> Any:
         self.author_id = None
-        if not isinstance(page, int):
-            page = int(page)
         page_num = page if page > 0 else 1
 
         if searchtype == "m":
@@ -1227,7 +1253,7 @@ class SearchSeriesFeed(AuthFeed):
             series = Series.objects.filter(search_ser=searchterms.upper())
         elif searchtype == "a":
             try:
-                self.author_id = int(searchterms)
+                self.author_id = int(searchterms or "")
             except Exception:
                 self.author_id = None
             series = Series.objects.filter(book__authors=self.author_id)
@@ -1257,13 +1283,13 @@ class SearchSeriesFeed(AuthFeed):
             "paginator": op.get_data_dict(),
         }
 
-    def link(self, obj):
+    def link(self, obj: Any) -> str:
         return reverse(
             "opds_catalog:searchseries",
             kwargs={"searchtype": obj["searchtype"], "searchterms": obj["searchterms"]},
         )
 
-    def feed_extra_kwargs(self, obj):
+    def feed_extra_kwargs(self, obj: Any) -> dict[str, Any]:
         if obj["paginator"]["has_previous"]:
             prev_url = reverse(
                 "opds_catalog:searchseries",
@@ -1296,19 +1322,19 @@ class SearchSeriesFeed(AuthFeed):
             "next_url": next_url,
         }
 
-    def items(self, obj):
+    def items(self, obj: Any) -> Any:
         return obj["series"]
 
-    def item_title(self, item):
+    def item_title(self, item: ItemDict) -> str:
         return "%s" % (item["ser"])
 
-    def item_description(self, item):
-        return _("Books count: %s") % item["book_count"]
+    def item_description(self, item: ItemDict) -> str:
+        return cast(str, _("Books count: %s") % item["book_count"])
 
-    def item_guid(self, item):
+    def item_guid(self, item: ItemDict) -> str:
         return "a:%s" % item["id"]
 
-    def item_link(self, item):
+    def item_link(self, item: ItemDict) -> str:
         if self.author_id:
             kwargs = {
                 "searchtype": "as",
@@ -1320,27 +1346,27 @@ class SearchSeriesFeed(AuthFeed):
 
         return reverse("opds_catalog:searchbooks", kwargs=kwargs)
 
-    def item_enclosures(self, item):
-        return (
+    def item_enclosures(self, item: ItemDict) -> list[Any]:
+        return [
             opdsEnclosure(
                 self.item_link(item),
                 "application/atom+xml;profile=opds-catalog;kind=navigation",
                 "subsection",
-            ),
-        )
+            )
+        ]
 
 
 class LangFeed(AuthFeed):
     feed_type = opdsFeed
     subtitle = settings.SUBTITLE
 
-    def link(self, obj):
-        return self.request.path
+    def link(self, obj: Any) -> str:
+        return cast(str, self.request.path)
 
-    def title(self, obj):
+    def title(self, obj: Any) -> str:
         return "%s | %s" % (settings.TITLE, _("Select language"))
 
-    def feed_extra_kwargs(self, obj):
+    def feed_extra_kwargs(self, obj: Any) -> dict[str, Any]:
         return {
             "searchTerm_url": "%s%s"
             % (reverse("opds_catalog:opensearch"), "{searchTerms}/"),
@@ -1348,7 +1374,7 @@ class LangFeed(AuthFeed):
             "description_mime_type": "text",
         }
 
-    def items(self):
+    def items(self) -> Any:
         # TODO: переделать, используя словарь lang_codes
         langitems = [
             {"id": 1, "title": _("Cyrillic")},
@@ -1359,42 +1385,42 @@ class LangFeed(AuthFeed):
         ]
         return langitems
 
-    def item_link(self, item):
-        return self.request.path + str(item["id"]) + "/"
+    def item_link(self, item: ItemDict) -> str:
+        return cast(str, self.request.path + str(item["id"]) + "/")
 
-    def item_title(self, item):
-        return item["title"]
+    def item_title(self, item: ItemDict) -> str:
+        return cast(str, item["title"])
 
-    def item_description(self, item):
+    def item_description(self, item: ItemDict) -> str | None:  # type: ignore[override]
         return None
 
-    def item_guid(self, item):
+    def item_guid(self, item: ItemDict) -> str:
         return "l:%s" % item["id"]
 
-    def item_updateddate(self):
+    def item_updateddate(self, item: ItemDict | None = None) -> Any:
         return timezone.now()
 
-    def item_enclosures(self, item):
-        return (
+    def item_enclosures(self, item: ItemDict) -> list[Any]:
+        return [
             opdsEnclosure(
                 self.item_link(item),
                 "application/atom+xml;profile=opds-catalog;kind=navigation",
                 "subsection",
-            ),
-        )
+            )
+        ]
 
 
 class BooksFeed(AuthFeed):
     feed_type = opdsFeed
     subtitle = settings.SUBTITLE
 
-    def link(self, obj):
-        return self.request.path
+    def link(self, obj: Any) -> str:
+        return cast(str, self.request.path)
 
-    def title(self, obj):
+    def title(self, obj: Any) -> str:
         return "%s | %s" % (settings.TITLE, _("Select books by substring"))
 
-    def feed_extra_kwargs(self, obj):
+    def feed_extra_kwargs(self, obj: Any) -> dict[str, Any]:
         return {
             "searchTerm_url": "%s%s"
             % (reverse("opds_catalog:opensearch"), "{searchTerms}/"),
@@ -1402,13 +1428,15 @@ class BooksFeed(AuthFeed):
             "description_mime_type": "text",
         }
 
-    def get_object(self, request, lang_code=0, chars=None):
+    def get_object(
+        self, request: HttpRequest, lang_code: int = 0, chars: str | None = None
+    ) -> Any:
         self.lang_code = int(lang_code)
         if chars is None:
             chars = ""
         return (len(chars) + 1, chars.upper())
 
-    def items(self, obj):
+    def items(self, obj: Any) -> Any:
         length, chars = obj
         if self.lang_code:
             sql = """select %(length)s as l,
@@ -1435,13 +1463,13 @@ class BooksFeed(AuthFeed):
         dataset = Book.objects.raw(sql)
         return dataset
 
-    def item_title(self, item):
+    def item_title(self, item: Any) -> str:
         return "%s" % item.id
 
-    def item_description(self, item):
-        return _("Found: %s books") % item.cnt
+    def item_description(self, item: Any) -> str:
+        return cast(str, _("Found: %s books") % item.cnt)
 
-    def item_link(self, item):
+    def item_link(self, item: Any) -> str:
         title_full = len(item.id) < item.l
         if item.cnt >= config.SOPDS_SPLITITEMS and not title_full:
             return reverse(
@@ -1457,27 +1485,27 @@ class BooksFeed(AuthFeed):
                 },
             )
 
-    def item_enclosures(self, item):
-        return (
+    def item_enclosures(self, item: Any) -> list[Any]:
+        return [
             opdsEnclosure(
                 self.item_link(item),
                 "application/atom+xml;profile=opds-catalog;kind=navigation",
                 "subsection",
-            ),
-        )
+            )
+        ]
 
 
 class AuthorsFeed(AuthFeed):
     feed_type = opdsFeed
     subtitle = settings.SUBTITLE
 
-    def link(self, obj):
-        return self.request.path
+    def link(self, obj: Any) -> str:
+        return cast(str, self.request.path)
 
-    def title(self, obj):
+    def title(self, obj: Any) -> str:
         return "%s | %s" % (settings.TITLE, _("Select authors by substring"))
 
-    def feed_extra_kwargs(self, obj):
+    def feed_extra_kwargs(self, obj: Any) -> dict[str, Any]:
         return {
             "searchTerm_url": "%s%s"
             % (reverse("opds_catalog:opensearch"), "{searchTerms}/"),
@@ -1485,13 +1513,15 @@ class AuthorsFeed(AuthFeed):
             "description_mime_type": "text",
         }
 
-    def get_object(self, request, lang_code=0, chars=None):
+    def get_object(
+        self, request: HttpRequest, lang_code: int = 0, chars: str | None = None
+    ) -> Any:
         self.lang_code = int(lang_code)
         if chars is None:
             chars = ""
         return (len(chars) + 1, chars.upper())
 
-    def items(self, obj):
+    def items(self, obj: Any) -> Any:
         length, chars = obj
         if self.lang_code:
             sql = """select %(length)s as l,
@@ -1521,13 +1551,13 @@ class AuthorsFeed(AuthFeed):
         dataset = Author.objects.raw(sql)
         return dataset
 
-    def item_title(self, item):
+    def item_title(self, item: Any) -> str:
         return "%s" % item.id
 
-    def item_description(self, item):
-        return _("Found: %s authors") % item.cnt
+    def item_description(self, item: Any) -> str:
+        return cast(str, _("Found: %s authors") % item.cnt)
 
-    def item_link(self, item):
+    def item_link(self, item: Any) -> str:
         last_name_full = len(item.id) < item.l
         if (item.cnt >= config.SOPDS_SPLITITEMS) and not last_name_full:
             return reverse(
@@ -1543,27 +1573,27 @@ class AuthorsFeed(AuthFeed):
                 },
             )
 
-    def item_enclosures(self, item):
-        return (
+    def item_enclosures(self, item: Any) -> list[Any]:
+        return [
             opdsEnclosure(
                 self.item_link(item),
                 "application/atom+xml;profile=opds-catalog;kind=navigation",
                 "subsection",
-            ),
-        )
+            )
+        ]
 
 
 class SeriesFeed(AuthFeed):
     feed_type = opdsFeed
     subtitle = settings.SUBTITLE
 
-    def link(self, obj):
-        return self.request.path
+    def link(self, obj: Any) -> str:
+        return cast(str, self.request.path)
 
-    def title(self, obj):
+    def title(self, obj: Any) -> str:
         return "%s | %s" % (settings.TITLE, _("Select series by substring"))
 
-    def feed_extra_kwargs(self, obj):
+    def feed_extra_kwargs(self, obj: Any) -> dict[str, Any]:
         return {
             "searchTerm_url": "%s%s"
             % (reverse("opds_catalog:opensearch"), "{searchTerms}/"),
@@ -1571,13 +1601,15 @@ class SeriesFeed(AuthFeed):
             "description_mime_type": "text",
         }
 
-    def get_object(self, request, lang_code=0, chars=None):
+    def get_object(
+        self, request: HttpRequest, lang_code: int = 0, chars: str | None = None
+    ) -> Any:
         self.lang_code = int(lang_code)
         if chars is None:
             chars = ""
         return (len(chars) + 1, chars.upper())
 
-    def items(self, obj):
+    def items(self, obj: Any) -> Any:
         length, chars = obj
         if self.lang_code:
             sql = """select %(length)s as l,
@@ -1604,13 +1636,13 @@ class SeriesFeed(AuthFeed):
         dataset = Series.objects.raw(sql)
         return dataset
 
-    def item_title(self, item):
+    def item_title(self, item: Any) -> str:
         return "%s" % item.id
 
-    def item_description(self, item):
-        return _("Found: %s series") % item.cnt
+    def item_description(self, item: Any) -> str:
+        return cast(str, _("Found: %s series") % item.cnt)
 
-    def item_link(self, item):
+    def item_link(self, item: Any) -> str:
         series_full = len(item.id) < item.l
         if item.cnt >= config.SOPDS_SPLITITEMS and not series_full:
             return reverse(
@@ -1626,30 +1658,30 @@ class SeriesFeed(AuthFeed):
                 },
             )
 
-    def item_enclosures(self, item):
-        return (
+    def item_enclosures(self, item: Any) -> list[Any]:
+        return [
             opdsEnclosure(
                 self.item_link(item),
                 "application/atom+xml;profile=opds-catalog;kind=navigation",
                 "subsection",
-            ),
-        )
+            )
+        ]
 
 
 class GenresFeed(AuthFeed):
     feed_type = opdsFeed
     subtitle = settings.SUBTITLE
 
-    def link(self, obj):
-        return self.request.path
+    def link(self, obj: Any) -> str:
+        return cast(str, self.request.path)
 
-    def title(self, obj):
+    def title(self, obj: Any) -> str:
         return "%s | %s" % (
             settings.TITLE,
             _("Select genres (%s)") % (_("section") if obj == 0 else _("subsection")),
         )
 
-    def feed_extra_kwargs(self, obj):
+    def feed_extra_kwargs(self, obj: Any) -> dict[str, Any]:
         return {
             "searchTerm_url": "%s%s"
             % (reverse("opds_catalog:opensearch"), "{searchTerms}/"),
@@ -1657,15 +1689,15 @@ class GenresFeed(AuthFeed):
             "description_mime_type": "text",
         }
 
-    def get_object(self, request, section=0):
-        if not isinstance(section, int):
-            self.section_id = int(section)
-        else:
-            self.section_id = section
+    def get_object(self, request: HttpRequest, section: int = 0) -> Any:
+        self.section_id = section
         return self.section_id
 
-    def items(self, obj):
+    def items(self, obj: Any) -> Any:
         section_id = obj
+        # The two branches produce differently-annotated QuerySets; we keep the
+        # result loose since items are consumed positionally via dict access.
+        dataset: Any
         if section_id == 0:
             dataset = (
                 Genre.objects.values("section")
@@ -1684,13 +1716,13 @@ class GenresFeed(AuthFeed):
             )
         return dataset
 
-    def item_title(self, item):
+    def item_title(self, item: Any) -> str:
         return "%s" % (item["section"] if self.section_id == 0 else item["subsection"])
 
-    def item_description(self, item):
-        return _("Found: %s books") % item["num_book"]
+    def item_description(self, item: Any) -> str:
+        return cast(str, _("Found: %s books") % item["num_book"])
 
-    def item_link(self, item):
+    def item_link(self, item: Any) -> str:
         if self.section_id == 0:
             return reverse(
                 "opds_catalog:genres", kwargs={"section": item["section_id"]}
@@ -1701,11 +1733,11 @@ class GenresFeed(AuthFeed):
                 kwargs={"searchtype": "g", "searchterms": item["id"]},
             )
 
-    def item_enclosures(self, item):
-        return (
+    def item_enclosures(self, item: Any) -> list[Any]:
+        return [
             opdsEnclosure(
                 self.item_link(item),
                 "application/atom+xml;profile=opds-catalog;kind=navigation",
                 "subsection",
-            ),
-        )
+            )
+        ]
