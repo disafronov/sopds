@@ -1,7 +1,7 @@
 import os
 import shutil
 import zipfile
-from tempfile import mktemp
+from tempfile import mkstemp
 from urllib.parse import unquote
 
 from lxml import etree
@@ -474,7 +474,8 @@ class EPub(BookFile):
 
         self.__zip_file.extractall(path=working_dir)
 
-        new_epub = mktemp(dir=working_dir)
+        fd, new_epub = mkstemp(dir=working_dir)
+        os.close(fd)
         with zipfile.ZipFile(new_epub, "w", zipfile.ZIP_DEFLATED) as zip_file:
             zip_file.writestr(EPub.Entry.MIMETYPE, Mimetype.EPUB, zipfile.ZIP_STORED)
             encrypted_files = []
@@ -503,7 +504,8 @@ class EPub(BookFile):
     def repair(self, working_dir):
         self.__zip_file.extractall(path=working_dir)
 
-        new_epub = mktemp(dir=working_dir)
+        fd, new_epub = mkstemp(dir=working_dir)
+        os.close(fd)
         with zipfile.ZipFile(new_epub, "w", zipfile.ZIP_DEFLATED) as zip_file:
             zip_file.writestr(EPub.Entry.MIMETYPE, Mimetype.EPUB, zipfile.ZIP_STORED)
             for entry in [

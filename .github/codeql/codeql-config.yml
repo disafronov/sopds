@@ -1,0 +1,14 @@
+# CodeQL configuration for sopds.
+#
+# Vendored third-party JavaScript assets (Foundation, jQuery, Django admin
+# widgets, and the django-constance bundled JS) are pinned to upstream
+# releases and must NOT be hand-patched here. Their CodeQL findings
+# (js/redos, js/insecure-randomness, js/unsafe-html-expansion,
+# js/incomplete-sanitization) are suppressed below and should be resolved
+# upstream (library upgrade) instead.
+paths-ignore:
+  - "static/js/vendor/**"
+  - "sopds_web_backend/static/js/vendor/**"
+  - "static/admin/js/vendor/**"
+  - "static/admin/js/admin/DateTimeShortcuts.js"
+  - "constance/static/admin/js/constance.js"
