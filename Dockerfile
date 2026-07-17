@@ -47,7 +47,7 @@ RUN --mount=from=uv,source=/uv,target=/bin/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     --mount=type=bind,source=.python-version,target=.python-version \
-    uv sync --frozen --no-install-project --link-mode=copy --no-editable --group docker
+    uv sync --frozen --no-install-project --link-mode=copy --no-editable
 
 # Copy the project into the image — no src/, files are at root.
 COPY --chown=ubuntu:ubuntu \
@@ -58,28 +58,30 @@ RUN --mount=from=uv,source=/uv,target=/bin/uv \
     --mount=type=cache,target=/home/ubuntu/.cache/uv,uid=1000,gid=1000 \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --frozen --link-mode=copy --no-editable --group docker
+    uv sync --frozen --link-mode=copy --no-editable
 
 ##########################
 
 FROM base AS runtime
 
 # Copy venv and app files from builder stage.
-COPY --from=builder /home/ubuntu/.local/.venv/ /home/ubuntu/.local/.venv/
-COPY --from=builder /home/ubuntu/app/ /home/ubuntu/app/
+COPY --chown=ubuntu:ubuntu --from=builder /home/ubuntu/.local/.venv/ /home/ubuntu/.local/.venv/
+COPY --chown=ubuntu:ubuntu --from=builder /home/ubuntu/app/ /home/ubuntu/app/
 
 WORKDIR /home/ubuntu/app
 
+ENV GUNICORN_CMD_ARGS="--bind 0.0.0.0:8000 --workers 2 --timeout 120 --access-logfile - --error-logfile -"
+
+# Collect static assets for whitenoise to serve in production.
+RUN DJANGO_SECRET_KEY=unsafe-secret-key-for-tooling \
+    DJANGO_DEBUG=False \
+    python3 manage.py collectstatic --noinput
+
 EXPOSE 8000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-    CMD ["python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000', timeout=3).read()"]
-
-# sopds orchestrates startup via entrypoint.sh (runs migrate, superuser, server/scanner).
-COPY --chown=ubuntu:ubuntu entrypoint.sh /home/ubuntu/app/entrypoint.sh
-RUN chmod a+x /home/ubuntu/app/entrypoint.sh
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 CMD ["python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/readiness/', timeout=3).read()"]
 
 VOLUME ["/books"]
-ENTRYPOINT ["/home/ubuntu/app/entrypoint.sh"]
-CMD ["help"]
+ENTRYPOINT ["python3", "manage.py"]
+CMD ["start"]
 USER ubuntu:ubuntu
