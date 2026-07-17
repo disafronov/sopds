@@ -10,7 +10,7 @@ authors = [
 dependencies = [
     "Django>=5.2,<5.3",
     "django-constance>=4.2,<5",
-    "Pillow>=10.0.0,<11",
+    "Pillow>=12.0.0,<13",
     "apscheduler>=3.11.2,<4",
     "lxml>=5.0.0,<7",
     "python-telegram-bot>=20.0,<23",
@@ -33,7 +33,6 @@ dev = [
     "pytest-cov",
 ]
 docker = [
-    "Pillow==10.4.0",
     "pytz==2024.2",
     "tzdata==2024.2",
     "mysqlclient",
