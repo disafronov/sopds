@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import datetime
-from typing import Optional, cast
+from typing import Optional
 
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
@@ -144,7 +144,7 @@ class bookshelf(models.Model):
     readtime = models.DateTimeField(null=False, default=timezone.now, db_index=True)
 
 
-class CounterManager(models.Manager):
+class CounterManager(models.Manager["Counter"]):
     def set_counter(self, counter_name: str, counter_value: int) -> None:
         self.update_or_create(
             name=counter_name,
@@ -160,7 +160,7 @@ class CounterManager(models.Manager):
 
     def get_counter(self, counter_name: str) -> int:
         try:
-            counter = cast("Counter", self.get(name=counter_name)).value
+            counter = self.get(name=counter_name).value
         except ObjectDoesNotExist:
             counter = 0
 
@@ -168,7 +168,7 @@ class CounterManager(models.Manager):
 
     def get_lastscan(self) -> Optional[datetime.datetime]:
         try:
-            lastscan = cast("Counter", self.get(name="allbooks")).update_time
+            lastscan = self.get(name="allbooks").update_time
         except ObjectDoesNotExist:
             lastscan = None
 

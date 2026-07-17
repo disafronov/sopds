@@ -6,7 +6,7 @@ from io import BytesIO
 from typing import TYPE_CHECKING, Any, BinaryIO
 from xml.sax import handler, parse, xmlreader
 
-from constance import config  # type: ignore[import-untyped]
+from constance import config
 
 from book_tools.format.epub import EPub
 from book_tools.format.fb2 import FB2, FB2Zip

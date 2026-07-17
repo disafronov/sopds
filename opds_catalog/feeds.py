@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any, Generic, TypeVar, cast
 
 from constance import config
 from django.contrib.auth.models import User
@@ -38,7 +38,27 @@ ItemDict = dict[str, Any]
 FeedObject = Any
 
 
-class AuthFeed(Feed):
+_ItemT = TypeVar("_ItemT")
+_ObjectT = TypeVar("_ObjectT")
+
+
+class _SyndicationFeedBase(Feed, Generic[_ItemT, _ObjectT]):  # type: ignore[type-arg]
+    """Runtime-safe generic base for Django's ``Feed``.
+
+    django-stubs declares ``Feed`` as ``Generic[_Item, _Object]``. Django 5.2's
+    ``Feed`` is, however, not subscriptable at runtime (``type 'Feed' is not
+    subscriptable``), which crashes class definition when written as
+    ``Feed[ItemDict, FeedObject]``. This shim inherits the stub generic for
+    mypy while staying runtime-safe: the subscript at the use site
+    (``_SyndicationFeedBase[ItemDict, FeedObject]``) is redirected by
+    ``__class_getitem__`` and resolves to the unsubscripted base class.
+    """
+
+    def __class_getitem__(cls, item: object) -> type[_SyndicationFeedBase[Any, Any]]:
+        return cls  # pragma: no cover - runtime-only shim for Django 5.2
+
+
+class AuthFeed(_SyndicationFeedBase[ItemDict, FeedObject]):
     request: Any = None
 
     def __call__(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
