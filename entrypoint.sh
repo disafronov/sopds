@@ -5,9 +5,9 @@ CONTROL="python3 -u manage.py"
 config() {
     chmod a+rwX /srv 2> /dev/null || true
     ## config
-    test -f /srv/settings.py && ( echo "Existing config detected, saving default config to /srv/settings.py.default"; cp -f /home/sopds/sopds/settings.py /srv/settings.py.default ) || ( echo "Existing config is absent, creating a new one from default at /srv/settings.py"; cp -f /home/sopds/sopds/settings.py /srv/settings.py )
-    rm -rf /home/sopds/sopds/settings.py
-    ln -sf /srv/settings.py /home/sopds/sopds/settings.py
+    test -f /srv/settings.py && ( echo "Existing config detected, saving default config to /srv/settings.py.default"; cp -f /home/ubuntu/app/sopds/settings.py /srv/settings.py.default ) || ( echo "Existing config is absent, creating a new one from default at /srv/settings.py"; cp -f /home/ubuntu/app/sopds/settings.py /srv/settings.py )
+    rm -rf /home/ubuntu/app/sopds/settings.py
+    ln -sf /srv/settings.py /home/ubuntu/app/sopds/settings.py
     # access rights
     chmod -R a+rwX /srv 2> /dev/null || true
     # essential setup

@@ -1,51 +1,85 @@
 # syntax = docker/dockerfile:1.7
 FROM ghcr.io/astral-sh/uv:0.11.29 AS uv
 
-FROM python:3.8-slim AS base
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
-ENV PATH="/opt/sopds/bin:$PATH"
-ARG BASE_DEPENDENCIES="libpq5 libmariadb3 libxml2 libxslt1.1 libffi8 libjpeg62-turbo zlib1g xz-utils bzip2"
+FROM ubuntu:noble-20260610 AS base
+
+# ENVs
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    DEBIAN_FRONTEND=noninteractive \
+    TZ=Etc/UTC
+
+# Base dependencies (runtime libraries required by sopds)
+ARG BASE_DEPENDENCIES="libpq5 libmariadb3 libxml2 libxslt1.1 libffi8 libjpeg62-turbo zlib1g xz-utils bzip2 unzip"
 RUN apt-get update && \
-    apt-get install --no-install-recommends -y ${BASE_DEPENDENCIES} && \
+    apt-get install -y --no-install-recommends ${BASE_DEPENDENCIES} && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-############################################################
+USER ubuntu:ubuntu
+WORKDIR /home/ubuntu/.local
+
+# Create venv (uses .python-version from the build context).
+RUN --mount=from=uv,source=/uv,target=/bin/uv \
+    --mount=type=cache,target=/home/ubuntu/.cache/uv,uid=1000,gid=1000 \
+    --mount=type=bind,source=.python-version,target=.python-version \
+    uv venv
+
+ENV PATH="/home/ubuntu/.local/.venv/bin:$PATH"
+
+##########################
 
 FROM base AS builder
+
+# Build dependencies required to compile C extensions (mysqlclient, psycopg, lxml).
+# Git is also required for dependencies installed directly from Git repositories.
+USER root
 ARG BUILD_DEPENDENCIES="pkg-config build-essential libmariadb-dev libpq-dev libxml2-dev libxslt-dev libffi-dev libjpeg-dev zlib1g-dev liblzma-dev libbz2-dev"
 RUN apt-get update && \
-    apt-get install --no-install-recommends -y ${BUILD_DEPENDENCIES} && \
+    apt-get install -y --no-install-recommends ${BUILD_DEPENDENCIES} git && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
-RUN --mount=from=uv,source=/uv,target=/bin/uv \
-    --mount=type=bind,source=.python-version,target=.python-version \
-    uv venv /opt/sopds
-WORKDIR /home/sopds
-RUN --mount=from=uv,source=/uv,target=/bin/uv \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
-    --mount=type=bind,source=.python-version,target=.python-version \
-    uv sync --no-cache --no-dev --group docker
+USER ubuntu:ubuntu
 
-############################################################
+# Install dependencies first (without installing the project itself).
+RUN --mount=from=uv,source=/uv,target=/bin/uv \
+    --mount=type=cache,target=/home/ubuntu/.cache/uv,uid=1000,gid=1000 \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    --mount=type=bind,source=.python-version,target=.python-version \
+    uv sync --frozen --no-install-project --link-mode=copy --no-editable --group docker
+
+# Copy the project into the image — no src/, files are at root.
+COPY --chown=ubuntu:ubuntu \
+    ./ /home/ubuntu/app/
+
+# Sync the project now that sources exist.
+RUN --mount=from=uv,source=/uv,target=/bin/uv \
+    --mount=type=cache,target=/home/ubuntu/.cache/uv,uid=1000,gid=1000 \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --frozen --link-mode=copy --no-editable --group docker
+
+##########################
 
 FROM base AS runtime
-ARG RUNTIME_DEPENDENCIES="unzip"
-RUN apt-get update && \
-    apt-get install --no-install-recommends -y ${RUNTIME_DEPENDENCIES} && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-ARG OWNER_UID=1000 \
-    OWNER_GID=1000
-RUN ( addgroup --system --gid $OWNER_GID sopds || echo sopds:x:$OWNER_GID:sopds | tee -a /etc/group ) && \
-    ( adduser --system --home /home/sopds --ingroup sopds --uid $OWNER_UID sopds --shell /bin/sh || echo sopds:x:$OWNER_UID:$OWNER_GID:Linux User,,,:/home/sopds:/bin/sh | tee -a /etc/passwd )
-COPY --from=builder /opt/sopds/ /opt/sopds/
-COPY --chown=sopds:sopds . /home/sopds/
-RUN chmod a+x /home/sopds/entrypoint.sh
-WORKDIR /home/sopds
+
+# Copy venv and app files from builder stage.
+COPY --from=builder /home/ubuntu/.local/.venv/ /home/ubuntu/.local/.venv/
+COPY --from=builder /home/ubuntu/app/ /home/ubuntu/app/
+
+WORKDIR /home/ubuntu/app
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+    CMD ["python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000', timeout=3).read()"]
+
+# sopds orchestrates startup via entrypoint.sh (links /srv/settings.py, runs migrate).
+COPY --chown=ubuntu:ubuntu entrypoint.sh /home/ubuntu/app/entrypoint.sh
+RUN chmod a+x /home/ubuntu/app/entrypoint.sh
+
 VOLUME ["/srv"]
-ENTRYPOINT [ "/home/sopds/entrypoint.sh" ]
-CMD [ "help" ]
-USER sopds:sopds
+ENTRYPOINT ["/home/ubuntu/app/entrypoint.sh"]
+CMD ["help"]
+USER ubuntu:ubuntu
