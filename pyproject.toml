@@ -9,11 +9,11 @@ authors = [
 ]
 dependencies = [
     "Django>=5.2,<5.3",
-    "django-constance>=4.2",
-    "Pillow>=10.0.0",
-    "apscheduler>=3.11.2",
-    "lxml>=5.0.0",
-    "python-telegram-bot>=20.0",
+    "django-constance>=4.2,<5",
+    "Pillow>=10.0.0,<11",
+    "apscheduler>=3.11.2,<4",
+    "lxml>=5.0.0,<7",
+    "python-telegram-bot>=20.0,<23",
 ]
 
 [dependency-groups]
