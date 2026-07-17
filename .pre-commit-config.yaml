@@ -1,0 +1,94 @@
+minimum_pre_commit_version: "3.5.0"
+default_install_hook_types:
+  - pre-commit
+  - commit-msg
+  - pre-push
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: detect-private-key
+        stages: [pre-commit]
+      - id: check-added-large-files
+        stages: [pre-commit]
+        args: [--maxkb=512]
+      - id: check-ast
+        stages: [pre-commit]
+      - id: check-merge-conflict
+        stages: [pre-commit]
+      - id: trailing-whitespace
+        stages: [pre-commit]
+      - id: end-of-file-fixer
+        stages: [pre-commit]
+      - id: mixed-line-ending
+        stages: [pre-commit]
+      - id: debug-statements
+        stages: [pre-commit]
+      - id: check-yaml
+        stages: [pre-commit]
+        args: [--allow-multiple-documents]
+      - id: check-toml
+        stages: [pre-commit]
+      - id: check-case-conflict
+        stages: [pre-commit]
+      - id: name-tests-test
+        stages: [pre-commit]
+        args: [--pytest-test-first]
+        exclude: ^.*/tests/runner\.py$
+
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.46.0
+    hooks:
+      - id: markdownlint
+        stages: [pre-commit]
+        args: [--fix]
+
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.0.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+
+  - repo: https://github.com/gklein/check_signoff
+    rev: v1.0.5
+    hooks:
+      - id: check-signoff
+        stages: [commit-msg]
+
+  - repo: local
+    hooks:
+      - id: make-lint
+        name: make lint (pre-commit)
+        stages: [pre-commit]
+        language: system
+        entry: make lint
+        pass_filenames: false
+
+      - id: uv-lock
+        name: uv lock (pre-commit)
+        stages: [pre-commit]
+        language: system
+        entry: uv lock
+        pass_filenames: false
+
+      - id: make-test
+        name: make test (pre-push)
+        stages: [pre-push]
+        language: system
+        entry: make test
+        pass_filenames: false
+
+      - id: make-dead-code
+        name: make dead-code (pre-push)
+        stages: [pre-push]
+        language: system
+        entry: make dead-code
+        pass_filenames: false
+
+      - id: make-audit
+        name: make audit (pre-push)
+        stages: [pre-push]
+        language: system
+        entry: make audit
+        pass_filenames: false

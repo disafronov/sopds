@@ -14,29 +14,12 @@ dependencies = [
     "apscheduler>=3.11.2,<4",
     "lxml>=5.0.0,<7",
     "python-telegram-bot>=20.0,<23",
-]
-
-[dependency-groups]
-dev = [
-    "black",
-    "isort",
-    "flake8",
-    "flake8-pyproject",
-    "autoflake",
-    "mypy",
-    "bandit",
-    "vulture",
-    "pre-commit",
-    "pip-audit",
-    "pytest",
-    "pytest-django",
-    "pytest-cov",
-]
-docker = [
+    "gunicorn>=26.0.0,<27.0.0",
+    "whitenoise>=6.9.0,<7.0.0",
+    "psycopg[binary]",
+    "mysqlclient",
     "pytz==2026.2",
     "tzdata==2026.3",
-    "mysqlclient",
-    "psycopg[binary]",
 ]
 
 [tool.black]
@@ -80,3 +63,20 @@ skip_covered = false
 DJANGO_SETTINGS_MODULE = "sopds.settings"
 python_files = ["test_*.py", "*_test.py"]
 addopts = "-p no:cacheprovider"
+
+[dependency-groups]
+dev = [
+    "black",
+    "isort",
+    "flake8",
+    "flake8-pyproject",
+    "autoflake",
+    "mypy",
+    "bandit",
+    "vulture",
+    "pre-commit",
+    "pip-audit",
+    "pytest",
+    "pytest-django",
+    "pytest-cov",
+]
