@@ -33,7 +33,7 @@ dev = [
     "pytest-cov",
 ]
 docker = [
-    "pytz==2024.2",
+    "pytz==2026.2",
     "tzdata==2024.2",
     "mysqlclient",
     "psycopg[binary]",
