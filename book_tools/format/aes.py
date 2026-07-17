@@ -3,9 +3,9 @@
 # from tempfile import mktemp
 
 
-def encrypt(file_name, key, working_dir):
+def encrypt(_file_name, key, working_dir):
     """
-    file_name:     full path to file to encrypt
+    _file_name:    full path to file to encrypt
     key:           16 byte string
     working_dir:   directory to create temorary files
     """

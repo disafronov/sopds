@@ -773,9 +773,6 @@ def LoginView(request):
         return handler403(request, args)
         # return render(request, 'sopds_login.html', args)
 
-    return handler403(request, args)
-    # return render(request, 'sopds_login.html', args)
-
 
 @vary_on_headers("HTTP_ACCEPT_LANGUAGE")
 @sopds_login(url="web:login")

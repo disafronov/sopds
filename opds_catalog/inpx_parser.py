@@ -32,7 +32,7 @@ sKeyWords = "KEYWORDS"
 
 class Inpx:
     def __init__(
-        self, inpx_file, append_callback, inpskip_callback=lambda inpx, inp, size: 0
+        self, inpx_file, append_callback, inpskip_callback=lambda inpx, _inp, size: 0
     ):
         self.inpx_file = inpx_file
         self.inpx_catalog = os.path.dirname(inpx_file)

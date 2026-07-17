@@ -146,7 +146,7 @@ class opdsScanner:
 
         return result
 
-    def inpx_callback(self, inpx: Any, inp: Any, meta_data: dict[str, Any]) -> None:
+    def inpx_callback(self, inpx: Any, _inp: Any, meta_data: dict[str, Any]) -> None:
 
         name = "%s.%s" % (meta_data[inpx_parser.sFile], meta_data[inpx_parser.sExt])
 
