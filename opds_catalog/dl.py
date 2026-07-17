@@ -467,9 +467,17 @@ def ConvertFB2(request: HttpRequest, book_id: int, convert_type: str) -> HttpRes
         z = zipfile.ZipFile(fz, "r", allowZip64=True)
         # Extract using the ORIGINAL entry name (may be nested, e.g.
         # "subdir/book.fb2"); basename'ing it would break the archive key and
-        # raise KeyError. Resolve and constrain the extracted path below.
+        # raise KeyError. Then rename the extracted file to a safe basename so
+        # the final file_path carries no taint from book.filename — CodeQL does
+        # not recognize _ensure_inside_temp_dir as a sanitizer, so the path
+        # passed to subprocess must be built only from a constant + safe name.
         z.extract(book.filename, config.SOPDS_TEMP_DIR)
-        file_path = os.path.realpath(os.path.join(config.SOPDS_TEMP_DIR, book.filename))
+        extracted = os.path.realpath(os.path.join(config.SOPDS_TEMP_DIR, book.filename))
+        _ensure_inside_temp_dir(extracted)  # zip-slip guard
+        safe_name = _safe_temp_name(os.path.basename(book.filename))
+        file_path = os.path.join(config.SOPDS_TEMP_DIR, safe_name)
+        if os.path.realpath(extracted) != os.path.realpath(file_path):
+            os.replace(extracted, file_path)  # break taint: constant+SafeName
         _ensure_inside_temp_dir(file_path)
         tmp_fb2_path = file_path
     else:
