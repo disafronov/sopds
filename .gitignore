@@ -30,3 +30,6 @@ build/
 
 
 /pyrightconfig.json
+
+# Python packaging
+*.egg-info/
