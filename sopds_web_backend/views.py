@@ -9,6 +9,7 @@ from django.shortcuts import redirect, render
 from django.template.context_processors import csrf
 from django.urls import reverse, reverse_lazy
 from django.utils.html import strip_tags
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext as _
 from django.views.decorators.vary import vary_on_headers
 
@@ -746,7 +747,11 @@ def LoginView(request):
     except KeyError:
         return render(request, "sopds_login.html", args)
 
-    next_url = request.GET.get("next", reverse("web:main"))
+    next_url = request.GET.get("next", "")
+    if not url_has_allowed_host_and_scheme(
+        next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
+        next_url = reverse("web:main")
 
     user = authenticate(username=username, password=password)
     if user is not None:
