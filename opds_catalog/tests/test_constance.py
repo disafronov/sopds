@@ -10,17 +10,17 @@ class constanceTestCase(TestCase):
     test_module_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     test_ROOTLIB = os.path.join(test_module_path, "tests/data")
 
-    def setUp(self):
+    def setUp(self) -> None:
         pass
 
-    def test_constance_attributes_count(self):
+    def test_constance_attributes_count(self) -> None:
         out = StringIO()
         call_command("constance", "list", stdout=out)
         out.seek(0)
         self.assertEqual(out.getvalue().count("\n"), 37)
         out.close()
 
-    def test_constance_set_get_attr(self):
+    def test_constance_set_get_attr(self) -> None:
         conf_value = "test_temp_dir"
         call_command("constance", "set", "SOPDS_TEMP_DIR", conf_value)
         self.assertEqual(config.SOPDS_TEMP_DIR, conf_value)

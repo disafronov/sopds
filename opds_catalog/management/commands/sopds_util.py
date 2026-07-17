@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+from argparse import ArgumentParser
+from typing import Any
+
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.db import transaction
@@ -8,9 +13,12 @@ from opds_catalog.models import Counter
 
 class Command(BaseCommand):
     help = "Utils for SOPDS."
-    verbose = False
+    verbose: bool = False
+    nogenres: bool = False
+    confparam: str | None = None
+    confvalue: str | None = None
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: ArgumentParser) -> None:
         parser.add_argument(
             "command",
             action="store",
@@ -35,7 +43,7 @@ class Command(BaseCommand):
             help="Not install genres fom fixtures.",
         )
 
-    def handle(self, *args, **options):
+    def handle(self, *args: Any, **options: Any) -> None:
         action = options["command"][0]
 
         self.verbose = options["verbose"]
@@ -66,7 +74,7 @@ class Command(BaseCommand):
         elif action == "pg_optimize":
             self.pg_optimize()
 
-    def clear(self):
+    def clear(self) -> None:
         with transaction.atomic():
             opdsdb.clear_all(self.verbose)
         if not self.nogenres:
@@ -74,7 +82,7 @@ class Command(BaseCommand):
         Counter.objects.update_known_counters()
         opdsdb.pg_optimize(False)
 
-    def info(self):
+    def info(self) -> None:
         Counter.objects.update_known_counters()
         self.stdout.write(
             "Books count    = %s" % Counter.objects.get_counter(models.counter_allbooks)
@@ -96,7 +104,7 @@ class Command(BaseCommand):
             % Counter.objects.get_counter(models.counter_allseries)
         )
 
-    def save_mygenres(self):
+    def save_mygenres(self) -> None:
         call_command(
             "dumpdata",
             "opds_catalog.genre",
@@ -105,22 +113,22 @@ class Command(BaseCommand):
         )
         self.stdout.write("Genre dump saved in opds_catalog/fixtures/mygenres.json")
 
-    def load_mygenres(self):
+    def load_mygenres(self) -> None:
         opdsdb.clear_genres(self.verbose)
         call_command("loaddata", "mygenres.json")
         Counter.objects.update_known_counters()
         self.stdout.write("Genres load from opds_catalog/fixtures/mygenres.json")
 
-    def setconf(self, confparam, confvalue):
+    def setconf(self, confparam: str | None, confvalue: str | None) -> None:
         if confparam and confvalue:
             call_command("constance", "set", confparam, confvalue)
             self.stdout.write("Config parameter %s set to %s" % (confparam, confvalue))
 
-    def getconf(self, confparam):
+    def getconf(self, confparam: str | None) -> None:
         if confparam:
             call_command("constance", "get", confparam)
         else:
             call_command("constance", "list")
 
-    def pg_optimize(self):
+    def pg_optimize(self) -> None:
         opdsdb.pg_optimize(True)

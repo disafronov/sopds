@@ -4,9 +4,20 @@ Created on 21 нояб. 2016 г.
 @author: mitsh
 """
 
+from __future__ import annotations
+
+from typing import Any
+
 
 class Paginator:
-    def __init__(self, d1_count, d2_count, page_num=1, maxitems=60, half_pages_link=3):
+    def __init__(
+        self,
+        d1_count: int,
+        d2_count: int,
+        page_num: int = 1,
+        maxitems: int = 60,
+        half_pages_link: int = 3,
+    ) -> None:
         self.d1_count = d1_count
         self.d2_count = d2_count
         self.count = self.d1_count + self.d2_count
@@ -15,7 +26,7 @@ class Paginator:
         self.page_num = page_num
         self.calc_data()
 
-    def calc_data(self):
+    def calc_data(self) -> None:
         d1_MAXITEMS = self.MAXITEMS
         self.d1_first_pos = d1_MAXITEMS * (self.page_num - 1)
         self.d1_first_pos = (
@@ -66,8 +77,8 @@ class Paginator:
         self.number = self.page_num
         self.page_range = [i for i in range(self.firstpage, self.lastpage + 1)]
 
-    def get_data_dict(self):
-        p = {}
+    def get_data_dict(self) -> dict[str, Any]:
+        p: dict[str, Any] = {}
         p["num_pages"] = self.num_pages
         p["has_previous"] = self.has_previous
         p["has_next"] = self.has_next

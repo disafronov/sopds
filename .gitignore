@@ -33,3 +33,6 @@ build/
 
 # Python packaging
 *.egg-info/
+
+
+/books/

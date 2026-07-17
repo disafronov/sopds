@@ -1,10 +1,13 @@
+from collections.abc import Callable
 from random import randint
-from typing import Any
+from typing import Any, cast
 
 from constance import config
 from django.contrib.auth import REDIRECT_FIELD_NAME, authenticate, login, logout
 from django.contrib.auth.decorators import user_passes_test
+from django.contrib.auth.models import User
 from django.db.models import Count, Min
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.template.context_processors import csrf
 from django.urls import reverse, reverse_lazy
@@ -28,19 +31,26 @@ from opds_catalog.opds_paginator import Paginator as OPDS_Paginator
 from sopds_web_backend.settings import HALF_PAGES_LINKS
 
 
-def sopds_login(function=None, redirect_field_name=REDIRECT_FIELD_NAME, url=None):
+def sopds_login(
+    function: Callable[..., HttpResponse] | None = None,
+    redirect_field_name: str = REDIRECT_FIELD_NAME,
+    url: str | None = None,
+) -> Callable[[Callable[..., HttpResponse]], Callable[..., HttpResponse]]:
     actual_decorator = user_passes_test(
         lambda u: (u.is_authenticated if config.SOPDS_AUTH else True),
         login_url=reverse_lazy(url),
         redirect_field_name=redirect_field_name,
     )
-    if function:
-        return actual_decorator(function)
+    if function is not None:
+        return cast(
+            Callable[[Callable[..., HttpResponse]], Callable[..., HttpResponse]],
+            actual_decorator(function),
+        )
     return actual_decorator
 
 
-def sopds_processor(request):
-    args = {}
+def sopds_processor(request: HttpRequest) -> dict[str, Any]:
+    args: dict[str, Any] = {}
     args["app_title"] = settings.TITLE
     args["sopds_auth"] = config.SOPDS_AUTH
     args["sopds_version"] = settings.VERSION
@@ -81,7 +91,7 @@ def sopds_processor(request):
         random_book = None
 
     args["random_book"] = random_book
-    stats = {d["name"]: d["value"] for d in Counter.obj.all().values()}
+    stats: dict[str, Any] = {d["name"]: d["value"] for d in Counter.obj.all().values()}
     stats["lastscan_date"] = Counter.objects.get_lastscan()
     args["stats"] = stats
 
@@ -91,9 +101,9 @@ def sopds_processor(request):
 # Create your views here.
 @vary_on_headers("HTTP_ACCEPT_LANGUAGE")
 @sopds_login(url="web:login")
-def SearchBooksView(request):
+def SearchBooksView(request: HttpRequest) -> HttpResponse:
     # Read searchtype, searchterms, searchterms0, page from form
-    args = {}
+    args: dict[str, Any] = {}
     args.update(csrf(request))
 
     if request.GET:
@@ -106,6 +116,8 @@ def SearchBooksView(request):
         # if (len(searchterms)<3) and (searchtype in ('m', 'b', 'e')):
         #    args['errormsg'] = 'Too few symbols in search string !';
         #    return render_to_response('sopds_error.html', args)
+
+        books = Book.objects.none()
 
         if searchtype == "m":
             # books = Book.objects.extra(where=["upper(title) like %s"],
@@ -181,6 +193,7 @@ def SearchBooksView(request):
         # Поиск книг на книжной полке
         elif searchtype == "u":
             if config.SOPDS_AUTH:
+                assert request.user.is_authenticated
                 books = Book.objects.filter(bookshelf__user=request.user).order_by(
                     "-bookshelf__readtime"
                 )
@@ -261,7 +274,7 @@ def SearchBooksView(request):
         finish = op.d1_last_pos
 
         for row in books[start : finish + 1]:
-            p = {
+            p: dict[str, Any] = {
                 "doubles": 0,
                 "lang_code": row.lang_code,
                 "filename": row.filename,
@@ -278,7 +291,9 @@ def SearchBooksView(request):
                 "series": row.series.values(),
                 "ser_no": row.bseries_set.values("ser_no"),
                 "readtime": (
-                    row.bookshelf_set.filter(user=request.user).values("readtime")
+                    row.bookshelf_set.filter(user=cast(User, request.user)).values(
+                        "readtime"
+                    )
                     if config.SOPDS_AUTH
                     else None
                 ),
@@ -329,9 +344,9 @@ def SearchBooksView(request):
 
 @vary_on_headers("HTTP_ACCEPT_LANGUAGE")
 @sopds_login(url="web:login")
-def SearchSeriesView(request):
+def SearchSeriesView(request: HttpRequest) -> HttpResponse:
     # Read searchtype, searchterms, searchterms0, page from form
-    args = {}
+    args: dict[str, Any] = {}
     args.update(csrf(request))
 
     if request.GET:
@@ -340,6 +355,8 @@ def SearchSeriesView(request):
         # searchterms0 = int(request.POST.get('searchterms0', ''))
         page_num = int(request.GET.get("page", "1"))
         page_num = page_num if page_num > 0 else 1
+
+        series = Series.objects.none()
 
         if searchtype == "m":
             series = Series.objects.filter(search_ser__contains=searchterms.upper())
@@ -386,9 +403,9 @@ def SearchSeriesView(request):
 
 @vary_on_headers("HTTP_ACCEPT_LANGUAGE")
 @sopds_login(url="web:login")
-def SearchAuthorsView(request):
+def SearchAuthorsView(request: HttpRequest) -> HttpResponse:
     # Read searchtype, searchterms, searchterms0, page from form
-    args = {}
+    args: dict[str, Any] = {}
     args.update(csrf(request))
 
     if request.GET:
@@ -397,6 +414,8 @@ def SearchAuthorsView(request):
         # searchterms0 = int(request.POST.get('searchterms0', ''))
         page_num = int(request.GET.get("page", "1"))
         page_num = page_num if page_num > 0 else 1
+
+        authors = Author.objects.none()
 
         if searchtype == "m":
             authors = Author.objects.filter(
@@ -442,8 +461,8 @@ def SearchAuthorsView(request):
 
 @vary_on_headers("HTTP_ACCEPT_LANGUAGE")
 @sopds_login(url="web:login")
-def CatalogsView(request):
-    args = {}
+def CatalogsView(request: HttpRequest) -> HttpResponse:
+    args: dict[str, Any] = {}
 
     if request.GET:
         cat_id = request.GET.get("cat", None)
@@ -456,7 +475,7 @@ def CatalogsView(request):
         if cat_id is not None:
             cat = Catalog.objects.get(id=cat_id)
         else:
-            cat = Catalog.objects.get(parent__id=cat_id)
+            cat = Catalog.objects.get(parent__id__isnull=True)
     except Catalog.DoesNotExist:
         cat = None
 
@@ -472,37 +491,39 @@ def CatalogsView(request):
     op = OPDS_Paginator(
         catalogs_count, books_count, page_num, config.SOPDS_MAXITEMS, HALF_PAGES_LINKS
     )
-    items = []
+    items: list[dict[str, Any]] = []
 
-    for row in catalogs_list[op.d1_first_pos : op.d1_last_pos + 1]:
-        p = {
+    for catalog_row in catalogs_list[op.d1_first_pos : op.d1_last_pos + 1]:
+        p: dict[str, Any] = {
             "is_catalog": 1,
-            "title": row.cat_name,
-            "id": row.id,
-            "cat_type": row.cat_type,
-            "parent_id": row.parent_id,
+            "title": catalog_row.cat_name,
+            "id": catalog_row.id,
+            "cat_type": catalog_row.cat_type,
+            "parent_id": catalog_row.parent_id,
         }
         items.append(p)
 
-    for row in books_list[op.d2_first_pos : op.d2_last_pos + 1]:
+    for book_row in books_list[op.d2_first_pos : op.d2_last_pos + 1]:
         p = {
             "is_catalog": 0,
-            "lang_code": row.lang_code,
-            "filename": row.filename,
-            "path": row.path,
-            "registerdate": row.registerdate,
-            "id": row.id,
-            "annotation": strip_tags(row.annotation),
-            "docdate": row.docdate,
-            "format": row.format,
-            "title": row.title,
-            "filesize": row.filesize // 1000,
-            "authors": row.authors.values(),
-            "genres": row.genres.values(),
-            "series": row.series.values(),
-            "ser_no": row.bseries_set.values("ser_no"),
+            "lang_code": book_row.lang_code,
+            "filename": book_row.filename,
+            "path": book_row.path,
+            "registerdate": book_row.registerdate,
+            "id": book_row.id,
+            "annotation": strip_tags(book_row.annotation),
+            "docdate": book_row.docdate,
+            "format": book_row.format,
+            "title": book_row.title,
+            "filesize": book_row.filesize // 1000,
+            "authors": book_row.authors.values(),
+            "genres": book_row.genres.values(),
+            "series": book_row.series.values(),
+            "ser_no": book_row.bseries_set.values("ser_no"),
             "readtime": (
-                row.bookshelf_set.filter(user=request.user).values("readtime")
+                book_row.bookshelf_set.filter(user=cast(User, request.user)).values(
+                    "readtime"
+                )
                 if config.SOPDS_AUTH
                 else None
             ),
@@ -531,8 +552,8 @@ def CatalogsView(request):
 
 @vary_on_headers("HTTP_ACCEPT_LANGUAGE")
 @sopds_login(url="web:login")
-def BooksView(request):
-    args = {}
+def BooksView(request: HttpRequest) -> HttpResponse:
+    args: dict[str, Any] = {}
 
     if request.GET:
         lang_code = int(request.GET.get("lang", "0"))
@@ -578,8 +599,8 @@ def BooksView(request):
 
 @vary_on_headers("HTTP_ACCEPT_LANGUAGE")
 @sopds_login(url="web:login")
-def AuthorsView(request):
-    args = {}
+def AuthorsView(request: HttpRequest) -> HttpResponse:
+    args: dict[str, Any] = {}
 
     if request.GET:
         lang_code = int(request.GET.get("lang", "0"))
@@ -625,8 +646,8 @@ def AuthorsView(request):
 
 @vary_on_headers("HTTP_ACCEPT_LANGUAGE")
 @sopds_login(url="web:login")
-def SeriesView(request):
-    args = {}
+def SeriesView(request: HttpRequest) -> HttpResponse:
+    args: dict[str, Any] = {}
 
     if request.GET:
         lang_code = int(request.GET.get("lang", "0"))
@@ -672,7 +693,7 @@ def SeriesView(request):
 
 @vary_on_headers("HTTP_ACCEPT_LANGUAGE")
 @sopds_login(url="web:login")
-def GenresView(request):
+def GenresView(request: HttpRequest) -> HttpResponse:
     args: dict[str, Any] = {}
 
     if request.GET:
@@ -680,6 +701,7 @@ def GenresView(request):
     else:
         section_id = 0
 
+    items: Any
     if section_id == 0:
         items = (
             Genre.objects.values("section")
@@ -710,34 +732,36 @@ def GenresView(request):
 
 @vary_on_headers("HTTP_ACCEPT_LANGUAGE")
 @sopds_login(url="web:login")
-def BSDelView(request):
+def BSDelView(request: HttpRequest) -> HttpResponse:
     if request.GET:
         book = request.GET.get("book", None)
     else:
         book = None
 
     assert book is not None
-    book = int(book)
+    book_id = int(book)
 
-    bookshelf.objects.filter(user=request.user, book=book).delete()
+    assert request.user.is_authenticated
+    bookshelf.objects.filter(user=request.user, book=book_id).delete()
 
     return redirect("%s?searchtype=u" % reverse("web:searchbooks"))
 
 
 @vary_on_headers("HTTP_ACCEPT_LANGUAGE")
 @sopds_login(url="web:login")
-def BSClearView(request):
+def BSClearView(request: HttpRequest) -> HttpResponse:
+    assert request.user.is_authenticated
     bookshelf.objects.filter(user=request.user).delete()
     return redirect("%s?searchtype=u" % reverse("web:searchbooks"))
 
 
-def hello(request):
-    args = {}
+def hello(request: HttpRequest) -> HttpResponse:
+    args: dict[str, Any] = {}
     args["breadcrumbs"] = [_("HOME")]
     return render(request, "sopds_hello.html", args)
 
 
-def LoginView(request):
+def LoginView(request: HttpRequest) -> HttpResponse:
     args: dict[str, Any] = {}
     args["breadcrumbs"] = [_("Login")]
     args.update(csrf(request))
@@ -776,14 +800,14 @@ def LoginView(request):
 
 @vary_on_headers("HTTP_ACCEPT_LANGUAGE")
 @sopds_login(url="web:login")
-def LogoutView(request):
+def LogoutView(request: HttpRequest) -> HttpResponse:
     logout(request)
-    args = {}
+    args: dict[str, Any] = {}
     args["breadcrumbs"] = [_("Logout")]
     return redirect(reverse("web:main"))
 
 
-def handler403(request, args):
+def handler403(request: HttpRequest, args: dict[str, Any]) -> HttpResponse:
     response = render(request, "sopds_login.html", args)
     response.status_code = 403
     return response

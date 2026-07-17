@@ -11,10 +11,10 @@ class parserTestCase(TestCase):
     test_fb2 = "262001.fb2"
     test_bad_fb2 = "badfile.fb2"
 
-    def setUp(self):
+    def setUp(self) -> None:
         pass
 
-    def test_fb2parse_valid(self):
+    def test_fb2parse_valid(self) -> None:
         """Тестирование класса fb2parser - разбор валидного fb2"""
         parser = fb2parser()
         parser.reset()
@@ -28,7 +28,7 @@ class parserTestCase(TestCase):
         self.assertEqual(parser.docdate.getvalue()[0], "30.1.2011")
         self.assertEqual(parser.parse_error, 0)
 
-    def test_fb2parse_novalid(self):
+    def test_fb2parse_novalid(self) -> None:
         """Тестирование класса fb2parser - разбор невалидного fb2"""
         parser = fb2parser()
         parser.reset()
@@ -36,7 +36,7 @@ class parserTestCase(TestCase):
         parser.parse(f)
         self.assertNotEqual(parser.parse_error, 0)
 
-    def test_fb2parse_cover(self):
+    def test_fb2parse_cover(self) -> None:
         """Тестирование класса fb2parser - извлечение обдложки из fb2"""
         parser = fb2parser(True)
         parser.reset()

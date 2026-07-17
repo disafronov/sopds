@@ -1,10 +1,12 @@
-# import magic
+from __future__ import annotations
+
 import os
 import zipfile
 from io import BytesIO
-from xml import sax
+from typing import TYPE_CHECKING, Any, BinaryIO
+from xml.sax import handler, parse, xmlreader
 
-from constance import config
+from constance import config  # type: ignore[import-untyped]
 
 from book_tools.format.epub import EPub
 from book_tools.format.fb2 import FB2, FB2Zip
@@ -14,10 +16,13 @@ from book_tools.format.mobi import Mobipocket
 from book_tools.format.other import Dummy
 from book_tools.format.util import list_zip_file_infos
 
+if TYPE_CHECKING:
+    from book_tools.format.bookfile import BookFile
+
 
 class mime_detector:
     @staticmethod
-    def fmt(fmt):
+    def fmt(fmt: str) -> str:
         if fmt.lower() == "xml":
             return Mimetype.XML
         elif fmt.lower() == "fb2":
@@ -42,12 +47,12 @@ class mime_detector:
             return Mimetype.OCTET_STREAM
 
     @staticmethod
-    def file(filename):
+    def file(filename: str) -> str:
         n, e = os.path.splitext(filename)
         return mime_detector.fmt(e[1:])
 
 
-def detect_mime(file, original_filename):
+def detect_mime(file: BinaryIO, original_filename: str) -> str:
     FB2_ROOT = "FictionBook"
     mime = mime_detector.file(original_filename)
 
@@ -82,7 +87,7 @@ def detect_mime(file, original_filename):
     return mime
 
 
-def create_bookfile(file, original_filename):
+def create_bookfile(file: str | BinaryIO, original_filename: str) -> BookFile:
     if isinstance(file, str):
         file = open(file, "rb")
     file = BytesIO(file.read())
@@ -111,17 +116,17 @@ def create_bookfile(file, original_filename):
         raise Exception("File type '%s' is not supported, sorry" % mimetype)
 
 
-def __xml_root_tag(file):
+def __xml_root_tag(file: Any) -> str | None:
     class XMLRootFound(Exception):
-        def __init__(self, name):
+        def __init__(self, name: str) -> None:
             self.name = name
 
-    class RootTagFinder(sax.handler.ContentHandler):
-        def startElement(self, name, attributes):
+    class RootTagFinder(handler.ContentHandler):
+        def startElement(self, name: str, attrs: xmlreader.AttributesImpl) -> None:
             raise XMLRootFound(name)
 
     try:
-        sax.parse(file, RootTagFinder())
+        parse(file, RootTagFinder())
     except XMLRootFound as e:
         return e.name
     return None

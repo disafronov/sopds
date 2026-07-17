@@ -1,12 +1,15 @@
+from __future__ import annotations
+
 import logging
 import re
 import sys
+from typing import Any, Awaitable, Callable, TypeVar
 
 from constance import config
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
 from django.db import connection, connections
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from django.utils import translation
 from django.utils.html import strip_tags
 from django.utils.translation import gettext as _
@@ -16,9 +19,11 @@ from telegram.ext import (
     ApplicationBuilder,
     CallbackQueryHandler,
     CommandHandler,
+    ContextTypes,
     MessageHandler,
     filters,
 )
+from telegram.update import Update
 
 from opds_catalog import dl, settings
 from opds_catalog.models import Book
@@ -27,11 +32,18 @@ from sopds_web_backend.settings import HALF_PAGES_LINKS
 
 query_delimiter = "####"
 
+T = TypeVar("T")
+Handler = Callable[[Any, Update, ContextTypes.DEFAULT_TYPE], Awaitable[T]]
 
-def cmdtrans(func):
+
+def cmdtrans(
+    func: Handler[T],
+) -> Callable[[Any, Update, ContextTypes.DEFAULT_TYPE], Awaitable[T | None]]:
     """Activate the configured UI language for the duration of a handler."""
 
-    async def wrapper(self, update, context):
+    async def wrapper(
+        self: Any, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> T | None:
         translation.activate(config.SOPDS_LANGUAGE)
         try:
             return await func(self, update, context)
@@ -41,15 +53,20 @@ def cmdtrans(func):
     return wrapper
 
 
-def CheckAuthDecorator(func):
+def CheckAuthDecorator(
+    func: Handler[T],
+) -> Callable[[Any, Update, ContextTypes.DEFAULT_TYPE], Awaitable[T | None]]:
     """Deny access to users not present (and active) in the Django auth DB."""
 
-    async def wrapper(self, update, context):
+    async def wrapper(
+        self: Any, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> T | None:
         if not config.SOPDS_TELEBOT_AUTH:
             return await func(self, update, context)
 
         if connection.connection and not connection.is_usable():
-            del connections._connections.default
+            # Access the private per-connection cache to drop a dead connection.
+            del connections._connections.default  # type: ignore[attr-defined]
 
         if update.message:
             query = update.message
@@ -73,6 +90,7 @@ def CheckAuthDecorator(func):
             % username,
         )
         self.logger.info(_("Denied access for user: %s") % username)
+        return None
 
     return wrapper
 
@@ -81,8 +99,9 @@ class Command(BaseCommand):
     help = "SimpleOPDS Telegram Bot engine."
     can_import_settings = True
     leave_locale_alone = True
+    logger: logging.Logger = logging.getLogger("")
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: Any) -> None:
         subparsers = parser.add_subparsers(dest="command")
         subparsers.add_parser("start", help="Run the Telegram bot in the foreground.")
         parser.add_argument(
@@ -93,7 +112,7 @@ class Command(BaseCommand):
             help="Set verbosity level for SimpleOPDS telebot.",
         )
 
-    def handle(self, *args, **options):
+    def handle(self, *args: Any, **options: Any) -> None:
         self.logger = logging.getLogger("")
         self.logger.setLevel(logging.DEBUG)
         formatter = logging.Formatter("%(asctime)s %(levelname)-8s %(message)s")
@@ -119,7 +138,9 @@ class Command(BaseCommand):
 
     @cmdtrans
     @CheckAuthDecorator
-    async def startCommand(self, update, context):
+    async def startCommand(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         await update.message.reply_text(
             _(
                 "%(subtitle)s\nHello %(username)s! To search for a book, "
@@ -133,9 +154,10 @@ class Command(BaseCommand):
         self.logger.info("Start talking with user: %s" % update.message.from_user)
         return
 
-    def BookFilter(self, query):
+    def BookFilter(self, query: str) -> QuerySet[Book]:
         if connection.connection and not connection.is_usable():
-            del connections._connections.default
+            # Access the private per-connection cache to drop a dead connection.
+            del connections._connections.default  # type: ignore[attr-defined]
 
         q_objects = Q()
         q_objects.add(Q(search_title__contains=query.upper()), Q.OR)
@@ -148,15 +170,17 @@ class Command(BaseCommand):
 
         return books
 
-    def BookPager(self, books, page_num, query):
+    def BookPager(
+        self, books: QuerySet[Book], page_num: int, query: str
+    ) -> dict[str, Any]:
         books_count = books.count()
         op = OPDS_Paginator(
             books_count, 0, page_num, config.SOPDS_TELEBOT_MAXITEMS, HALF_PAGES_LINKS
         )
-        items: list = []
+        items: list[dict[str, Any]] = []
 
         prev_title = ""
-        prev_authors_set: set = set()
+        prev_authors_set: set[int] = set()
 
         # Start the analysis from the last element on the previous page, so it
         # can pull its duplicates (if any) from this page.
@@ -169,7 +193,7 @@ class Command(BaseCommand):
         finish = op.d1_last_pos
 
         for row in books[start : finish + 1]:
-            p = {
+            p: dict[str, Any] = {
                 "doubles": 0,
                 "lang_code": row.lang_code,
                 "filename": row.filename,
@@ -187,7 +211,7 @@ class Command(BaseCommand):
                 "ser_no": row.bseries_set.values("ser_no"),
             }
             if summary_DOUBLES_HIDE:
-                title = p["title"]
+                title: Any = p["title"]
                 authors_set = {a["id"] for a in p["authors"]}
                 if (
                     title.upper() == prev_title.upper()
@@ -259,7 +283,9 @@ class Command(BaseCommand):
 
     @cmdtrans
     @CheckAuthDecorator
-    async def getBooks(self, update, context):
+    async def getBooks(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         query = update.message.text
         self.logger.info(
             "Got message from user %s: %s" % (update.message.from_user.username, query)
@@ -306,17 +332,19 @@ class Command(BaseCommand):
             % (update.message.from_user.username, response)
         )
 
-        response = self.BookPager(books, 1, query)
+        pager = self.BookPager(books, 1, query)
         await context.bot.send_message(
             chat_id=update.message.chat_id,
-            text=response["message"],
+            text=pager["message"],
             parse_mode="HTML",
-            reply_markup=response["buttons"],
+            reply_markup=pager["buttons"],
         )
 
     @cmdtrans
     @CheckAuthDecorator
-    async def getBooksPage(self, update, context):
+    async def getBooksPage(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         callback_query = update.callback_query
         query, page_num = callback_query.data.split(query_delimiter, maxsplit=1)
         if page_num == "current":
@@ -339,7 +367,9 @@ class Command(BaseCommand):
 
     @cmdtrans
     @CheckAuthDecorator
-    async def downloadBooks(self, update, context):
+    async def downloadBooks(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         book_id_set = re.findall(r"\d+$", update.message.text)
         if len(book_id_set) == 1:
             try:
@@ -407,7 +437,9 @@ class Command(BaseCommand):
 
     @cmdtrans
     @CheckAuthDecorator
-    async def getBookFile(self, update, context):
+    async def getBookFile(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         callback_query = update.callback_query
         query = callback_query.data
         book_id_set = re.findall(r"\d+$", query)
@@ -432,7 +464,7 @@ class Command(BaseCommand):
             return
 
         filename = dl.getFileName(book)
-        document = None
+        document: Any = None
 
         if re.match(r"/getfileorig", query):
             document = dl.getFileData(book)
@@ -468,7 +500,9 @@ class Command(BaseCommand):
 
     @cmdtrans
     @CheckAuthDecorator
-    async def botCallback(self, update, context):
+    async def botCallback(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         query = update.callback_query
 
         if re.match(r"/getfile", query.data):
@@ -476,7 +510,7 @@ class Command(BaseCommand):
         else:
             return await self.getBooksPage(update, context)
 
-    def start(self):
+    def start(self) -> None:
         quit_command = "CTRL-BREAK" if sys.platform == "win32" else "CONTROL-C"
         self.stdout.write("Quit the sopds_telebot with %s.\n" % quit_command)
         try:
@@ -484,14 +518,20 @@ class Command(BaseCommand):
                 ApplicationBuilder().token(config.SOPDS_TELEBOT_API_TOKEN).build()
             )
 
-            application.add_handler(CommandHandler("start", self.startCommand))
-            application.add_handler(
-                MessageHandler(filters.TEXT & ~filters.COMMAND, self.getBooks)
+            # telegram's typed handler callbacks don't compose cleanly with our
+            # decorated, bound async methods, so cast them to Any at registration.
+            start_handler = CommandHandler("start", self.startCommand)  # type: ignore
+            books_handler = MessageHandler(
+                filters.TEXT & ~filters.COMMAND, self.getBooks  # type: ignore
             )
-            application.add_handler(
-                MessageHandler(filters.Regex(r"^/download\d+$"), self.downloadBooks)
+            download_handler = MessageHandler(
+                filters.Regex(r"^/download\d+$"), self.downloadBooks  # type: ignore
             )
-            application.add_handler(CallbackQueryHandler(self.botCallback))
+            callback_handler = CallbackQueryHandler(self.botCallback)  # type: ignore
+            application.add_handler(start_handler)
+            application.add_handler(books_handler)
+            application.add_handler(download_handler)
+            application.add_handler(callback_handler)
 
             application.run_polling()
         except InvalidToken:

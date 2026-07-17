@@ -18,10 +18,10 @@ class scanTestCase(TestCase):
     test_mobi = "robin_cook.mobi"
     test_zip = "books.zip"
 
-    def setUp(self):
+    def setUp(self) -> None:
         config.SOPDS_ROOT_LIB = self.test_ROOTLIB
 
-    def test_processfile_fb2(self):
+    def test_processfile_fb2(self) -> None:
         """Тестирование процедуры processfile (извлекает метаданные из книги \
 FB2 и помещает в БД)"""
         opdsdb.clear_all()
@@ -62,15 +62,15 @@ FB2 и помещает в БД)"""
         self.assertEqual(book.genres.get(genre="antique").section, opdsdb.unknown_genre)
         self.assertEqual(book.genres.get(genre="antique").subsection, "antique")
 
-    def test_processfile_fb2sax(self):
+    def test_processfile_fb2sax(self) -> None:
         config.SOPDS_FB2SAX = True
         self.test_processfile_fb2()
 
-    def test_processfile_fb2xpath(self):
+    def test_processfile_fb2xpath(self) -> None:
         config.SOPDS_FB2SAX = False
         self.test_processfile_fb2()
 
-    def test_processfile_epub(self):
+    def test_processfile_epub(self) -> None:
         """Тестирование процедуры processfile (извлекает метаданные из книги \
 EPUB и помещает в БД)"""
         opdsdb.clear_all()
@@ -114,7 +114,7 @@ EPUB и помещает в БД)"""
         self.assertEqual(book.genres.get(genre="sf").section, opdsdb.unknown_genre)
         self.assertEqual(book.genres.get(genre="sf").subsection, "sf")
 
-    def test_processfile_mobi(self):
+    def test_processfile_mobi(self) -> None:
         """Тестирование процедуры processfile (извлекает метаданные из книги \
 EPUB и помещает в БД)"""
         opdsdb.clear_all()
@@ -151,7 +151,7 @@ EPUB и помещает в БД)"""
             book.authors.get(full_name="Cook Robin").search_full_name, "COOK ROBIN"
         )
 
-    def test_processzip(self):
+    def test_processzip(self) -> None:
         """Тестирование процедуры processzip (извлекает метаданные из книг, \
 помещенных в архив и помещает их БД)"""
         opdsdb.clear_all()
@@ -207,7 +207,7 @@ EPUB и помещает в БД)"""
             "КУПРИЯНОВ ДЕНИС",
         )
 
-    def test_scanall(self):
+    def test_scanall(self) -> None:
         """Тестирование процедуры scanall (извлекает метаданные из книг и \
 помещает в БД)"""
         opdsdb.clear_all()

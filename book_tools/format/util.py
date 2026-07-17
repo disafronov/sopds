@@ -1,14 +1,16 @@
+import zipfile
+
 # import PythonMagick
 # from PIL import Image, ImageFile
 
 strip_symbols = " »«'\"&\n-.#\\`"
 
 
-def list_zip_file_infos(zipfile):
+def list_zip_file_infos(zipfile: "zipfile.ZipFile") -> list["zipfile.ZipInfo"]:
     return [info for info in zipfile.infolist() if not info.filename.endswith("/")]
 
 
-def minify_cover(path):
+def minify_cover(path: str) -> None:
     # try:
     #     try:
     #         image = Image.open(path).convert('RGB')

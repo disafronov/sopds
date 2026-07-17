@@ -1,16 +1,16 @@
-# -*- coding: utf-8 -*-
+from __future__ import annotations
 
 import base64
-import codecs
 import functools
 import io
 import os
 import re
 import shutil
 import subprocess
+from typing import Any, BinaryIO, Callable, cast
 
 from constance import config
-from django.http import Http404, HttpResponse
+from django.http import Http404, HttpRequest, HttpResponse
 from django.views.decorators.cache import cache_page
 from PIL import Image
 
@@ -21,7 +21,7 @@ from opds_catalog import fb2parse, opdsdb, settings, utils
 from opds_catalog.models import Book, bookshelf
 
 
-def getFileName(book):
+def getFileName(book: Book) -> str:
     if config.SOPDS_TITLE_AS_FILENAME:
         transname = utils.translit(book.title + "." + book.format)
     else:
@@ -30,14 +30,14 @@ def getFileName(book):
     return utils.to_ascii(transname)
 
 
-def _safe_temp_name(name):
+def _safe_temp_name(name: str) -> str:
     # Path-traversal guard: book-derived names must never escape SOPDS_TEMP_DIR.
     # Keep only the basename and strip any path separators / ".." segments.
     name = os.path.basename(name)
     return re.sub(r"[^A-Za-z0-9._-]", "_", name)
 
 
-def _resolve_converter(converter_path):
+def _resolve_converter(converter_path: str) -> str | None:
     # Validate the operator-configured converter before invoking it. Prefer a
     # PATH lookup; fall back to an absolute path only if it is an executable file.
     resolved = shutil.which(converter_path)
@@ -48,10 +48,9 @@ def _resolve_converter(converter_path):
     return None
 
 
-def getFileData(book):
+def getFileData(book: Book) -> io.BytesIO:
     full_path = os.path.join(config.SOPDS_ROOT_LIB, book.path)
     if book.cat_type == opdsdb.CAT_INP:
-        # Убираем из пути INPX и INP файл
         inp_path, zip_name = os.path.split(full_path)
         inpx_path, inp_name = os.path.split(inp_path)
         path, inpx_name = os.path.split(inpx_path)
@@ -59,25 +58,21 @@ def getFileData(book):
 
     z = None
     fz = None
-    fo = None
+    fo: BinaryIO | None = None
 
     if book.cat_type == opdsdb.CAT_NORMAL:
         file_path = os.path.join(full_path, book.filename)
         try:
             fo = open(file_path, "rb")
-            # s = fo.read()
         except FileNotFoundError:
-            # s = None
             fo = None
 
     elif book.cat_type in [opdsdb.CAT_ZIP, opdsdb.CAT_INP]:
         try:
-            fz = codecs.open(full_path, "rb")
+            fz = open(full_path, "rb")
             z = zipfile.ZipFile(fz, "r", allowZip64=True)
-            fo = z.open(book.filename)
-            # s=fo.read()
+            fo = cast(BinaryIO, z.open(book.filename))
         except FileNotFoundError:
-            # s = None
             fo = None
 
     dio = io.BytesIO()
@@ -95,7 +90,7 @@ def getFileData(book):
     return dio
 
 
-def getFileDataZip(book):
+def getFileDataZip(book: Book) -> io.BytesIO:
     transname = getFileName(book)
     fo = getFileData(book)
     dio = io.BytesIO()
@@ -107,8 +102,7 @@ def getFileDataZip(book):
     return dio
 
 
-def getFileDataConv(book, convert_type):
-
+def getFileDataConv(book: Book, convert_type: str) -> io.BytesIO | None:
     if book.format != "fb2":
         return None
 
@@ -144,37 +138,34 @@ def getFileDataConv(book, convert_type):
 
     popen_args = [converter_path, tmp_fb2_path, tmp_conv_path]
     proc = subprocess.Popen(popen_args, shell=False, stdout=subprocess.PIPE)
-    # У следующий строки 2 функции 1-получение информации по
-    # конвертации и 2- ожидание конца конвертации
-    # В силу 2й функции ее удаление приведет к ошибке выдачи сконвертированного файла
     assert proc.stdout is not None
     proc.stdout.readlines()
 
     if os.path.isfile(tmp_conv_path):
-        fo = open(tmp_conv_path, "rb")
+        conv_fo = open(tmp_conv_path, "rb")
     else:
         return None
 
     dio = io.BytesIO()
-    dio.write(fo.read())
+    dio.write(conv_fo.read())
     dio.seek(0)
 
-    fo.close()
+    conv_fo.close()
     os.remove(tmp_fb2_path)
     os.remove(tmp_conv_path)
 
     return dio
 
 
-def getFileDataEpub(book):
+def getFileDataEpub(book: Book) -> io.BytesIO | None:
     return getFileDataConv(book, "epub")
 
 
-def getFileDataMobi(book):
+def getFileDataMobi(book: Book) -> io.BytesIO | None:
     return getFileDataConv(book, "mobi")
 
 
-def Download(request, book_id, zip_flag):
+def Download(request: HttpRequest, book_id: int, zip_flag: str) -> HttpResponse:
     """Загрузка файла книги"""
     book = Book.objects.get(id=book_id)
 
@@ -184,7 +175,6 @@ def Download(request, book_id, zip_flag):
     full_path = os.path.join(config.SOPDS_ROOT_LIB, book.path)
 
     if book.cat_type == opdsdb.CAT_INP:
-        # Убираем из пути INPX и INP файл
         inp_path, zip_name = os.path.split(full_path)
         inpx_path, inp_name = os.path.split(inp_path)
         path, inpx_name = os.path.split(inpx_path)
@@ -211,25 +201,27 @@ def Download(request, book_id, zip_flag):
 
     z = None
     fz = None
-    s = None
+    fo: BinaryIO
     book_size = book.filesize
     if book.cat_type == opdsdb.CAT_NORMAL:
         file_path = os.path.join(full_path, book.filename)
         book_size = os.path.getsize(file_path)
         try:
-            fo = codecs.open(file_path, "rb")
+            fo = open(file_path, "rb")
         except FileNotFoundError:
             raise Http404
-        s = fo.read()
+        s: bytes = fo.read()
     elif book.cat_type in [opdsdb.CAT_ZIP, opdsdb.CAT_INP]:
         try:
-            fz = codecs.open(full_path, "rb")
+            fz = open(full_path, "rb")
         except FileNotFoundError:
             raise Http404
         z = zipfile.ZipFile(fz, "r", allowZip64=True)
         book_size = z.getinfo(book.filename).file_size
-        fo = z.open(book.filename)
+        fo = cast(BinaryIO, z.open(book.filename))
         s = fo.read()
+    else:
+        raise Http404
 
     if zip_flag == "1":
         dio = io.BytesIO()
@@ -252,48 +244,49 @@ def Download(request, book_id, zip_flag):
     return response
 
 
-# Новая версия (0.42) процедуры извлечения обложек из файлов книг fb2, epub, mobi
-def _cache_cover(view):
+def _cache_cover(
+    view: Callable[..., HttpResponse],
+) -> Callable[..., HttpResponse]:
     # Defer constance lookup to request time.
     # @cache_page evaluates its timeout argument at import time, which queries
     # the constance_constance table during Django's system check (run by
     # `manage.py migrate` before migrations are applied) and crashes when the
     # table does not yet exist. Wrapping it keeps the timeout lazy.
     @functools.wraps(view)
-    def wrapper(request, *args, **kwargs):
+    def wrapper(request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         return cache_page(config.SOPDS_CACHE_TIME)(view)(request, *args, **kwargs)
 
     return wrapper
 
 
 @_cache_cover
-def Cover(request, book_id, thumbnail=False):
+def Cover(request: HttpRequest, book_id: int, thumbnail: bool = False) -> HttpResponse:
     """Загрузка обложки"""
     book = Book.objects.get(id=book_id)
     response = HttpResponse()
     full_path = os.path.join(config.SOPDS_ROOT_LIB, book.path)
     if book.cat_type == opdsdb.CAT_INP:
-        # Убираем из пути INPX и INP файл
         inp_path, zip_name = os.path.split(full_path)
         inpx_path, inp_name = os.path.split(inp_path)
         path, inpx_name = os.path.split(inpx_path)
         full_path = os.path.join(path, zip_name)
 
+    book_data: Any = None
+    image: bytes | None = None
+    fo: BinaryIO
     try:
         if book.cat_type == opdsdb.CAT_NORMAL:
             file_path = os.path.join(full_path, book.filename)
-            fo = codecs.open(file_path, "rb")
+            fo = open(file_path, "rb")
             book_data = create_bookfile(fo, book.filename)
             image = book_data.extract_cover_memory()
-            # fb2.parse(fo, 0)
             fo.close()
         elif book.cat_type in [opdsdb.CAT_ZIP, opdsdb.CAT_INP]:
-            fz = codecs.open(full_path, "rb")
+            fz = open(full_path, "rb")
             z = zipfile.ZipFile(fz, "r", allowZip64=True)
-            fo = z.open(book.filename)
+            fo = cast(BinaryIO, z.open(book.filename))
             book_data = create_bookfile(fo, book.filename)
             image = book_data.extract_cover_memory()
-            # fb2.parse(fo, 0)
             fo.close()
             z.close()
             fz.close()
@@ -326,15 +319,13 @@ def Cover(request, book_id, thumbnail=False):
     return response
 
 
-# Старая версия (до 0.41) процедуры извлечения обложек из файлов книг только fb2
-def Cover0(request, book_id, thumbnail=False):
+def Cover0(request: HttpRequest, book_id: int, thumbnail: bool = False) -> HttpResponse:
     """Загрузка обложки"""
     book = Book.objects.get(id=book_id)
     response = HttpResponse()
     c0 = 0
     full_path = os.path.join(config.SOPDS_ROOT_LIB, book.path)
     if book.cat_type == opdsdb.CAT_INP:
-        # Убираем из пути INPX и INP файл
         inp_path, zip_name = os.path.split(full_path)
         inpx_path, inp_name = os.path.split(inp_path)
         path, inpx_name = os.path.split(inpx_path)
@@ -342,15 +333,16 @@ def Cover0(request, book_id, thumbnail=False):
 
     if book.format == "fb2":
         fb2 = fb2parse.fb2parser(1)
+        fo: BinaryIO
         if book.cat_type == opdsdb.CAT_NORMAL:
             file_path = os.path.join(full_path, book.filename)
-            fo = codecs.open(file_path, "rb")
+            fo = open(file_path, "rb")
             fb2.parse(fo, 0)
             fo.close()
         elif book.cat_type in [opdsdb.CAT_ZIP, opdsdb.CAT_INP]:
-            fz = codecs.open(full_path, "rb")
+            fz = open(full_path, "rb")
             z = zipfile.ZipFile(fz, "r", allowZip64=True)
-            fo = z.open(book.filename)
+            fo = cast(BinaryIO, z.open(book.filename))
             fb2.parse(fo, 0)
             fo.close()
             z.close()
@@ -371,7 +363,9 @@ def Cover0(request, book_id, thumbnail=False):
                     thumb.save(tfile, "JPEG")
                     dstr = tfile.getvalue()
                 else:
-                    response["Content-Type"] = fb2.cover_image.getattr("content-type")
+                    response["Content-Type"] = (
+                        fb2.cover_image.getattr("content-type") or "image/jpeg"
+                    )
                 response.write(dstr)
                 c0 = 1
             except Exception:
@@ -389,11 +383,11 @@ def Cover0(request, book_id, thumbnail=False):
     return response
 
 
-def Thumbnail(request, book_id):
+def Thumbnail(request: HttpRequest, book_id: int) -> HttpResponse:
     return Cover(request, book_id, True)
 
 
-def ConvertFB2(request, book_id, convert_type):
+def ConvertFB2(request: HttpRequest, book_id: int, convert_type: str) -> HttpResponse:
     """Выдача файла книги после конвертации в EPUB или mobi"""
     book = Book.objects.get(id=book_id)
 
@@ -405,7 +399,6 @@ def ConvertFB2(request, book_id, convert_type):
 
     full_path = os.path.join(config.SOPDS_ROOT_LIB, book.path)
     if book.cat_type == opdsdb.CAT_INP:
-        # Убираем из пути INPX и INP файл
         inp_path, zip_name = os.path.split(full_path)
         inpx_path, inp_name = os.path.split(inp_path)
         path, inpx_name = os.path.split(inpx_path)
@@ -446,7 +439,7 @@ def ConvertFB2(request, book_id, convert_type):
         file_path = tmp_fb2_path
     elif book.cat_type in [opdsdb.CAT_ZIP, opdsdb.CAT_INP]:
         try:
-            fz = codecs.open(full_path, "rb")
+            fz = open(full_path, "rb")
         except FileNotFoundError:
             raise Http404
         z = zipfile.ZipFile(fz, "r", allowZip64=True)
@@ -455,6 +448,8 @@ def ConvertFB2(request, book_id, convert_type):
             config.SOPDS_TEMP_DIR, _safe_temp_name(book.filename)
         )
         file_path = tmp_fb2_path
+    else:
+        raise Http404
 
     tmp_conv_path = os.path.join(config.SOPDS_TEMP_DIR, dlfilename)
     popen_args = [converter_path, file_path, tmp_conv_path]
@@ -463,9 +458,8 @@ def ConvertFB2(request, book_id, convert_type):
     proc.stdout.readlines()
 
     if os.path.isfile(tmp_conv_path):
-        fo = codecs.open(tmp_conv_path, "rb")
+        fo = open(tmp_conv_path, "rb")
         s = fo.read()
-        # HTTP Header
         response = HttpResponse()
         response["Content-Type"] = '%s; name="%s"' % (content_type, dlfilename)
         response["Content-Disposition"] = 'attachment; filename="%s"' % (dlfilename)

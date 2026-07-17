@@ -11,10 +11,10 @@ from opds_catalog import opdsdb
 class feedsTestCase(TestCase):
     fixtures = ["testdb.json"]
 
-    def setUp(self):
+    def setUp(self) -> None:
         config.SOPDS_AUTH = False
 
-    def test_MainFeed(self):
+    def test_MainFeed(self) -> None:
         c = Client()
         response = c.get("/opds/")
         self.assertEqual(response.status_code, 200)
@@ -33,7 +33,7 @@ class feedsTestCase(TestCase):
             _("Genres: %(genres)s.") % {"genres": 4}, response.content.decode()
         )
 
-    def test_CatalogsFeed(self):
+    def test_CatalogsFeed(self) -> None:
         c = Client()
         response = c.get("/opds/catalogs/")
         self.assertEqual(response.status_code, 200)
@@ -42,7 +42,7 @@ class feedsTestCase(TestCase):
         self.assertIn("books.zip", response.content.decode())
         self.assertIn("The Sanctuary Sparrow", response.content.decode())
 
-    def test_CatalogsFeedTree(self):
+    def test_CatalogsFeedTree(self) -> None:
         c = Client()
         response = c.get("/opds/catalogs/4/")
         self.assertEqual(response.status_code, 200)
@@ -52,13 +52,13 @@ class feedsTestCase(TestCase):
         self.assertIn("Китайски сладкиш с късметче", response.content.decode())
         self.assertIn("Любовь в жизни Обломова", response.content.decode())
 
-    def test_OpenSearch(self):
+    def test_OpenSearch(self) -> None:
         c = Client()
         response = c.get("/opds/search/")
         self.assertEqual(response.status_code, 200)
         self.assertIn("www.sopds.ru", response.content.decode())
 
-    def test_SearchTypes(self):
+    def test_SearchTypes(self) -> None:
         c = Client()
         response = c.get("/opds/search/Драк/")
         self.assertEqual(response.status_code, 200)
@@ -66,7 +66,7 @@ class feedsTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(_("Search by titles"), response.content.decode())
 
-    def test_SearchBooks(self):
+    def test_SearchBooks(self) -> None:
         c = Client()
         response = c.get("/opds/search/books/m/Драк/")
         self.assertEqual(response.status_code, 200)
@@ -99,7 +99,7 @@ class feedsTestCase(TestCase):
         self.assertIn("prose_contemporary", response.content.decode())
         self.assertIn("<category ", response.content.decode())
 
-    def test_SearchAuthors(self):
+    def test_SearchAuthors(self) -> None:
         c = Client()
         response = c.get("/opds/search/authors/m/Логинов/")
         self.assertEqual(response.status_code, 200)
@@ -118,14 +118,14 @@ class feedsTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("Логинов Святослав", response.content.decode())
 
-    def test_SearchGenres(self):
+    def test_SearchGenres(self) -> None:
         # response = c.get('/opds/search/genres/antiq/')
         # self.assertEqual(response.status_code, 200)
         # self.assertIn("The Sanctuary Sparrow", response.content.decode())
         # self.assertIn("Peters Ellis", response.content.decode())
         pass
 
-    def test_LangFeed(self):
+    def test_LangFeed(self) -> None:
         c = Client()
         response = c.get("/opds/books/")
         self.assertEqual(response.status_code, 200)
@@ -137,7 +137,7 @@ class feedsTestCase(TestCase):
         self.assertIn(_("Other symbols"), response.content.decode())
         self.assertIn(_("Show all"), response.content.decode())
 
-    def test_BooksFeed(self):
+    def test_BooksFeed(self) -> None:
         c = Client()
         response = c.get("/opds/books/0/")
         self.assertEqual(response.status_code, 200)
@@ -148,7 +148,7 @@ class feedsTestCase(TestCase):
         response = c.get(reverse("opds:char_books", kwargs={"lang_code": 0}))
         self.assertIn("<title>T</title>", response.content.decode())
 
-    def test_AuthorsFeed(self):
+    def test_AuthorsFeed(self) -> None:
         c = Client()
         response = c.get("/opds/authors/0/")
         self.assertEqual(response.status_code, 200)
@@ -159,7 +159,7 @@ class feedsTestCase(TestCase):
         response = c.get(reverse("opds:char_authors", kwargs={"lang_code": 0}))
         self.assertIn("<title>P</title>", response.content.decode())
 
-    def test_GenresFeed(self):
+    def test_GenresFeed(self) -> None:
         c = Client()
         response = c.get("/opds/genres/")
         self.assertEqual(response.status_code, 200)
