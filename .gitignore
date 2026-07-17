@@ -27,3 +27,6 @@ build/
 .mypy_cache/
 .tox/
 .cache/
+
+
+/pyrightconfig.json
