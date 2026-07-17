@@ -2,12 +2,12 @@
 
 import base64
 import codecs
+import functools
 import io
 import os
 import re
 import shutil
 import subprocess
-import functools
 
 from constance import config
 from django.http import Http404, HttpResponse

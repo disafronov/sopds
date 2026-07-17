@@ -19,7 +19,8 @@ endif
 TOOLING_SECRET_KEY = unsafe-secret-key-for-tooling
 
 UV = uv run
-PYTEST_CMD = DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python -m pytest -v
+PYTEST_CMD = DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python -m pytest -v -n auto
+COVERAGE_OPTS = --cov=. --cov-report=term-missing --cov-report=html
 
 DOCKER_IMAGE = sopds
 
@@ -53,7 +54,7 @@ lint: ## Run linting tools
 	@echo "Running linting tools..."
 	$(UV) black --check . && \
 	$(UV) isort --check-only . && \
-	$(UV) flake8 . --exclude .venv,htmlcov,*/migrations/*.py --max-line-length=88 && \
+	$(UV) flake8 . && \
 	DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) mypy . && \
 	$(UV) bandit -r -c pyproject.toml .
 
@@ -75,7 +76,7 @@ migrate: ## Apply database migrations
 
 test: ## Run tests with coverage report
 	@echo "Running tests with coverage..."
-	$(PYTEST_CMD) --cov=. --cov-report=term-missing --cov-report=html
+	$(PYTEST_CMD) $(COVERAGE_OPTS)
 
 all: lint test dead-code ## Run all checks
 	@echo "All checks completed successfully!"
