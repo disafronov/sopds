@@ -102,11 +102,18 @@ docker-build: ## Build Docker image
 	@echo "Building Docker image..."
 	docker build -t $(DOCKER_IMAGE) .
 
-docker-run: ## Run Docker container (migrate → start)
+docker-run: ## Run Docker container (migrate → conditional createsuperuser → start ui)
 	@echo "Running migrations..."
 	docker run $(DOCKER_RUN_OPTS) $(DOCKER_IMAGE) migrate
+	@if [ -n "$(SOPDS_USER)" ] && [ -n "$(SOPDS_PASSWORD)" ]; then \
+		echo "Creating superuser if missing..."; \
+		docker run $(DOCKER_RUN_OPTS) $(DOCKER_IMAGE) createsuperuser \
+			--username "$(SOPDS_USER)" \
+			--email "$(SOPDS_EMAIL)" \
+			--password "$(SOPDS_PASSWORD)"; \
+	fi
 	@echo "Starting server..."
-	docker run $(DOCKER_RUN_OPTS) -p $(DOCKER_PORT):$(DOCKER_PORT) $(DOCKER_IMAGE)
+	docker run $(DOCKER_RUN_OPTS) -p $(DOCKER_PORT):$(DOCKER_PORT) $(DOCKER_IMAGE) ui
 
 docker: docker-build docker-run ## Build and run Docker container
 	@echo "Docker container built and running!"

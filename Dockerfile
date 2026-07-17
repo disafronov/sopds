@@ -75,11 +75,11 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
     CMD ["python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000', timeout=3).read()"]
 
-# sopds orchestrates startup via entrypoint.sh (links /srv/settings.py, runs migrate).
+# sopds orchestrates startup via entrypoint.sh (runs migrate, superuser, server/scanner).
 COPY --chown=ubuntu:ubuntu entrypoint.sh /home/ubuntu/app/entrypoint.sh
 RUN chmod a+x /home/ubuntu/app/entrypoint.sh
 
-VOLUME ["/srv"]
+VOLUME ["/books"]
 ENTRYPOINT ["/home/ubuntu/app/entrypoint.sh"]
 CMD ["help"]
 USER ubuntu:ubuntu

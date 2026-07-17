@@ -22,12 +22,12 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/1.9/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "m4l1c#nq6*zs!c3ri4dg4(54_7bvrl5uintni6p20tijlaxv!x"
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "m4l1c#nq6*zs!c3ri4dg4(54_7bvrl5uintni6p20tijlaxv!x")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DJANGO_DEBUG", "True").lower() in ("1", "true", "yes", "on")
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = [h.strip() for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "*").split(",") if h.strip()]
 
 # Application definition
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
@@ -221,13 +221,13 @@ CONSTANCE_CONFIG = OrderedDict(
         ("SOPDS_LANGUAGE", ("en-US", _("Select language"), "language_select")),
         (
             "SOPDS_ROOT_LIB",
-            ("books/", _("Absolute path to books collection directory")),
+            (os.getenv("SOPDS_ROOT_LIB", "books/"), _("Absolute path to books collection directory")),
         ),
         (
             "SOPDS_BOOK_EXTENSIONS",
             (".pdf .djvu .fb2 .epub .mobi", _("List of managed book files extensions")),
         ),
-        ("SOPDS_SCAN_START_DIRECTLY", (False, _("Turn once scanning directly"))),
+        ("SOPDS_SCAN_START_DIRECTLY", (os.getenv("SOPDS_SCAN_START_DIRECTLY", "False").lower() in ("1", "true", "yes", "on"), _("Turn once scanning directly"))),
         ("SOPDS_CACHE_TIME", (1200, _("Pages cache time"))),
         ("SOPDS_TELEBOT_API_TOKEN", ("", _("Telegramm API Token"))),
         (
@@ -262,15 +262,15 @@ CONSTANCE_CONFIG = OrderedDict(
             "SOPDS_FB2SAX",
             (True, _("This flag activate SAX Parser for FB2 instead of lxml.xpath")),
         ),
-        ("SOPDS_ZIPSCAN", (True, _("This flag activate zip files scanning"))),
+        ("SOPDS_ZIPSCAN", (os.getenv("SOPDS_ZIPSCAN", "True").lower() in ("1", "true", "yes", "on"), _("This flag activate zip files scanning"))),
         (
             "SOPDS_ZIPCODEPAGE",
-            ("cp866", _("Set codepage for filenames inside zipfile")),
+            (os.getenv("SOPDS_ZIPCODEPAGE", "cp866"), _("Set codepage for filenames inside zipfile")),
         ),
         (
             "SOPDS_INPX_ENABLE",
             (
-                False,
+                os.getenv("SOPDS_INPX_ENABLE", "False").lower() in ("1", "true", "yes", "on"),
                 _(
                     "Enables read metadata from inpx-file (and stop"
                     " scanning deeper from ipx-file place)"
@@ -279,12 +279,12 @@ CONSTANCE_CONFIG = OrderedDict(
         ),
         (
             "SOPDS_INPX_SKIP_UNCHANGED",
-            (True, _("Skip scanning INPX with unchanged size after previous scan")),
+            (os.getenv("SOPDS_INPX_SKIP_UNCHANGED", "True").lower() in ("1", "true", "yes", "on"), _("Skip scanning INPX with unchanged size after previous scan")),
         ),
         (
             "SOPDS_INPX_TEST_ZIP",
             (
-                False,
+                os.getenv("SOPDS_INPX_TEST_ZIP", "False").lower() in ("1", "true", "yes", "on"),
                 _(
                     "Test avialability zip files listed in INPX before"
                     " add in collection"
@@ -294,14 +294,14 @@ CONSTANCE_CONFIG = OrderedDict(
         (
             "SOPDS_INPX_TEST_FILES",
             (
-                False,
+                os.getenv("SOPDS_INPX_TEST_FILES", "False").lower() in ("1", "true", "yes", "on"),
                 _(
                     "Test avialability book files listed in INPX before"
                     " add in collection"
                 ),
             ),
         ),
-        ("SOPDS_DELETE_LOGICAL", (False, _("Logical deleting unavialable files"))),
+        ("SOPDS_DELETE_LOGICAL", (os.getenv("SOPDS_DELETE_LOGICAL", "False").lower() in ("1", "true", "yes", "on"), _("Logical deleting unavialable files"))),
         (
             "SOPDS_SCAN_SHED_MIN",
             ("0", _("sheduled minutes for sopds_scanner (cron syntax)")),

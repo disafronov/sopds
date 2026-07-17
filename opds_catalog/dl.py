@@ -7,6 +7,7 @@ import os
 import re
 import shutil
 import subprocess
+import functools
 
 from constance import config
 from django.http import Http404, HttpResponse
@@ -252,7 +253,20 @@ def Download(request, book_id, zip_flag):
 
 
 # Новая версия (0.42) процедуры извлечения обложек из файлов книг fb2, epub, mobi
-@cache_page(config.SOPDS_CACHE_TIME)
+def _cache_cover(view):
+    # Defer constance lookup to request time.
+    # @cache_page evaluates its timeout argument at import time, which queries
+    # the constance_constance table during Django's system check (run by
+    # `manage.py migrate` before migrations are applied) and crashes when the
+    # table does not yet exist. Wrapping it keeps the timeout lazy.
+    @functools.wraps(view)
+    def wrapper(request, *args, **kwargs):
+        return cache_page(config.SOPDS_CACHE_TIME)(view)(request, *args, **kwargs)
+
+    return wrapper
+
+
+@_cache_cover
 def Cover(request, book_id, thumbnail=False):
     """Загрузка обложки"""
     book = Book.objects.get(id=book_id)
