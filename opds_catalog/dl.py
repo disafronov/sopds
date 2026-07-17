@@ -483,7 +483,7 @@ def ConvertFB2(request: HttpRequest, book_id: int, convert_type: str) -> HttpRes
     else:
         raise Http404
 
-    tmp_conv_path = os.path.join(config.SOPDS_TEMP_DIR, dlfilename)
+    tmp_conv_path = os.path.join(config.SOPDS_TEMP_DIR, os.path.basename(file_path))
     popen_args = [converter_path, file_path, tmp_conv_path]
     _ensure_inside_temp_dir(file_path)
     _ensure_inside_temp_dir(tmp_conv_path)
