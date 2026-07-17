@@ -1,6 +1,6 @@
 [project]
 name = "sopds"
-version = "1.0.0rc1"
+version = "1.0.0rc2"
 description = "Simple OPDS server"
 readme = "README.md"
 requires-python = ">=3.10,<3.13"
@@ -37,11 +37,24 @@ exclude = [ ".venv", "htmlcov", "*/migrations/*.py" ]
 
 [tool.mypy]
 strict = true
-plugins = ["mypy_django_plugin.main"]
+plugins = [ "mypy_django_plugin.main" ]
 
-[[tool.mypy.overrides]]
-module = ["lxml", "lxml.*", "PIL", "PIL.*", "apscheduler", "apscheduler.*", "telegram", "telegram.*", "psycopg2", "psycopg2.*", "constance", "constance.*"]
-ignore_missing_imports = true
+  [[tool.mypy.overrides]]
+  module = [
+  "lxml",
+  "lxml.*",
+  "PIL",
+  "PIL.*",
+  "apscheduler",
+  "apscheduler.*",
+  "telegram",
+  "telegram.*",
+  "psycopg2",
+  "psycopg2.*",
+  "constance",
+  "constance.*"
+]
+  ignore_missing_imports = true
 
 [tool.django-stubs]
 django_settings_module = "sopds.settings"
