@@ -34,7 +34,7 @@ dev = [
 ]
 docker = [
     "pytz==2026.2",
-    "tzdata==2024.2",
+    "tzdata==2026.3",
     "mysqlclient",
     "psycopg[binary]",
 ]
