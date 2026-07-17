@@ -62,9 +62,15 @@ class Book(models.Model):
     annotation = models.CharField(max_length=SIZE_BOOK_ANNOTATION)
     lang_code = models.IntegerField(null=False, default=9, db_index=True)
     avail = models.IntegerField(null=False, default=0, db_index=True)
-    authors = models.ManyToManyField("Author", through="bauthor")
-    genres = models.ManyToManyField("Genre", through="bgenre")
-    series = models.ManyToManyField("Series", through="bseries")
+    authors: "models.ManyToManyField[Author, bauthor]" = models.ManyToManyField(
+        "Author", through="bauthor"
+    )
+    genres: "models.ManyToManyField[Genre, bgenre]" = models.ManyToManyField(
+        "Genre", through="bgenre"
+    )
+    series: "models.ManyToManyField[Series, bseries]" = models.ManyToManyField(
+        "Series", through="bseries"
+    )
 
 
 class Catalog(models.Model):

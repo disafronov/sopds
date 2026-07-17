@@ -2,20 +2,16 @@ import logging
 import re
 import sys
 
-from django.utils.html import strip_tags
-from django.db.models import Q
-from django.db import connection, connections
+from constance import config
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
-from django.utils.translation import gettext as _
+from django.db import connection, connections
+from django.db.models import Q
 from django.utils import translation
-
-from opds_catalog.models import Book
-from opds_catalog import settings, dl
-from opds_catalog.opds_paginator import Paginator as OPDS_Paginator
-from sopds_web_backend.settings import HALF_PAGES_LINKS
-from constance import config
+from django.utils.html import strip_tags
+from django.utils.translation import gettext as _
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.error import InvalidToken
 from telegram.ext import (
     ApplicationBuilder,
     CallbackQueryHandler,
@@ -23,7 +19,11 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
-from telegram.error import InvalidToken
+
+from opds_catalog import dl, settings
+from opds_catalog.models import Book
+from opds_catalog.opds_paginator import Paginator as OPDS_Paginator
+from sopds_web_backend.settings import HALF_PAGES_LINKS
 
 query_delimiter = "####"
 

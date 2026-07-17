@@ -4,7 +4,6 @@ import os.path
 import re
 import struct
 import sys
-
 from collections import OrderedDict
 
 from book_tools.pymobi import compression
