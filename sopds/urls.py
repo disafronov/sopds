@@ -15,8 +15,10 @@ Including another URLconf
 """
 
 from django.contrib import admin
-from django.urls import include, re_path, reverse_lazy
+from django.urls import include, path, re_path, reverse_lazy
 from django.views.generic import RedirectView
+
+from ops.health import liveness, readiness
 
 # from django.contrib.auth import logout
 
@@ -24,6 +26,8 @@ urlpatterns = [
     re_path(r"^opds/", include("opds_catalog.urls", namespace="opds")),
     re_path(r"^web/", include("sopds_web_backend.urls", namespace="web")),
     re_path(r"^admin/", admin.site.urls),
+    path("health/liveness/", liveness, name="liveness"),
+    path("health/readiness/", readiness, name="readiness"),
     # re_path(r'^logout/$', logout, {'next_page':'/web/'},name='logout'),
     # re_path(r'^', include('sopds_web_backend.urls', namespace='web',
     #     app_name='opds_web_backend')),

@@ -20,10 +20,8 @@ TOOLING_SECRET_KEY = unsafe-secret-key-for-tooling
 
 UV = uv run
 PYTEST_CMD = DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python -m pytest -v
-COVERAGE_OPTS = --cov=. --cov-report=term-missing --cov-report=html
 
 DOCKER_IMAGE = sopds
-DOCKER_PORT = 8000
 
 DOCKER_RUN_OPTS = --rm \
 	--read-only \
@@ -33,8 +31,7 @@ DOCKER_RUN_OPTS = --rm \
 	$(if $(wildcard env.docker),--env-file env.docker,) \
 	$(if $(wildcard .env),--env-file .env,)
 
-# Phony targets
-.PHONY: all audit clean dead-code docker docker-build docker-run format help install lint makemigrations migrate run test test-coverage
+.PHONY: all audit clean dead-code dev docker docker-build docker-run format help install lint makemigrations migrate run scanner test
 
 help: ## Show this help message
 	@echo "Available commands:"
@@ -49,7 +46,6 @@ install: ## Install dependencies
 
 format: ## Format code
 	@echo "Formatting code..."
-	$(UV) autoflake --in-place --remove-all-unused-imports --ignore-init-module-imports -r . && \
 	$(UV) black . && \
 	$(UV) isort .
 
@@ -57,7 +53,7 @@ lint: ## Run linting tools
 	@echo "Running linting tools..."
 	$(UV) black --check . && \
 	$(UV) isort --check-only . && \
-	$(UV) flake8 . && \
+	$(UV) flake8 . --exclude .venv,htmlcov,*/migrations/*.py --max-line-length=88 && \
 	DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) mypy . && \
 	$(UV) bandit -r -c pyproject.toml .
 
@@ -67,7 +63,7 @@ audit: ## Check dependencies for known vulnerabilities
 
 dead-code: ## Check for dead code using vulture
 	@echo "Checking for dead code..."
-	$(UV) vulture
+	uv run vulture
 
 makemigrations: ## Create new migrations
 	@echo "Creating migrations..."
@@ -77,22 +73,28 @@ migrate: ## Apply database migrations
 	@echo "Applying migrations..."
 	DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py migrate
 
-test: ## Run tests
-	@echo "Running tests..."
-	$(PYTEST_CMD)
-
-test-coverage: ## Run tests with coverage
+test: ## Run tests with coverage report
 	@echo "Running tests with coverage..."
-	$(PYTEST_CMD) $(COVERAGE_OPTS)
+	$(PYTEST_CMD) --cov=. --cov-report=term-missing --cov-report=html
 
-all: lint test dead-code ## Run lint, test, and dead-code check
+all: lint test dead-code ## Run all checks
 	@echo "All checks completed successfully!"
 
-run: migrate ## Apply migrations and run the Django dev server
-	@echo "Running Django application locally..."
-	DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py runserver
+run: migrate ## Apply migrations, create admin, start dev server + scanner
+	@echo "Running Django dev server + scanner..."
+	@if [ -n "$$DJANGO_SUPERUSER_USERNAME" ] && [ -n "$$DJANGO_SUPERUSER_PASSWORD" ] && [ -n "$$DJANGO_SUPERUSER_EMAIL" ]; then \
+		echo "Ensuring Django superuser exists..."; \
+		$(UV) python manage.py createsuperuser --noinput || true; \
+	else \
+		echo "Skipping createsuperuser (set DJANGO_SUPERUSER_USERNAME/PASSWORD/EMAIL to enable)."; \
+	fi
+	DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py dev
 
-clean: ## Clean cache and temporary files
+scanner: ## Run the sopds scanner (APScheduler)
+	@echo "Running sopds scanner..."
+	$(UV) python manage.py sopds_scanner start
+
+clean: ## Clean caches and coverage outputs
 	@echo "Cleaning cache and temporary files..."
 	rm -rf .mypy_cache/ .pytest_cache/ .venv/ build/ dist/ htmlcov/ .coverage
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
@@ -102,18 +104,17 @@ docker-build: ## Build Docker image
 	@echo "Building Docker image..."
 	docker build -t $(DOCKER_IMAGE) .
 
-docker-run: ## Run Docker container (migrate → conditional createsuperuser → start ui)
+docker-run: ## Run Docker container (migrate → createsuperuser → start)
 	@echo "Running migrations..."
 	docker run $(DOCKER_RUN_OPTS) $(DOCKER_IMAGE) migrate
-	@if [ -n "$(SOPDS_USER)" ] && [ -n "$(SOPDS_PASSWORD)" ]; then \
-		echo "Creating superuser if missing..."; \
-		docker run $(DOCKER_RUN_OPTS) $(DOCKER_IMAGE) createsuperuser \
-			--username "$(SOPDS_USER)" \
-			--email "$(SOPDS_EMAIL)" \
-			--password "$(SOPDS_PASSWORD)"; \
+	@if [ -n "$$DJANGO_SUPERUSER_USERNAME" ] && [ -n "$$DJANGO_SUPERUSER_PASSWORD" ] && [ -n "$$DJANGO_SUPERUSER_EMAIL" ]; then \
+		echo "Ensuring Django superuser exists..."; \
+		docker run $(DOCKER_RUN_OPTS) $(DOCKER_IMAGE) createsuperuser --noinput || true; \
+	else \
+		echo "Skipping createsuperuser (set DJANGO_SUPERUSER_USERNAME/PASSWORD/EMAIL to enable)."; \
 	fi
 	@echo "Starting server..."
-	docker run $(DOCKER_RUN_OPTS) -p $(DOCKER_PORT):$(DOCKER_PORT) $(DOCKER_IMAGE) ui
+	docker run $(DOCKER_RUN_OPTS) -p 8000:8000 $(DOCKER_IMAGE)
 
 docker: docker-build docker-run ## Build and run Docker container
 	@echo "Docker container built and running!"
