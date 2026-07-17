@@ -420,8 +420,16 @@ def ConvertFB2(request, book_id, convert_type):
         raise Http404
 
     if book.cat_type == opdsdb.CAT_NORMAL:
-        tmp_fb2_path = None
-        file_path = os.path.join(full_path, book.filename)
+        src_path = os.path.join(full_path, book.filename)
+        tmp_fb2_path = os.path.join(
+            config.SOPDS_TEMP_DIR, _safe_temp_name(book.filename)
+        )
+        try:
+            with open(src_path, "rb") as fsrc, open(tmp_fb2_path, "wb") as fdst:
+                shutil.copyfileobj(fsrc, fdst)
+        except FileNotFoundError:
+            raise Http404
+        file_path = tmp_fb2_path
     elif book.cat_type in [opdsdb.CAT_ZIP, opdsdb.CAT_INP]:
         try:
             fz = codecs.open(full_path, "rb")
