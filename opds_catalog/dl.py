@@ -452,6 +452,7 @@ def ConvertFB2(request: HttpRequest, book_id: int, convert_type: str) -> HttpRes
         tmp_fb2_path = os.path.join(
             config.SOPDS_TEMP_DIR, _safe_temp_name(safe_filename)
         )
+        _ensure_inside_temp_dir(tmp_fb2_path)
         try:
             with open(src_path, "rb") as fsrc, open(tmp_fb2_path, "wb") as fdst:
                 shutil.copyfileobj(fsrc, fdst)
@@ -464,12 +465,13 @@ def ConvertFB2(request: HttpRequest, book_id: int, convert_type: str) -> HttpRes
         except FileNotFoundError:
             raise Http404
         z = zipfile.ZipFile(fz, "r", allowZip64=True)
-        safe_filename = _safe_basename(book.filename)
-        z.extract(safe_filename, config.SOPDS_TEMP_DIR)
-        tmp_fb2_path = os.path.join(
-            config.SOPDS_TEMP_DIR, _safe_temp_name(safe_filename)
-        )
-        file_path = tmp_fb2_path
+        # Extract using the ORIGINAL entry name (may be nested, e.g.
+        # "subdir/book.fb2"); basename'ing it would break the archive key and
+        # raise KeyError. Resolve and constrain the extracted path below.
+        z.extract(book.filename, config.SOPDS_TEMP_DIR)
+        file_path = os.path.realpath(os.path.join(config.SOPDS_TEMP_DIR, book.filename))
+        _ensure_inside_temp_dir(file_path)
+        tmp_fb2_path = file_path
     else:
         raise Http404
 
