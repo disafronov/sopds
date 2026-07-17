@@ -11,7 +11,7 @@ dependencies = [
     "Django>=5.2,<5.3",
     "django-constance>=4.2",
     "Pillow>=10.0.0",
-    "apscheduler>=3.11.2",
+    "apscheduler>=3.11.3",
     "lxml>=5.0.0",
     "python-telegram-bot>=20.0",
 ]
