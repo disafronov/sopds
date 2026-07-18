@@ -9,7 +9,7 @@ for search and download.
 
 ## Fork relationship
 
-This repository is a soft fork of the original **SimpleOPDS** (upstream: <https://github.com/mitshel/sopds/>) by Dmitry Shelepnev. Upstream attribution and the original license are preserved:
+This repository is a soft fork of the original [**SOPDS**](https://github.com/mitshel/sopds/) by Dmitry Shelepnev. Upstream attribution and the original license are preserved:
 
 - Original author: Dmitry V. Shelepnev
 - Current maintainer / fork base: Dmitrii Safronov
