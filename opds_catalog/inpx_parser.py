@@ -58,6 +58,30 @@ class Inpx:
         self.INPX_TEST_ZIP = config.SOPDS_INPX_TEST_ZIP
         self.INPX_TEST_FILES = config.SOPDS_INPX_TEST_FILES
         self.error = 0
+        # Cache of external zip file existence/contents keyed by absolute path.
+        # Eliminates the O(n^2) behaviour where os.path.isfile() and the full
+        # zip namelist() were re-read for every book record of an INPX that
+        # references the same archive many times (hundreds of thousands of rows).
+        self._zip_cache: dict[str, tuple[bool, set[str]]] = {}
+
+    def _get_zip_info(self, zip_file: str) -> tuple[bool, set[str]]:
+        """Return ``(exists, names)`` for an external zip, cached per path.
+
+        The cache is lazily populated on the first miss. ``names`` is only
+        materialised when the file exists, to avoid wasting work on missing
+        archives (it will be an empty set otherwise).
+        """
+        cached = self._zip_cache.get(zip_file)
+        if cached is not None:
+            return cached
+        exists = os.path.isfile(zip_file)
+        names: set[str] = set()
+        if exists:
+            with zipfile.ZipFile(zip_file, "r") as zf:
+                names = set(zf.namelist())
+        result = (exists, names)
+        self._zip_cache[zip_file] = result
+        return result
 
     def parse(self) -> None:
         finpx = zipfile.ZipFile(self.inpx_file, "r")
@@ -124,14 +148,12 @@ class Inpx:
                     continue
 
                 zip_file = os.path.join(self.inpx_catalog, meta_data[sFolder])
-                if (self.TEST_ZIP or self.TEST_FILES) and not os.path.isfile(zip_file):
+                zip_exists, zip_names = self._get_zip_info(zip_file)
+                if (self.TEST_ZIP or self.TEST_FILES) and not zip_exists:
                     continue
 
                 if self.TEST_FILES:
-                    if (
-                        not "%s.%s" % (meta_data[sFile], meta_data[sExt])
-                        in zipfile.ZipFile(zip_file, "r").namelist()
-                    ):
+                    if not "%s.%s" % (meta_data[sFile], meta_data[sExt]) in zip_names:
                         continue
 
                 self.append_callback(self.inpx_file, inp_name, meta_data)

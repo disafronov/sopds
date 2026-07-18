@@ -93,6 +93,7 @@ class opdsScanner:
 
     def scan_all(self) -> None:
         self.init_stats()
+        opdsdb.clear_cat_cache()
         self.log_options()
         self.inp_cat = None
         self.zip_file = None

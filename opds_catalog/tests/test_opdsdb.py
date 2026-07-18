@@ -90,3 +90,22 @@ class opdsdbTestCase(TestCase):
         ser = book.series.all()[0]
         self.assertEqual(ser.ser, "mywork")
         self.assertEqual(bseries.objects.get(ser=ser).ser_no, 1)
+
+    def test_findbook_setavail_narrow_update(self) -> None:
+        """setavail=1 must set avail=2 without touching other fields."""
+        book = cast(Book, opdsdb.findbook("testbook.fb2", "root/child"))
+        self.assertEqual(book.avail, 2)
+        self.assertEqual(book.title, "Test Book")
+        # Re-fetch to ensure other fields are preserved through the narrow UPDATE.
+        same = cast(Book, opdsdb.findbook("testbook.fb2", "root/child", setavail=1))
+        self.assertEqual(same.avail, 2)
+        self.assertEqual(same.title, "Test Book")
+        self.assertEqual(same.format, ".fb2")
+        self.assertEqual(same.filesize, 500)
+
+    def test_addcattree_no_duplicates(self) -> None:
+        """Repeated addcattree on the same path must not create duplicates."""
+        opdsdb.clear_cat_cache()
+        opdsdb.addcattree("a/b/c", opdsdb.CAT_NORMAL)
+        opdsdb.addcattree("a/b/c", opdsdb.CAT_NORMAL)
+        self.assertEqual(Catalog.objects.filter(path="a/b/c").count(), 1)
