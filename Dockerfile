@@ -10,7 +10,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     TZ=Etc/UTC
 
 # Base dependencies (runtime libraries required by sopds)
-ARG BASE_DEPENDENCIES="libxml2 libxslt1.1 libffi8 libjpeg-turbo8 zlib1g xz-utils bzip2 unzip"
+ARG BASE_DEPENDENCIES="libxml2 libxslt1.1 libffi8 libjpeg-turbo8 zlib1g xz-utils bzip2 unzip libmariadb3"
 RUN apt-get update && \
     apt-get install -y --no-install-recommends ${BASE_DEPENDENCIES} && \
     apt-get clean && \
@@ -34,7 +34,7 @@ FROM base AS builder
 # Build dependencies required to compile C extensions (lxml).
 # Git is also required for dependencies installed directly from Git repositories.
 USER root
-ARG BUILD_DEPENDENCIES="pkg-config build-essential libxml2-dev libxslt-dev libffi-dev libjpeg-turbo8-dev zlib1g-dev liblzma-dev libbz2-dev"
+ARG BUILD_DEPENDENCIES="pkg-config build-essential libxml2-dev libxslt-dev libffi-dev libjpeg-turbo8-dev zlib1g-dev liblzma-dev libbz2-dev libmariadb-dev"
 RUN apt-get update && \
     apt-get install -y --no-install-recommends ${BUILD_DEPENDENCIES} git && \
     apt-get clean && \

@@ -8,7 +8,7 @@ db.sqlite3-journal
 venv
 .vscode/
 .DS_Store
-.coverage
+.coverage*
 coverage.xml
 .settings/
 
@@ -36,3 +36,6 @@ build/
 
 
 /books/
+
+
+.env

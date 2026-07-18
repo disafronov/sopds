@@ -17,5 +17,6 @@ build/
 .DS_Store
 .idea/
 .vscode/
-.coverage
+.coverage*
 coverage.xml
+.env
