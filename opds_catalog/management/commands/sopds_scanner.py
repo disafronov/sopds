@@ -13,8 +13,6 @@ from django.conf import settings as main_settings
 from django.core.management.base import BaseCommand
 from django.db import connection, connections, transaction
 
-# from opds_catalog.settings import SCANNER_LOG, SCAN_SHED_DAY, SCAN_SHED_DOW,
-#     SCAN_SHED_HOUR, SCAN_SHED_MIN, LOGLEVEL, SCANNER_PID
 from opds_catalog import settings
 from opds_catalog.models import Counter
 from opds_catalog.sopdscan import opdsScanner
@@ -49,7 +47,9 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args: Any, **options: Any) -> None:
-        self.pidfile = os.path.join(main_settings.BASE_DIR, config.SOPDS_SCANNER_PID)
+        self.pidfile = os.path.join(
+            main_settings.BASE_DIR, main_settings.SOPDS_SCANNER_PID
+        )
         action = options["command"]
         self.logger = logging.getLogger("")
         self.logger.setLevel(logging.DEBUG)
@@ -57,7 +57,7 @@ class Command(BaseCommand):
 
         if settings.LOGLEVEL != logging.NOTSET:
             # Создаем обработчик для записи логов в файл
-            fh = logging.FileHandler(config.SOPDS_SCANNER_LOG)
+            fh = logging.FileHandler(main_settings.SOPDS_SCANNER_LOG)
             fh.setLevel(settings.LOGLEVEL)
             fh.setFormatter(formatter)
             self.logger.addHandler(fh)
@@ -220,7 +220,7 @@ def daemonize() -> None:
     os.umask(0)
 
     std_in = open("/dev/null", "r")
-    std_out = open(config.SOPDS_SCANNER_LOG, "a+")
+    std_out = open(main_settings.SOPDS_SCANNER_LOG, "a+")
     os.dup2(std_in.fileno(), sys.stdin.fileno())
     os.dup2(std_out.fileno(), sys.stdout.fileno())
     os.dup2(std_out.fileno(), sys.stderr.fileno())

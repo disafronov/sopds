@@ -298,34 +298,6 @@ CONSTANCE_CONFIG = OrderedDict(
             "SOPDS_TEMP_DIR",
             (os.path.join(BASE_DIR, "tmp"), _("Path to temporary files directory")),
         ),
-        (
-            "SOPDS_SERVER_LOG",
-            (
-                os.path.join(BASE_DIR, "opds_catalog/log/sopds_server.log"),
-                _("Path to logfile for sopds_server process"),
-            ),
-        ),
-        (
-            "SOPDS_SCANNER_LOG",
-            (
-                os.path.join(BASE_DIR, "opds_catalog/log/sopds_scanner.log"),
-                _("Path to logfile for sopds_scanner process"),
-            ),
-        ),
-        (
-            "SOPDS_SERVER_PID",
-            (
-                os.path.join(BASE_DIR, "opds_catalog/tmp/sopds_server.pid"),
-                _("Path to pidfile for sopds_server process"),
-            ),
-        ),
-        (
-            "SOPDS_SCANNER_PID",
-            (
-                os.path.join(BASE_DIR, "opds_catalog/tmp/sopds_scanner.pid"),
-                _("Path to pidfile for sopds_scanner process"),
-            ),
-        ),
     ]
 )
 
@@ -364,12 +336,23 @@ CONSTANCE_CONFIG_FIELDSETS = {
         "SOPDS_SCAN_SHED_DOW",
     ),
     "5. Converters Options": ("SOPDS_FB2TOEPUB", "SOPDS_FB2TOMOBI", "SOPDS_TEMP_DIR"),
-    "6. Log & PID Files": (
-        "SOPDS_SERVER_LOG",
-        "SOPDS_SCANNER_LOG",
-        "SOPDS_SERVER_PID",
-        "SOPDS_SCANNER_PID",
-    ),
 }
+
+SOPDS_SERVER_LOG = os.environ.get(
+    "SOPDS_SERVER_LOG",
+    os.path.join(BASE_DIR, "opds_catalog/log/sopds_server.log"),
+)
+SOPDS_SCANNER_LOG = os.environ.get(
+    "SOPDS_SCANNER_LOG",
+    os.path.join(BASE_DIR, "opds_catalog/log/sopds_scanner.log"),
+)
+SOPDS_SERVER_PID = os.environ.get(
+    "SOPDS_SERVER_PID",
+    os.path.join(BASE_DIR, "opds_catalog/tmp/sopds_server.pid"),
+)
+SOPDS_SCANNER_PID = os.environ.get(
+    "SOPDS_SCANNER_PID",
+    os.path.join(BASE_DIR, "opds_catalog/tmp/sopds_scanner.pid"),
+)
 
 SECURE_REDIRECT_EXEMPT = [r"^health/"]

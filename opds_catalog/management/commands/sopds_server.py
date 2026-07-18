@@ -6,9 +6,6 @@ import sys
 from argparse import ArgumentParser
 from typing import Any
 
-# from opds_catalog.settings import SERVER_LOG, SERVER_PID
-# from opds_cgit branchtalog import settings
-from constance import config
 from django.conf import settings as main_settings
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
@@ -41,7 +38,9 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args: Any, **options: Any) -> None:
-        self.pidfile = os.path.join(main_settings.BASE_DIR, config.SOPDS_SERVER_PID)
+        self.pidfile = os.path.join(
+            main_settings.BASE_DIR, main_settings.SOPDS_SERVER_PID
+        )
         action = options["command"]
         self.addr = options["host"]
         self.port = int(options["port"])
@@ -101,7 +100,7 @@ def daemonize() -> None:
     os.umask(0)
 
     std_in = open("/dev/null", "r")
-    std_out = open(config.SOPDS_SERVER_LOG, "a+")
+    std_out = open(main_settings.SOPDS_SERVER_LOG, "a+")
     os.dup2(std_in.fileno(), sys.stdin.fileno())
     os.dup2(std_out.fileno(), sys.stdout.fileno())
     os.dup2(std_out.fileno(), sys.stderr.fileno())
