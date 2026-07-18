@@ -66,13 +66,10 @@ class AuthFeed(_SyndicationFeedBase[ItemDict, FeedObject]):
         if config.SOPDS_AUTH:
             if request.user.is_authenticated:
                 return super().__call__(request, *args, **kwargs)
-
-        bau = BasicAuthMiddleware()
-        result = bau.process_request(self.request)
-
-        if result is not None:
-            return result
-
+            bau = BasicAuthMiddleware()
+            result = bau.process_request(self.request)
+            if result is not None:
+                return result
         return super().__call__(request, *args, **kwargs)
 
 
