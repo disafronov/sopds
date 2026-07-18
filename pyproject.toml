@@ -3,7 +3,7 @@ name = "sopds"
 version = "1.0.0rc12"
 description = "Simple OPDS server"
 readme = "README.md"
-requires-python = ">=3.10,<3.13"
+requires-python = ">=3.12"
 dependencies = [
   "Django>=5.2,<5.3",
   "dj-database-url>=2.1.0,<3",
