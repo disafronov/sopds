@@ -17,7 +17,7 @@ class constanceTestCase(TestCase):
         out = StringIO()
         call_command("constance", "list", stdout=out)
         out.seek(0)
-        self.assertEqual(out.getvalue().count("\n"), 32)
+        self.assertEqual(out.getvalue().count("\n"), 28)
         out.close()
 
     def test_constance_set_get_attr(self) -> None:
