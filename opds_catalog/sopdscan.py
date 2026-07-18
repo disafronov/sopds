@@ -53,8 +53,8 @@ class opdsScanner:
     def log_options(self) -> None:
         self.logger.info(" ***** Starting sopds-scan...")
         self.logger.debug("OPTIONS SET")
-        if config.SOPDS_ROOT_LIB is not None:
-            self.logger.debug("root_lib = %s" % config.SOPDS_ROOT_LIB)
+        if settings.SOPDS_ROOT_LIB is not None:
+            self.logger.debug("root_lib = %s" % settings.SOPDS_ROOT_LIB)
         if config.SOPDS_FB2TOEPUB is not None:
             self.logger.debug("fb2toepub = %s" % config.SOPDS_FB2TOEPUB)
         if config.SOPDS_FB2TOMOBI is not None:
@@ -102,7 +102,9 @@ class opdsScanner:
 
         opdsdb.avail_check_prepare()
 
-        for full_path, dirs, files in os.walk(config.SOPDS_ROOT_LIB, followlinks=True):
+        for full_path, dirs, files in os.walk(
+            settings.SOPDS_ROOT_LIB, followlinks=True
+        ):
             # Если разрешена обработка inpx, то при нахождении inpx
             # обрабатываем его и прекращаем обработку текущего каталога
             if config.SOPDS_INPX_ENABLE:
@@ -138,7 +140,7 @@ class opdsScanner:
     def inpskip_callback(self, inpx: str, inp_file: str, inp_size: int) -> int:
 
         self.rel_path = os.path.relpath(
-            os.path.join(inpx, inp_file), config.SOPDS_ROOT_LIB
+            os.path.join(inpx, inp_file), settings.SOPDS_ROOT_LIB
         )
 
         if config.SOPDS_INPX_SKIP_UNCHANGED and opdsdb.inp_skip(
@@ -197,7 +199,7 @@ class opdsScanner:
                 opdsdb.addbseries(book, ser, 0)
 
     def processinpx(self, name: str, full_path: str, file: str) -> None:
-        rel_file = os.path.relpath(file, config.SOPDS_ROOT_LIB)
+        rel_file = os.path.relpath(file, settings.SOPDS_ROOT_LIB)
         inpx_size = os.path.getsize(file)
         if config.SOPDS_INPX_SKIP_UNCHANGED and opdsdb.inpx_skip(rel_file, inpx_size):
             self.logger.info("Skip INPX file = " + file + ". Not changed.")
@@ -210,7 +212,7 @@ class opdsScanner:
             inpx.parse()
 
     def processzip(self, name: str, full_path: str, file: str) -> None:
-        rel_file = os.path.relpath(file, config.SOPDS_ROOT_LIB)
+        rel_file = os.path.relpath(file, settings.SOPDS_ROOT_LIB)
         zsize = os.path.getsize(file)
         if opdsdb.arc_skip(rel_file, zsize):
             self.arch_skipped += 1
@@ -257,7 +259,7 @@ class opdsScanner:
     ) -> None:
         n, e = os.path.splitext(name)
         if e.lower() in config.SOPDS_BOOK_EXTENSIONS.split():
-            rel_path = os.path.relpath(full_path, config.SOPDS_ROOT_LIB)
+            rel_path = os.path.relpath(full_path, settings.SOPDS_ROOT_LIB)
             self.logger.debug("Attempt to add book " + rel_path + "/" + name)
             try:
                 if opdsdb.findbook(name, rel_path, 1) is None:

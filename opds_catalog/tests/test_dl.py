@@ -174,7 +174,7 @@ class TestGetFileData:
         book.cat_type = opdsdb.CAT_NORMAL
         book.path = "."
         book.filename = "test.fb2"
-        with mocker.patch.object(dl, "config", _cfg(SOPDS_ROOT_LIB="/lib")):
+        with mocker.patch.object(dl, "django_settings", _cfg(SOPDS_ROOT_LIB="/lib")):
             m = mocker.mock_open(read_data=b"bookdata")
             mocker.patch("builtins.open", m)
             assert dl.getFileData(book).read() == b"bookdata"
@@ -191,7 +191,7 @@ class TestGetFileData:
                 open=lambda n: io.BytesIO(b"zipdata"),
             ),
         )
-        with mocker.patch.object(dl, "config", _cfg(SOPDS_ROOT_LIB="/lib")):
+        with mocker.patch.object(dl, "django_settings", _cfg(SOPDS_ROOT_LIB="/lib")):
             assert dl.getFileData(book).read() == b"zipdata"
 
     def test_cat_normal_not_found(self, mocker: MockerFixture) -> None:
@@ -199,7 +199,7 @@ class TestGetFileData:
         book.cat_type = opdsdb.CAT_NORMAL
         book.path = "."
         book.filename = "missing.fb2"
-        with mocker.patch.object(dl, "config", _cfg(SOPDS_ROOT_LIB="/lib")):
+        with mocker.patch.object(dl, "django_settings", _cfg(SOPDS_ROOT_LIB="/lib")):
             mocker.patch("builtins.open", side_effect=FileNotFoundError)
             with pytest.raises(AssertionError):
                 dl.getFileData(book)
@@ -218,15 +218,20 @@ class TestGetFileDataZip:
         with mocker.patch.object(
             dl,
             "config",
-            _cfg(SOPDS_TITLE_AS_FILENAME=False, SOPDS_ROOT_LIB="/lib"),
+            _cfg(SOPDS_TITLE_AS_FILENAME=False),
         ):
-            mocker.patch("builtins.open", mocker.mock_open(read_data=b"bookdata"))
-            result = dl.getFileDataZip(book)
-            assert isinstance(result, io.BytesIO)
-            with zipfile.ZipFile(result, "r") as z:
-                names = z.namelist()
-                assert len(names) == 1
-                assert z.read(names[0]) == b"bookdata"
+            with mocker.patch.object(
+                dl,
+                "django_settings",
+                _cfg(SOPDS_ROOT_LIB="/lib"),
+            ):
+                mocker.patch("builtins.open", mocker.mock_open(read_data=b"bookdata"))
+                result = dl.getFileDataZip(book)
+                assert isinstance(result, io.BytesIO)
+                with zipfile.ZipFile(result, "r") as z:
+                    names = z.namelist()
+                    assert len(names) == 1
+                    assert z.read(names[0]) == b"bookdata"
 
 
 # ──────────────────────────────────────────────
@@ -275,9 +280,14 @@ class TestCoverView(_ViewTestBase):
         with mocker.patch.object(
             dl,
             "config",
-            _cfg(SOPDS_ROOT_LIB="/lib", SOPDS_AUTH=False, SOPDS_CACHE_TIME=0),
+            _cfg(SOPDS_AUTH=False, SOPDS_CACHE_TIME=0),
         ):
-            response = dl.Cover(self._request(), 1)
+            with mocker.patch.object(
+                dl,
+                "django_settings",
+                _cfg(SOPDS_ROOT_LIB="/lib"),
+            ):
+                response = dl.Cover(self._request(), 1)
         assert response.status_code == 200
         assert response["Content-Type"] == "image/jpeg"
 
@@ -291,9 +301,14 @@ class TestCoverView(_ViewTestBase):
         with mocker.patch.object(
             dl,
             "config",
-            _cfg(SOPDS_ROOT_LIB="/lib", SOPDS_AUTH=False, SOPDS_CACHE_TIME=0),
+            _cfg(SOPDS_AUTH=False, SOPDS_CACHE_TIME=0),
         ):
-            response = dl.Cover(self._request(), 1, thumbnail=True)
+            with mocker.patch.object(
+                dl,
+                "django_settings",
+                _cfg(SOPDS_ROOT_LIB="/lib"),
+            ):
+                response = dl.Cover(self._request(), 1, thumbnail=True)
         assert response.status_code == 200
         assert response["Content-Type"] == "image/jpeg"
         assert len(response.content) < len(jpeg) or response.content != jpeg
@@ -308,10 +323,15 @@ class TestCoverView(_ViewTestBase):
         with mocker.patch.object(
             dl,
             "config",
-            _cfg(SOPDS_ROOT_LIB="/lib", SOPDS_AUTH=False, SOPDS_CACHE_TIME=0),
+            _cfg(SOPDS_AUTH=False, SOPDS_CACHE_TIME=0),
         ):
-            with pytest.raises(Http404):
-                dl.Cover(self._request(), 1)
+            with mocker.patch.object(
+                dl,
+                "django_settings",
+                _cfg(SOPDS_ROOT_LIB="/lib"),
+            ):
+                with pytest.raises(Http404):
+                    dl.Cover(self._request(), 1)
 
 
 @pytest.mark.django_db
@@ -333,11 +353,14 @@ class TestDownloadView(_ViewTestBase):
         with mocker.patch.object(
             dl,
             "config",
-            _cfg(
-                SOPDS_ROOT_LIB="/lib", SOPDS_TITLE_AS_FILENAME=False, SOPDS_AUTH=False
-            ),
+            _cfg(SOPDS_TITLE_AS_FILENAME=False, SOPDS_AUTH=False),
         ):
-            return dl.Download(self._request("/opds/download/1/0/"), 1, zip_flag)
+            with mocker.patch.object(
+                dl,
+                "django_settings",
+                _cfg(SOPDS_ROOT_LIB="/lib"),
+            ):
+                return dl.Download(self._request("/opds/download/1/0/"), 1, zip_flag)
 
     def test_download_success(self, mocker: MockerFixture) -> None:
         response = self._do(mocker, "0")
@@ -365,12 +388,15 @@ class TestDownloadView(_ViewTestBase):
         with mocker.patch.object(
             dl,
             "config",
-            _cfg(
-                SOPDS_ROOT_LIB="/lib", SOPDS_TITLE_AS_FILENAME=False, SOPDS_AUTH=False
-            ),
+            _cfg(SOPDS_TITLE_AS_FILENAME=False, SOPDS_AUTH=False),
         ):
-            with pytest.raises(Http404):
-                dl.Download(self._request("/opds/download/1/0/"), 1, "0")
+            with mocker.patch.object(
+                dl,
+                "django_settings",
+                _cfg(SOPDS_ROOT_LIB="/lib"),
+            ):
+                with pytest.raises(Http404):
+                    dl.Download(self._request("/opds/download/1/0/"), 1, "0")
 
 
 @pytest.mark.django_db
@@ -413,7 +439,6 @@ class TestConvertFB2(_ViewTestBase):
             dl,
             "config",
             _cfg(
-                SOPDS_ROOT_LIB="/lib",
                 SOPDS_TITLE_AS_FILENAME=False,
                 SOPDS_AUTH=False,
                 SOPDS_FB2TOEPUB="ebook-convert",
@@ -422,7 +447,7 @@ class TestConvertFB2(_ViewTestBase):
             with mocker.patch.object(
                 dl,
                 "django_settings",
-                _cfg(SOPDS_TEMP_DIR="/tmp/sopds"),
+                _cfg(SOPDS_TEMP_DIR="/tmp/sopds", SOPDS_ROOT_LIB="/lib"),
             ):
                 response = dl.ConvertFB2(
                     self._request("/opds/convert/1/epub/"), 1, "epub"
@@ -437,7 +462,6 @@ class TestConvertFB2(_ViewTestBase):
             dl,
             "config",
             _cfg(
-                SOPDS_ROOT_LIB="/lib",
                 SOPDS_TITLE_AS_FILENAME=False,
                 SOPDS_AUTH=False,
                 SOPDS_FB2TOMOBI="ebook-convert",
@@ -446,7 +470,7 @@ class TestConvertFB2(_ViewTestBase):
             with mocker.patch.object(
                 dl,
                 "django_settings",
-                _cfg(SOPDS_TEMP_DIR="/tmp/sopds"),
+                _cfg(SOPDS_TEMP_DIR="/tmp/sopds", SOPDS_ROOT_LIB="/lib"),
             ):
                 response = dl.ConvertFB2(
                     self._request("/opds/convert/1/mobi/"), 1, "mobi"
@@ -478,7 +502,6 @@ class TestConvertFB2(_ViewTestBase):
             dl,
             "config",
             _cfg(
-                SOPDS_ROOT_LIB="/lib",
                 SOPDS_TITLE_AS_FILENAME=False,
                 SOPDS_AUTH=False,
                 SOPDS_FB2TOEPUB="ebook-convert",
@@ -487,7 +510,7 @@ class TestConvertFB2(_ViewTestBase):
             with mocker.patch.object(
                 dl,
                 "django_settings",
-                _cfg(SOPDS_TEMP_DIR="/tmp/sopds"),
+                _cfg(SOPDS_TEMP_DIR="/tmp/sopds", SOPDS_ROOT_LIB="/lib"),
             ):
                 with pytest.raises(ValueError, match="path escapes temp dir"):
                     dl.ConvertFB2(self._request(), 1, "epub")

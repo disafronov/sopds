@@ -172,13 +172,6 @@ CONSTANCE_CONFIG = OrderedDict(
     [
         ("SOPDS_LANGUAGE", ("en-US", _("Select language"), "language_select")),
         (
-            "SOPDS_ROOT_LIB",
-            (
-                os.getenv("SOPDS_ROOT_LIB", "books/"),
-                _("Absolute path to books collection directory"),
-            ),
-        ),
-        (
             "SOPDS_BOOK_EXTENSIONS",
             (".pdf .djvu .fb2 .epub .mobi", _("List of managed book files extensions")),
         ),
@@ -200,13 +193,6 @@ CONSTANCE_CONFIG = OrderedDict(
         (
             "SOPDS_TITLE_AS_FILENAME",
             (True, _("Create downloaded filename from book title")),
-        ),
-        (
-            "SOPDS_NOCOVER_PATH",
-            (
-                os.path.join(BASE_DIR, "static/images/nocover.jpg"),
-                _("Path to image file showing for book without embedded cover"),
-            ),
         ),
         (
             "SOPDS_FB2SAX",
@@ -300,7 +286,6 @@ CONSTANCE_CONFIG = OrderedDict(
 CONSTANCE_CONFIG_FIELDSETS = {
     "1. General Options": (
         "SOPDS_LANGUAGE",
-        "SOPDS_ROOT_LIB",
         "SOPDS_BOOK_EXTENSIONS",
         "SOPDS_CACHE_TIME",
         "SOPDS_SCAN_START_DIRECTLY",
@@ -313,7 +298,6 @@ CONSTANCE_CONFIG_FIELDSETS = {
         "SOPDS_SPLITITEMS",
         "SOPDS_MAXITEMS",
         "SOPDS_TITLE_AS_FILENAME",
-        "SOPDS_NOCOVER_PATH",
     ),
     "3. Scanner Options": (
         "SOPDS_FB2SAX",
@@ -351,5 +335,10 @@ SOPDS_SCANNER_PID = os.environ.get(
     os.path.join(BASE_DIR, "opds_catalog/tmp/sopds_scanner.pid"),
 )
 SOPDS_TEMP_DIR = os.environ.get("SOPDS_TEMP_DIR", os.path.join(BASE_DIR, "tmp"))
+SOPDS_ROOT_LIB = os.environ.get("SOPDS_ROOT_LIB", "books/")
+SOPDS_NOCOVER_PATH = os.environ.get(
+    "SOPDS_NOCOVER_PATH",
+    os.path.join(BASE_DIR, "static/images/nocover.jpg"),
+)
 
 SECURE_REDIRECT_EXEMPT = [r"^health/"]

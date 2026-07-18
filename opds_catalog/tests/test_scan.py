@@ -1,6 +1,7 @@
 import os
 
 from constance import config
+from django.conf import settings as django_settings
 from django.test import TestCase
 
 from opds_catalog import opdsdb
@@ -19,7 +20,7 @@ class scanTestCase(TestCase):
     test_zip = "books.zip"
 
     def setUp(self) -> None:
-        config.SOPDS_ROOT_LIB = self.test_ROOTLIB
+        django_settings.SOPDS_ROOT_LIB = self.test_ROOTLIB
 
     def test_processfile_fb2(self) -> None:
         """Тестирование процедуры processfile (извлекает метаданные из книги \
