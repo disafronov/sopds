@@ -1,7 +1,5 @@
 """
 Read and write ZIP files.
-
-XXX references to utf-8 need further investigation.
 """
 
 from __future__ import annotations

@@ -1400,13 +1400,8 @@ class LangFeed(AuthFeed):
         }
 
     def items(self) -> Any:
-        # TODO: переделать, используя словарь lang_codes
         langitems = [
-            {"id": 1, "title": _("Cyrillic")},
-            {"id": 2, "title": _("Latin")},
-            {"id": 3, "title": _("Digits")},
-            {"id": 9, "title": _("Other symbols")},
-            {"id": 0, "title": _("Show all")},
+            {"id": code, "title": title} for code, title in models.lang_menu.items()
         ]
         return langitems
 
