@@ -7,9 +7,8 @@ from __future__ import annotations
 
 def translit(s: str) -> str:
     """Russian translit: converts 'привет'->'privet'"""
-    assert (
-        s is not str  # type: ignore[comparison-overlap]
-    ), "Error: argument MUST be string"
+    if not isinstance(s, str):
+        raise AssertionError("Error: argument MUST be string")
 
     table1 = str.maketrans(
         "абвгдеёзийклмнопрстуфхъыьэАБВГДЕЁЗИЙКЛМНОПРСТУФХЪЫЬЭ",

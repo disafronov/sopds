@@ -26,9 +26,7 @@ def test_translit_removes_quotes() -> None:
 
 
 def test_translit_assert_on_non_string() -> None:
-    # The source's guard `s is not str` is inverted, so non-strings are not
-    # caught by an AssertionError; they fail later on str-only methods.
-    with pytest.raises(AttributeError):
+    with pytest.raises(AssertionError):
         translit(123)  # type: ignore[arg-type]
 
 
