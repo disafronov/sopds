@@ -402,6 +402,8 @@ class CatalogsFeed(AuthFeed):
         cat_id: int | None = None,
         page: int = 1,
     ) -> tuple[list[ItemDict], Catalog | None, dict[str, Any]]:
+        if not isinstance(page, int):
+            page = int(page)
         page_num = page if page > 0 else 1
 
         cat: Catalog | None = None
@@ -730,6 +732,8 @@ class SearchBooksFeed(AuthFeed):
         searchterms0: str | None = None,
         page: int = 1,
     ) -> Any:
+        if not isinstance(page, int):
+            page = int(page)
         page_num = page if page > 0 else 1
 
         # Поиск книг по подсроке
@@ -1149,6 +1153,8 @@ class SearchAuthorsFeed(AuthFeed):
     def get_object(
         self, request: HttpRequest, searchterms: str, searchtype: str, page: int = 1
     ) -> Any:
+        if not isinstance(page, int):
+            page = int(page)
         page_num = page if page > 0 else 1
 
         if searchtype == "m":
@@ -1263,6 +1269,8 @@ class SearchSeriesFeed(AuthFeed):
         self, request: HttpRequest, searchterms: str, searchtype: str, page: int = 1
     ) -> Any:
         self.author_id = None
+        if not isinstance(page, int):
+            page = int(page)
         page_num = page if page > 0 else 1
 
         if searchtype == "m":

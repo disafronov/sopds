@@ -169,3 +169,25 @@ class feedsTestCase(TestCase):
         response = c.get(reverse("opds:genres", kwargs={"section": 232}))
         self.assertEqual(response.status_code, 200)
         self.assertIn("prose_contemporary", response.content.decode())
+
+    def test_CatalogsFeedPage(self) -> None:
+        c = Client()
+        response = c.get("/opds/catalogs/4/1/")
+        self.assertEqual(response.status_code, 200)
+        response = c.get(reverse("opds:cat_page", args=["4", "1"]))
+        self.assertEqual(response.status_code, 200)
+
+    def test_SearchBooksPage(self) -> None:
+        c = Client()
+        response = c.get("/opds/search/books/m/Драк/1/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_SearchAuthorsPage(self) -> None:
+        c = Client()
+        response = c.get("/opds/search/authors/m/Логинов/1/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_SearchSeriesPage(self) -> None:
+        c = Client()
+        response = c.get("/opds/search/series/m/Драк/1/")
+        self.assertEqual(response.status_code, 200)
