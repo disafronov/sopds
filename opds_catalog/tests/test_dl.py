@@ -124,12 +124,16 @@ class TestSafeHelpers:
             os.makedirs(os.path.dirname(inner), exist_ok=True)
             with open(inner, "w") as f:
                 f.write("x")
-            with unittest.mock.patch.object(dl, "config", _cfg(SOPDS_TEMP_DIR=tmpdir)):
+            with unittest.mock.patch.object(
+                dl, "django_settings", _cfg(SOPDS_TEMP_DIR=tmpdir)
+            ):
                 assert dl._ensure_inside_temp_dir(inner) == inner
 
     def test_ensure_inside_temp_dir_outside(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            with unittest.mock.patch.object(dl, "config", _cfg(SOPDS_TEMP_DIR=tmpdir)):
+            with unittest.mock.patch.object(
+                dl, "django_settings", _cfg(SOPDS_TEMP_DIR=tmpdir)
+            ):
                 with pytest.raises(ValueError, match="path escapes temp dir"):
                     dl._ensure_inside_temp_dir("/etc/passwd")
 
@@ -410,13 +414,19 @@ class TestConvertFB2(_ViewTestBase):
             "config",
             _cfg(
                 SOPDS_ROOT_LIB="/lib",
-                SOPDS_TEMP_DIR="/tmp/sopds",
                 SOPDS_TITLE_AS_FILENAME=False,
                 SOPDS_AUTH=False,
                 SOPDS_FB2TOEPUB="ebook-convert",
             ),
         ):
-            response = dl.ConvertFB2(self._request("/opds/convert/1/epub/"), 1, "epub")
+            with mocker.patch.object(
+                dl,
+                "django_settings",
+                _cfg(SOPDS_TEMP_DIR="/tmp/sopds"),
+            ):
+                response = dl.ConvertFB2(
+                    self._request("/opds/convert/1/epub/"), 1, "epub"
+                )
         assert response.status_code == 200
         assert "epub" in response["Content-Disposition"]
 
@@ -428,13 +438,19 @@ class TestConvertFB2(_ViewTestBase):
             "config",
             _cfg(
                 SOPDS_ROOT_LIB="/lib",
-                SOPDS_TEMP_DIR="/tmp/sopds",
                 SOPDS_TITLE_AS_FILENAME=False,
                 SOPDS_AUTH=False,
                 SOPDS_FB2TOMOBI="ebook-convert",
             ),
         ):
-            response = dl.ConvertFB2(self._request("/opds/convert/1/mobi/"), 1, "mobi")
+            with mocker.patch.object(
+                dl,
+                "django_settings",
+                _cfg(SOPDS_TEMP_DIR="/tmp/sopds"),
+            ):
+                response = dl.ConvertFB2(
+                    self._request("/opds/convert/1/mobi/"), 1, "mobi"
+                )
         assert response.status_code == 200
         assert "mobi" in response["Content-Disposition"]
 
@@ -463,14 +479,18 @@ class TestConvertFB2(_ViewTestBase):
             "config",
             _cfg(
                 SOPDS_ROOT_LIB="/lib",
-                SOPDS_TEMP_DIR="/tmp/sopds",
                 SOPDS_TITLE_AS_FILENAME=False,
                 SOPDS_AUTH=False,
                 SOPDS_FB2TOEPUB="ebook-convert",
             ),
         ):
-            with pytest.raises(ValueError, match="path escapes temp dir"):
-                dl.ConvertFB2(self._request(), 1, "epub")
+            with mocker.patch.object(
+                dl,
+                "django_settings",
+                _cfg(SOPDS_TEMP_DIR="/tmp/sopds"),
+            ):
+                with pytest.raises(ValueError, match="path escapes temp dir"):
+                    dl.ConvertFB2(self._request(), 1, "epub")
 
 
 # ──────────────────────────────────────────────
@@ -490,11 +510,13 @@ class ConvertFB2NestedZipTestCase(TestCase):
 
     def setUp(self) -> None:
         self.temp_dir = tempfile.mkdtemp()
-        self._orig_temp = dl.config.SOPDS_TEMP_DIR  # type: ignore[attr-defined]
-        dl.config.SOPDS_TEMP_DIR = self.temp_dir  # type: ignore[attr-defined]
+        self._patcher = unittest.mock.patch.object(
+            dl, "django_settings", _cfg(SOPDS_TEMP_DIR=self.temp_dir)
+        )
+        self._patcher.start()
 
     def tearDown(self) -> None:
-        dl.config.SOPDS_TEMP_DIR = self._orig_temp  # type: ignore[attr-defined]
+        self._patcher.stop()
 
     def test_nested_zip_extract_no_keyerror(self) -> None:
         nested_name = "subdir/book.fb2"
@@ -664,7 +686,7 @@ class TestGetFileDataConv:
 
         with mocker.patch.object(
             dl,
-            "config",
+            "django_settings",
             _cfg(SOPDS_TEMP_DIR="/tmp/sopds"),
         ):
             result = dl.getFileDataConv(book, "epub")

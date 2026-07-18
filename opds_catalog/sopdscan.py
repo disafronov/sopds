@@ -10,6 +10,7 @@ import time
 from typing import Any, cast
 
 from constance import config
+from django.conf import settings
 from django.utils.translation import gettext as _
 
 import opds_catalog.zipf as zipfile
@@ -58,8 +59,8 @@ class opdsScanner:
             self.logger.debug("fb2toepub = %s" % config.SOPDS_FB2TOEPUB)
         if config.SOPDS_FB2TOMOBI is not None:
             self.logger.debug("fb2tomobi = %s" % config.SOPDS_FB2TOMOBI)
-        if config.SOPDS_TEMP_DIR is not None:
-            self.logger.debug("temp_dir = %s" % config.SOPDS_TEMP_DIR)
+        if settings.SOPDS_TEMP_DIR is not None:
+            self.logger.debug("temp_dir = %s" % settings.SOPDS_TEMP_DIR)
         if config.SOPDS_FB2SAX is not None:
             self.logger.info("FB2SAX = %s" % config.SOPDS_FB2SAX)
 

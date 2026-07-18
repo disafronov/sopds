@@ -10,6 +10,7 @@ import subprocess
 from typing import Any, BinaryIO, Callable, cast
 
 from constance import config
+from django.conf import settings as django_settings
 from django.http import Http404, HttpRequest, HttpResponse
 from django.views.decorators.cache import cache_page
 from PIL import Image
@@ -50,7 +51,7 @@ def _safe_basename(name: str) -> str:
 def _ensure_inside_temp_dir(path: str) -> str:
     # Assert that `path` resolves inside SOPDS_TEMP_DIR and return it. This gives
     # both a runtime guarantee and a clear constraint for static analyzers.
-    temp_root = os.path.realpath(config.SOPDS_TEMP_DIR)
+    temp_root = os.path.realpath(django_settings.SOPDS_TEMP_DIR)
     resolved = os.path.realpath(path)
     if resolved != temp_root and not resolved.startswith(temp_root + os.sep):
         raise ValueError("path escapes temp dir")
@@ -149,8 +150,10 @@ def getFileDataConv(book: Book, convert_type: str) -> io.BytesIO | None:
         fo.close()
         return None
 
-    tmp_fb2_path = os.path.join(config.SOPDS_TEMP_DIR, _safe_temp_name(book.filename))
-    tmp_conv_path = os.path.join(config.SOPDS_TEMP_DIR, dlfilename)
+    tmp_fb2_path = os.path.join(
+        django_settings.SOPDS_TEMP_DIR, _safe_temp_name(book.filename)
+    )
+    tmp_conv_path = os.path.join(django_settings.SOPDS_TEMP_DIR, dlfilename)
     fw = open(tmp_fb2_path, "wb")
     fw.write(fo.read())
     fw.close()
@@ -450,7 +453,7 @@ def ConvertFB2(request: HttpRequest, book_id: int, convert_type: str) -> HttpRes
         safe_filename = _safe_basename(book.filename)
         src_path = os.path.join(full_path, safe_filename)
         tmp_fb2_path = os.path.join(
-            config.SOPDS_TEMP_DIR, _safe_temp_name(safe_filename)
+            django_settings.SOPDS_TEMP_DIR, _safe_temp_name(safe_filename)
         )
         _ensure_inside_temp_dir(tmp_fb2_path)
         try:
@@ -471,11 +474,13 @@ def ConvertFB2(request: HttpRequest, book_id: int, convert_type: str) -> HttpRes
         # the final file_path carries no taint from book.filename — CodeQL does
         # not recognize _ensure_inside_temp_dir as a sanitizer, so the path
         # passed to subprocess must be built only from a constant + safe name.
-        z.extract(book.filename, config.SOPDS_TEMP_DIR)
-        extracted = os.path.realpath(os.path.join(config.SOPDS_TEMP_DIR, book.filename))
+        z.extract(book.filename, django_settings.SOPDS_TEMP_DIR)
+        extracted = os.path.realpath(
+            os.path.join(django_settings.SOPDS_TEMP_DIR, book.filename)
+        )
         _ensure_inside_temp_dir(extracted)  # zip-slip guard
         safe_name = _safe_temp_name(os.path.basename(book.filename))
-        file_path = os.path.join(config.SOPDS_TEMP_DIR, safe_name)
+        file_path = os.path.join(django_settings.SOPDS_TEMP_DIR, safe_name)
         if os.path.realpath(extracted) != os.path.realpath(file_path):
             os.replace(extracted, file_path)  # break taint: constant+SafeName
         _ensure_inside_temp_dir(file_path)
@@ -483,7 +488,9 @@ def ConvertFB2(request: HttpRequest, book_id: int, convert_type: str) -> HttpRes
     else:
         raise Http404
 
-    tmp_conv_path = os.path.join(config.SOPDS_TEMP_DIR, os.path.basename(file_path))
+    tmp_conv_path = os.path.join(
+        django_settings.SOPDS_TEMP_DIR, os.path.basename(file_path)
+    )
     popen_args = [converter_path, file_path, tmp_conv_path]
     _ensure_inside_temp_dir(file_path)
     _ensure_inside_temp_dir(tmp_conv_path)
