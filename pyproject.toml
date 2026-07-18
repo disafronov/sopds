@@ -1,6 +1,6 @@
 [project]
 name = "sopds"
-version = "1.0.0rc10"
+version = "1.0.0rc11"
 description = "Simple OPDS server"
 readme = "README.md"
 requires-python = ">=3.10,<3.13"
