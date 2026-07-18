@@ -70,7 +70,7 @@ def _resolve_converter(converter_path: str) -> str | None:
 
 
 def getFileData(book: Book) -> io.BytesIO:
-    full_path = os.path.join(config.SOPDS_ROOT_LIB, book.path)
+    full_path = os.path.join(django_settings.SOPDS_ROOT_LIB, book.path)
     if book.cat_type == opdsdb.CAT_INP:
         inp_path, zip_name = os.path.split(full_path)
         inpx_path, inp_name = os.path.split(inp_path)
@@ -195,7 +195,7 @@ def Download(request: HttpRequest, book_id: int, zip_flag: str) -> HttpResponse:
     if config.SOPDS_AUTH and request.user.is_authenticated:
         bookshelf.objects.get_or_create(user=request.user, book=book)
 
-    full_path = os.path.join(config.SOPDS_ROOT_LIB, book.path)
+    full_path = os.path.join(django_settings.SOPDS_ROOT_LIB, book.path)
 
     if book.cat_type == opdsdb.CAT_INP:
         inp_path, zip_name = os.path.split(full_path)
@@ -287,7 +287,7 @@ def Cover(request: HttpRequest, book_id: int, thumbnail: bool = False) -> HttpRe
     """Загрузка обложки"""
     book = Book.objects.get(id=book_id)
     response = HttpResponse()
-    full_path = os.path.join(config.SOPDS_ROOT_LIB, book.path)
+    full_path = os.path.join(django_settings.SOPDS_ROOT_LIB, book.path)
     if book.cat_type == opdsdb.CAT_INP:
         inp_path, zip_name = os.path.split(full_path)
         inpx_path, inp_name = os.path.split(inp_path)
@@ -331,9 +331,9 @@ def Cover(request: HttpRequest, book_id: int, thumbnail: bool = False) -> HttpRe
         response.write(image)
 
     if not image:
-        if os.path.exists(config.SOPDS_NOCOVER_PATH):
+        if os.path.exists(django_settings.SOPDS_NOCOVER_PATH):
             response["Content-Type"] = "image/jpeg"
-            f = open(config.SOPDS_NOCOVER_PATH, "rb")
+            f = open(django_settings.SOPDS_NOCOVER_PATH, "rb")
             response.write(f.read())
             f.close()
         else:
@@ -347,7 +347,7 @@ def Cover0(request: HttpRequest, book_id: int, thumbnail: bool = False) -> HttpR
     book = Book.objects.get(id=book_id)
     response = HttpResponse()
     c0 = 0
-    full_path = os.path.join(config.SOPDS_ROOT_LIB, book.path)
+    full_path = os.path.join(django_settings.SOPDS_ROOT_LIB, book.path)
     if book.cat_type == opdsdb.CAT_INP:
         inp_path, zip_name = os.path.split(full_path)
         inpx_path, inp_name = os.path.split(inp_path)
@@ -395,9 +395,9 @@ def Cover0(request: HttpRequest, book_id: int, thumbnail: bool = False) -> HttpR
                 c0 = 0
 
     if c0 == 0:
-        if os.path.exists(config.SOPDS_NOCOVER_PATH):
+        if os.path.exists(django_settings.SOPDS_NOCOVER_PATH):
             response["Content-Type"] = "image/jpeg"
-            f = open(config.SOPDS_NOCOVER_PATH, "rb")
+            f = open(django_settings.SOPDS_NOCOVER_PATH, "rb")
             response.write(f.read())
             f.close()
         else:
@@ -420,7 +420,7 @@ def ConvertFB2(request: HttpRequest, book_id: int, convert_type: str) -> HttpRes
     if config.SOPDS_AUTH and request.user.is_authenticated:
         bookshelf.objects.get_or_create(user=request.user, book=book)
 
-    full_path = os.path.join(config.SOPDS_ROOT_LIB, book.path)
+    full_path = os.path.join(django_settings.SOPDS_ROOT_LIB, book.path)
     if book.cat_type == opdsdb.CAT_INP:
         inp_path, zip_name = os.path.split(full_path)
         inpx_path, inp_name = os.path.split(inp_path)
