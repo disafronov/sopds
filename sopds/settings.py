@@ -28,12 +28,18 @@ SECRET_KEY = os.environ.get(
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get("DJANGO_DEBUG", "True").lower() in ("1", "true", "yes", "on")
+DEBUG = os.environ.get("DJANGO_DEBUG", "False").lower() in ("1", "true", "yes", "on")
 GRACEFUL_TIMEOUT = int(os.getenv("GRACEFUL_TIMEOUT", "25"))
 
 ALLOWED_HOSTS = [
     h.strip()
     for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "*").split(",")
+    if h.strip()
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    h.strip()
+    for h in os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",")
     if h.strip()
 ]
 
