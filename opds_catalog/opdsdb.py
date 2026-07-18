@@ -94,6 +94,8 @@ def clear_all(verbose: bool = False) -> None:
     cursor.execute("delete from opds_catalog_genre")
     cursor.execute("delete from opds_catalog_series")
     cursor.execute("delete from opds_catalog_counter")
+    # Drop the in-memory Catalog cache: the rows it holds are gone now.
+    clear_cat_cache()
 
 
 def clear_genres(verbose: bool = False) -> None:
@@ -238,16 +240,31 @@ def inpx_skip(arcpath: str, arcsize: int) -> int:
     return 0
 
 
+# Cache of Catalog objects keyed by cat_name. The catalog tree is fully
+# determined by the path, so it is safe to populate this once per scan and
+# never invalidate it mid-scan (call clear_cat_cache() at the start of a scan).
+_cat_cache: dict[str, Catalog] = {}
+
+
+def clear_cat_cache() -> None:
+    """Drop the per-scan Catalog cache. Call before starting a new scan."""
+    _cat_cache.clear()
+
+
 def findcat(cat_name: str) -> Catalog | None:
+    cached = _cat_cache.get(cat_name)
+    if cached is not None:
+        return cached
     head, tail = os.path.split(cat_name)
     try:
         catalog = Catalog.objects.get(
             cat_name=tail[:SIZE_CAT_CATNAME], path=cat_name[:SIZE_CAT_PATH]
         )
     except Catalog.DoesNotExist:
-        catalog = None
-
-    return catalog
+        return None
+    else:
+        _cat_cache[cat_name] = catalog
+        return catalog
 
 
 def addcattree(cat_name: str, archive: int = 0, size: int = 0) -> Catalog:
@@ -255,9 +272,11 @@ def addcattree(cat_name: str, archive: int = 0, size: int = 0) -> Catalog:
     if catalog:
         return catalog
     if cat_name in ("", "."):
-        return Catalog.objects.get_or_create(
+        catalog = Catalog.objects.get_or_create(
             parent=None, cat_name=".", path=".", cat_type=0
         )[0]
+        _cat_cache[cat_name] = catalog
+        return catalog
     head, tail = os.path.split(cat_name)
     parent = addcattree(head)
     new_cat = Catalog.objects.create(
@@ -267,6 +286,7 @@ def addcattree(cat_name: str, archive: int = 0, size: int = 0) -> Catalog:
         cat_type=archive,
         cat_size=size,
     )
+    _cat_cache[cat_name] = new_cat
 
     return new_cat
 
@@ -283,8 +303,9 @@ def findbook(name: str, path: str, setavail: int = 0) -> Book | None:
         book = None
 
     if book and setavail:
-        book.avail = 2
-        book.save()
+        # Narrow UPDATE of only the avail column instead of a full row save().
+        # Avoids touching all other fields (and their indexes) on every hit.
+        Book.objects.filter(pk=book.pk).update(avail=2)
 
     return book
 
