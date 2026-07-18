@@ -92,55 +92,15 @@ WSGI_APPLICATION = "sopds.wsgi.application"
 
 # SOPDS DATABASE SETTINGS START
 
-# Database
-# https://docs.djangoproject.com/en/1.9/ref/settings/#databases
+import dj_database_url  # noqa: E402  — import after os
 
-# DATABASES = {
-#    'default': {
-#    'ENGINE': 'django.db.backends.postgresql_psycopg2',
-#    'NAME': 'sopds',
-#    'USER': 'sopds',
-#    'PASSWORD': 'sopds',
-#    'HOST': '', # Set to empty string for localhost.
-#    'PORT': '', # Set to empty string for default.
-#    }
-# }
-
-DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///db.sqlite3")
-
-if DATABASE_URL.startswith("sqlite"):
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
-        }
-    }
-elif DATABASE_URL.startswith("postgres") or DATABASE_URL.startswith("postgresql"):
-    _pg = DATABASE_URL.split("://", 1)[1]
-    _pg_user_pass, _pg_host_db = _pg.split("@", 1) if "@" in _pg else ("", _pg)
-    _pg_user, _pg_pass = (
-        (_pg_user_pass.split(":", 1) + [""])[:2] if _pg_user_pass else ("", "")
+DATABASES = {
+    "default": dj_database_url.config(
+        default="sqlite:///" + str(BASE_DIR / "db.sqlite3"),
+        conn_max_age=600,
+        conn_health_checks=True,
     )
-    _pg_host, _pg_db = (
-        (_pg_host_db.split("/", 1) + [""])[:2] if _pg_host_db else ("", "")
-    )
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": _pg_db,
-            "USER": _pg_user,
-            "PASSWORD": _pg_pass,
-            "HOST": _pg_host.split(":")[0],
-            "PORT": _pg_host.split(":")[1] if ":" in _pg_host else "",
-        }
-    }
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
-        }
-    }
+}
 
 # SOPDS DATABASE SETTINGS FINISH
 
