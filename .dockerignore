@@ -1,22 +1,57 @@
-.git/
-.github/
-.gitignore
+# Test data (265 MB) - mounted via VOLUME at runtime
+books/
+
+# Coverage reports
+htmlcov/
+.coverage*
+
+# Database files
+*.sqlite3
+
+# Dev/CI files not needed in runtime
+assets/
+Makefile
+README.md
+CHANGELOG.md
+LICENSE
+.pre-commit-config.yaml
+.releaserc.cjs
+.markdownlint.yaml
+.markdownlintignore
+pyrightconfig.json
+compose.yml
+env.docker
+env.example
 .gitattributes
-.travis.yml
+
+# Git
+.git/
+.gitignore
+
+# Python
+.mypy_cache/
+.pytest_cache/
 __pycache__/
 *.pyc
 *.pyo
-.venv/
-venv/
-dist/
+*.egg-info/
+
+# Build artifacts
 build/
-.pytest_cache/
-.mypy_cache/
-.tox/
-.cache/
-.DS_Store
-.idea/
-.vscode/
-.coverage*
-coverage.xml
-.env
+dist/
+*.egg
+
+# Test files (not needed in production)
+opds_catalog/tests/data/
+book_tools/tests/
+
+# Logs
+*.log
+opds_catalog/log/
+
+# Virtual environment
+.venv/
+
+# CI/CD & editor configs
+.github/
+.opencode/
