@@ -294,10 +294,6 @@ CONSTANCE_CONFIG = OrderedDict(
         ),
         ("SOPDS_FB2TOEPUB", ("", _("Path to FB2-EPUB converter program"))),
         ("SOPDS_FB2TOMOBI", ("", _("Path to FB2-MOBI converter program"))),
-        (
-            "SOPDS_TEMP_DIR",
-            (os.path.join(BASE_DIR, "tmp"), _("Path to temporary files directory")),
-        ),
     ]
 )
 
@@ -335,7 +331,7 @@ CONSTANCE_CONFIG_FIELDSETS = {
         "SOPDS_SCAN_SHED_DAY",
         "SOPDS_SCAN_SHED_DOW",
     ),
-    "5. Converters Options": ("SOPDS_FB2TOEPUB", "SOPDS_FB2TOMOBI", "SOPDS_TEMP_DIR"),
+    "5. Converters Options": ("SOPDS_FB2TOEPUB", "SOPDS_FB2TOMOBI"),
 }
 
 SOPDS_SERVER_LOG = os.environ.get(
@@ -354,5 +350,6 @@ SOPDS_SCANNER_PID = os.environ.get(
     "SOPDS_SCANNER_PID",
     os.path.join(BASE_DIR, "opds_catalog/tmp/sopds_scanner.pid"),
 )
+SOPDS_TEMP_DIR = os.environ.get("SOPDS_TEMP_DIR", os.path.join(BASE_DIR, "tmp"))
 
 SECURE_REDIRECT_EXEMPT = [r"^health/"]

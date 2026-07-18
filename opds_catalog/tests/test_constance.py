@@ -1,7 +1,6 @@
 import os
 from io import StringIO
 
-from constance import config
 from django.core.management import call_command
 from django.test import TestCase
 
@@ -17,15 +16,5 @@ class constanceTestCase(TestCase):
         out = StringIO()
         call_command("constance", "list", stdout=out)
         out.seek(0)
-        self.assertEqual(out.getvalue().count("\n"), 28)
-        out.close()
-
-    def test_constance_set_get_attr(self) -> None:
-        conf_value = "test_temp_dir"
-        call_command("constance", "set", "SOPDS_TEMP_DIR", conf_value)
-        self.assertEqual(config.SOPDS_TEMP_DIR, conf_value)
-        out = StringIO()
-        call_command("constance", "get", "SOPDS_TEMP_DIR", stdout=out)
-        out.seek(0)
-        self.assertEqual(out.getvalue().strip(), conf_value)
+        self.assertEqual(out.getvalue().count("\n"), 27)
         out.close()
