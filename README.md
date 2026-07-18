@@ -4,8 +4,7 @@ SOPDS (Simple OPDS) is an OPDS catalog server for e-books, built on Django. It
 scans a directory of book files (fb2, epub, mobi, pdf, djvu), indexes their
 metadata into a database, and exposes the collection both as an HTTP library
 browsing UI and as an OPDS 1.2 feed for OPDS-compatible reading apps. It can
-convert fb2 books to epub/mobi on download and optionally serve a Telegram bot
-for search and download.
+convert fb2 books to epub/mobi on download.
 
 ## Fork relationship
 
@@ -79,7 +78,7 @@ Makefile auto-exports `env.example` and `.env` for local runs.
 - `postgres://` or `postgresql://` → Django `postgresql` backend (uses
   `psycopg2-binary`). Credentials are parsed from the URL.
 
-Application behavior knobs (scanner schedule, book extensions, Telegram, covers,
+Application behavior knobs (scanner schedule, book extensions, covers,
 etc.) live in **django-constance** (`CONSTANCE_CONFIG` in `sopds/settings.py`),
 stored in the database and editable via the Django admin (`/admin/`). Many have
 env overrides read at startup (e.g. `SOPDS_ROOT_LIB`, `SOPDS_ZIPSCAN`,
@@ -195,17 +194,6 @@ python manage.py sopds_server [start|stop|restart] [--host H] [--port N] [--daem
 - `--port` — port (default `8001`).
 - `--daemon` — detach to background (POSIX only).
 
-### `sopds_telebot`
-
-Telegram bot engine. `help`: "SimpleOPDS Telegram Bot engine."
-
-```shell
-python manage.py sopds_telebot [start] [--verbose]
-```
-
-Runs the bot in the foreground. Requires `SOPDS_TELEBOT_API_TOKEN` (constance).
-`--verbose` logs to stdout.
-
 ### `sopds_util`
 
 Utilities. `help`: "Utils for SOPDS." Takes one or more positional subcommands:
@@ -262,8 +250,8 @@ with the django-stubs plugin. `bandit` runs with the skip list in
 
 - `sopds/` — Django project package: `settings.py`, `urls.py`, `wsgi.py`, `locale/`.
 - `opds_catalog/` — core app: models, scanner (`sopdscan`), OPDS feed generation,
-  middleware, fixtures, and the `sopds_scanner` / `sopds_server` / `sopds_util` /
-  `sopds_telebot` management commands.
+  middleware, fixtures, and the `sopds_scanner` / `sopds_server` / `sopds_util`
+  management commands.
 - `sopds_web_backend/` — web UI app: views, templates, admin, static assets,
   and its own settings knobs (e.g. `HALF_PAGES_LINKS`).
 - `ops/` — operations app: `dev` and `start` launchers, process supervisor
