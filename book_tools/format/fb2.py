@@ -94,7 +94,8 @@ class FB2Base(BookFile):
             return None
 
     def __detect_namespaces(self, tree: etree._Element) -> None:
-        if tree.getroot().tag.find(Namespace.FICTION_BOOK21) > 0:
+        root = tree.getroot() if hasattr(tree, "getroot") else tree
+        if root.tag.find(Namespace.FICTION_BOOK21) > 0:
             self.__namespaces["fb"] = Namespace.FICTION_BOOK21
 
     def __detect_title(self, tree: etree._Element) -> None:
