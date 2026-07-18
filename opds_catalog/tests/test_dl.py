@@ -600,6 +600,7 @@ class TestGetFileDataConv:
         from opds_catalog import dl
 
         book = mocker.MagicMock()
+        book.title = "testbook"
         book.format = "epub"
         book.path = "/tmp/book.epub"
         book.filename = "book.epub"
@@ -612,6 +613,7 @@ class TestGetFileDataConv:
         from opds_catalog import dl
 
         book = mocker.MagicMock()
+        book.title = "testbook"
         book.format = "fb2"
         book.path = "/tmp/book.fb2"
         book.filename = "book.fb2"
@@ -625,6 +627,7 @@ class TestGetFileDataConv:
         from opds_catalog import dl
 
         book = mocker.MagicMock()
+        book.title = "testbook"
         book.format = "fb2"
         book.path = "/tmp/book.fb2"
         book.filename = "book.fb2"
@@ -643,6 +646,7 @@ class TestGetFileDataConv:
         dl_subprocess = dl.subprocess  # type: ignore[attr-defined]
         dl_os_path = dl.os.path  # type: ignore[attr-defined]
         book = mocker.MagicMock()
+        book.title = "testbook"
         book.format = "fb2"
         book.path = "/tmp/book.fb2"
         book.filename = "book.fb2"
