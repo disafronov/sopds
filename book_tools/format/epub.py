@@ -201,12 +201,25 @@ class EPub(BookFile):
                 img = xhtml.xpath(
                     "//xhtml:img[@src]", namespaces={"xhtml": EPub.Namespace.XHTML}
                 )[0]
+                img_src = img.get("src", "")
+                _ext_to_mime = {
+                    ".jpg": "image/jpeg",
+                    ".jpeg": "image/jpeg",
+                    ".png": "image/png",
+                    ".gif": "image/gif",
+                    ".svg": "image/svg+xml",
+                    ".webp": "image/webp",
+                    ".bmp": "image/bmp",
+                    ".tiff": "image/tiff",
+                    ".tif": "image/tiff",
+                }
+                _img_ext = os.path.splitext(img_src)[1].lower()
+                _img_mime = _ext_to_mime.get(_img_ext, "image/auto")
                 return [
                     info,
                     {
-                        "filename": os.path.normpath(xhtml_prefix + img.get("src")),
-                        # TODO: detect mimetype
-                        "mime": "image/auto",
+                        "filename": os.path.normpath(xhtml_prefix + img_src),
+                        "mime": _img_mime,
                     },
                 ]
             else:

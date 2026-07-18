@@ -70,7 +70,13 @@ utfhigh = re.compile("[\U00010000-\U0010ffff]")
 
 
 def pg_optimize(verbose: bool = False) -> None:
-    """TODO: Table optimizations for Postgre"""
+    """Optimize PostgreSQL table storage for opds_catalog_book.
+
+    Sets fillfactor=50 and runs VACUUM FULL on the book table to reduce
+    bloat caused by frequent updates during library scans. Other tables
+    (bauthor, bgenre, bseries, catalog, etc.) are append/delete-only
+    and do not suffer from the same update-driven bloat.
+    """
     if connection.vendor != "postgresql":
         if verbose:
             print("No PostgreSql connection backend detected...")
@@ -140,13 +146,13 @@ def books_del_logical() -> int:
 
 
 def books_del_phisical() -> tuple[int, dict[str, int]]:
+    """Physically delete books with avail <= 1.
+
+    Django's QuerySet.delete() cascades through on_delete=models.CASCADE
+    on the auto-created through tables (bauthor, bgenre, bseries), so
+    M2M rows are removed automatically — no manual cleanup is needed.
+    """
     row_count = Book.objects.filter(avail__lte=1).delete()
-    # TODO: Разобратся нужно ли удалять записи в таблицах связи ManyToMany
-    # или они сами удалятся?
-    # sql='delete from '+TBL_BAUTHORS+' where book_id in '
-    #     '(select book_id from '+TBL_BOOKS+' where avail<=1)'
-    # sql='delete from '+TBL_BGENRES+' where book_id in '
-    #     '(select book_id from '+TBL_BOOKS+' where avail<=1)'
     return row_count
 
 
