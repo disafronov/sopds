@@ -89,7 +89,7 @@ branch = true
 parallel = true
 
 [tool.coverage.report]
-fail_under = 0
+fail_under = 60
 exclude_lines = [
   "raise AssertionError",
   "raise NotImplementedError",
