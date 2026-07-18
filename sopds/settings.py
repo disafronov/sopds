@@ -338,7 +338,7 @@ SOPDS_TEMP_DIR = os.environ.get("SOPDS_TEMP_DIR", os.path.join(BASE_DIR, "tmp"))
 SOPDS_ROOT_LIB = os.environ.get("SOPDS_ROOT_LIB", "books/")
 SOPDS_NOCOVER_PATH = os.environ.get(
     "SOPDS_NOCOVER_PATH",
-    os.path.join(BASE_DIR, "static/images/nocover.jpg"),
+    os.path.join(BASE_DIR, "sopds_web_backend/static/images/nocover.jpg"),
 )
 
 SECURE_REDIRECT_EXEMPT = [r"^health/"]
