@@ -176,7 +176,7 @@ class Command(BaseCommand):
             minute=self.SCAN_SHED_MIN,
             id="scan",
         )
-        self.sched.add_job(self.check_settings, "cron", minute="*/10", id="check")
+        self.sched.add_job(self.check_settings, "cron", minute="*/5", id="check")
         quit_command = "CTRL-BREAK" if sys.platform == "win32" else "CONTROL-C"
         self.stdout.write("Quit the server with %s.\n" % quit_command)
         try:
