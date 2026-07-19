@@ -212,7 +212,7 @@ config/                 Django project configuration (settings, urls, wsgi)
 opds_catalog/           Core app: models, scanner, OPDS feeds, middleware
 web_backend/            Web UI app: views, templates, static assets
 ops/                    Operations: dev/start launchers, health checks, supervisor
-book_tools/             Book conversion/processing helpers
+book_tools/             SOPDS book-format adapters and vendored parser forks
 convert/                Bundled FB2 to EPUB/MOBI converter
 assets/                 Front-end assets
 books/                  Book storage directory (mounted as Docker volume)
