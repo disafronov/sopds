@@ -3,10 +3,11 @@
 
 {% block body %}
 <script>
-       function del_bsbook(b_id, b_t) {
-           $('#DeleteBook_btnYes').attr("href","{% url "web:bsdel" %}?book="+b_id);
-           $('#DeleteBook_image').attr("src","{% url "opds:covertmpl" %}"+b_id+"/");
-           $('#DeleteBook_title').text(b_t);
+       function openBookshelfDeleteModal(trigger) {
+           const bookId = trigger.dataset.bookId;
+           $('#DeleteBook_book').val(bookId);
+           $('#DeleteBook_image').attr("src", "{% url "opds:covertmpl" %}" + bookId + "/");
+           $('#DeleteBook_title').text(trigger.dataset.bookTitle);
            $('#DeleteBookModal').foundation('open');
        }
 </script>
@@ -15,15 +16,19 @@
   <h5 id="DeleteBookModalTitle">{% trans "Confirm the deletion of the book to your bookshelf." %}</h5>
   <table><tr>
   <td width="100px" style="padding:0rem 0rem;">
-      <img src="" id="DeleteBook_image" style="max-height: 100px; max-width: 100px">
+      <img class="thumbnail" src="" id="DeleteBook_image" alt="">
   </td>
   <td style="font-size:100%; padding:3px">
       <p id="DeleteBook_title"></p>
   </td>
   </tr>
   </table>
-  <p class="text-center"><a href="#" class="secondary button" id="DeleteBook_btnYes">{% trans "Delete" %}</a>
-                         &nbsp;&nbsp;&nbsp;<a class="close button" data-close>{% trans "Cancel" %}</a></p>
+  <form method="post" action="{% url "web:bsdel" %}">
+    {% csrf_token %}
+    <input type="hidden" name="book" id="DeleteBook_book">
+    <p class="text-center"><button type="submit" class="secondary button">{% trans "Delete" %}</button>
+                           &nbsp;&nbsp;&nbsp;<a class="close button" data-close>{% trans "Cancel" %}</a></p>
+  </form>
   <button class="close-button" data-close aria-label="Close modal" type="button">
     <span aria-hidden="true">&times;</span>
   </button>
@@ -32,9 +37,11 @@
  {% if isbookshelf %}
  <div id="ConfirmModal" class="reveal tiny text-center" data-reveal>
   <h5 id="ConfirmModalTitle">{% trans "Confirm to clear your bookshelf." %}</h5>
-  <p></p>
-  <p class="text-center"><a href="{% url "web:bsclear" %}" class="secondary button" id="Confirm_btnYes">{% trans "Clear" %}</a>
-                         &nbsp;&nbsp;&nbsp;<a class="close button" data-close>{% trans "Cancel" %}</a></p>
+  <form method="post" action="{% url "web:bsclear" %}">
+    {% csrf_token %}
+    <p class="text-center"><button type="submit" class="secondary button">{% trans "Clear" %}</button>
+                           &nbsp;&nbsp;&nbsp;<a class="close button" data-close>{% trans "Cancel" %}</a></p>
+  </form>
   <button class="close-button" data-close aria-label="Close modal" type="button">
     <span aria-hidden="true">&times;</span>
   </button>
@@ -58,26 +65,26 @@
 			   <i><a href="{% url 'opds_catalog:convert' b.id 'mobi' %}"><span class="label small">mobi</span></a></i>&nbsp;
 			{% endif %}
 			{% if isbookshelf %}
-			&nbsp;&nbsp;<i><a href="#" onclick="del_bsbook({{ b.id }},'{{b.title}}');"><span class="secondary label small">&nbsp;{% trans "Delete from bookshelf" %}&nbsp;</span></a></i>
+			&nbsp;&nbsp;<i><button type="button" data-book-id="{{ b.id }}" data-book-title="{{ b.title }}" onclick="openBookshelfDeleteModal(this);"><span class="secondary label small">&nbsp;{% trans "Delete from bookshelf" %}&nbsp;</span></button></i>
 		    {% endif %}
 		</div>
 
 		<div class="large-12 column">
-		    <table><tr>
+		    <table class="book-card book-list-card"><tr>
 		    <td width="100px" style="padding:0rem 0rem;">
-			     <img src="{% url 'opds_catalog:thumb' b.id %}" type="image/jpeg" width="80px">
+			     <img class="thumbnail" src="{% url 'opds_catalog:thumb' b.id %}" type="image/jpeg" alt="{{ b.title }}">
 			</td>
-			<td style="font-size:80%; padding:1rem 1rem;">
+			<td style="font-size:80%; padding:0rem 1rem;">
 				<b>{% trans "Book title:" %}</b> {{ b.title }} <br>
 				{% if b.authors.count > 0 %}
 				   <b>{% trans "Authors:" %}</b>{% for a in b.authors %} <a href="{% url "web:searchbooks" %}?searchtype=a&searchterms={{a.id}}">{{a.full_name}}</a>{% if not forloop.last %},{%endif%} {%endfor%}<br>
 				{% endif %}
-				{% if b.genres.count > 0 %}
-				   <b>{% trans "Genres:" %}</b>{% for g in b.genres %} <a href="{% url "web:searchbooks" %}?searchtype=g&searchterms={{g.id}}">{{g.subsection}}</a>{% if not forloop.last %},{%endif%} {%endfor%} <br>
-				{% endif %}
 				{% if b.series.count > 0 %}
 				   <b>{% trans "Series:" %}</b> {% for s in b.series %} <a href="{% url "web:searchbooks" %}?searchtype=s&searchterms={{s.id}}">{{s.ser}}</a>{% if not forloop.last %},{%endif%} {%endfor%} <br>
-                   <b>{% trans "No in Series:" %}</b> {% for s in b.ser_no %}{{s.ser_no}}{% if not forloop.last %},{%endif%} {%endfor%} <br>
+				   <b>{% trans "No in Series:" %}</b> {% for s in b.ser_no %}{{s.ser_no}}{% if not forloop.last %},{%endif%} {%endfor%} <br>
+				{% endif %}
+				{% if b.genres.count > 0 %}
+				   <b>{% trans "Genres:" %}</b>{% for g in b.genres %} <a href="{% url "web:searchbooks" %}?searchtype=g&searchterms={{g.id}}">{{g.subsection}}</a>{% if not forloop.last %},{%endif%} {%endfor%} <br>
 				{% endif %}
 				<b>{% trans "File:" %}</b> {{ b.path }}/{{ b.filename }} <br>
 				<b>{% trans "File size:" %}</b> {{ b.filesize }}Кб.<br>
@@ -91,11 +98,14 @@
 
 			</td>
 			</tr>
+			{% if b.annotation %}
 			<tr>
 			<td colspan="2">
 			    <p style="font-size:80%;">{{ b.annotation }}</p>
 			</td>
-			</tr></table>
+			</tr>
+			{% endif %}
+			</table>
 		</div>
 {% endfor %}
 

@@ -19,6 +19,16 @@ msgstr ""
 "10<=4 && (n%100<12 || n%100>14) ? 1 : n%10==0 || (n%10>=5 && n%10<=9) || (n%"
 "100>=11 && n%100<=14)? 2 : 3);\n"
 
+#: web_backend/templates/admin/base.html:74
+#: web_backend/templates/sopds_main.html:37
+#, python-format
+msgid "Your timezone could not be detected. Times are displayed in %(tz)s."
+msgstr "Не удалось определить ваш часовой пояс. Время указано для часового пояса %(tz)s."
+
+#: web_backend/templates/sopds_footer.html
+msgid "Last scan:"
+msgstr "Последнее сканирование:"
+
 #: .\web_backend\templates\admin\base.html:30
 msgid "Welcome,"
 msgstr "Добро пожаловать, "
