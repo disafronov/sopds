@@ -155,6 +155,47 @@ class TestSearchBooksView:
         response = views.SearchBooksView(request)
         assert response.status_code == 200
 
+    @pytest.mark.parametrize(
+        ("searchtype", "searchobject", "breadcrumb"),
+        [
+            ("b", "title", "Search by title"),
+            ("a", "author", "Search by author"),
+            ("s", "series", "Search by series"),
+            ("g", "genre", "Search by genre"),
+            ("u", "title", "Bookshelf"),
+        ],
+    )
+    def test_search_modes_build_expected_context(
+        self,
+        db: Any,
+        mocker: MockerFixture,
+        searchtype: str,
+        searchobject: str,
+        breadcrumb: str,
+    ) -> None:
+        from web_backend import views
+
+        rendered: dict[str, Any] = {}
+
+        def capture_render(
+            request: HttpRequest, template: str, context: dict[str, Any]
+        ) -> HttpResponse:
+            rendered.update(context)
+            return HttpResponse("ok")
+
+        mocker.patch.object(views, "render", side_effect=capture_render)
+        _set_auth(mocker, False)
+        request = make_anon_request()
+        request.GET = QueryDict(f"searchtype={searchtype}&searchterms=missing")
+
+        response = views.SearchBooksView(request)
+
+        assert response.status_code == 200
+        assert rendered["searchobject"] == searchobject
+        assert breadcrumb in [str(part) for part in rendered["breadcrumbs"]]
+        if searchtype == "u":
+            assert rendered["isbookshelf"] == 1
+
 
 class TestLoginView:
     """Tests for LoginView()."""
