@@ -4,19 +4,234 @@ from __future__ import annotations
 
 import datetime
 import logging
+import multiprocessing
 import os
-import re
 import time
-from typing import Any, cast
+from concurrent.futures import (
+    FIRST_COMPLETED,
+    Future,
+    ProcessPoolExecutor,
+    wait,
+)
+from typing import Any
 
 from constance import config
 from django.conf import settings
+from django.db import transaction
 from django.utils.translation import gettext as _
 
 import opds_catalog.zipf as zipfile
 from book_tools.format import create_bookfile
 from book_tools.format.util import strip_symbols
-from opds_catalog import fb2parse, inpx_parser, opdsdb
+from opds_catalog import fb2parse, opdsdb
+from opds_catalog.models import (
+    SIZE_AUTHOR_NAME,
+    SIZE_BOOK_ANNOTATION,
+    SIZE_BOOK_DOCDATE,
+    SIZE_BOOK_FILENAME,
+    SIZE_BOOK_FORMAT,
+    SIZE_BOOK_LANG,
+    SIZE_BOOK_PATH,
+    SIZE_BOOK_TITLE,
+    SIZE_GENRE,
+    SIZE_GENRE_SUBSECTION,
+    SIZE_SERIES,
+    Author,
+    Book,
+    Catalog,
+    Genre,
+    Series,
+    bauthor,
+    bgenre,
+    bseries,
+)
+from opds_catalog.scan_types import (
+    BookMeta,
+    ContainerDiscovery,
+    DirectoryDiscovery,
+    ParseResult,
+)
+from opds_catalog.worker_init import init_worker
+
+logger = logging.getLogger(__name__)
+
+# Per-scan memo caches for get_or_create lookups.  Populated by
+# store_result() in the main thread.  Cleared at the start of each
+# scan by clear_scan_caches().
+_author_cache: dict[str, Author] = {}
+_genre_cache: dict[str, Genre] = {}
+_series_cache: dict[str, Series] = {}
+
+
+def create_scan_executor(max_workers: int | None) -> ProcessPoolExecutor:
+    """Create the production spawn-based scanner process pool."""
+    return ProcessPoolExecutor(
+        max_workers=max_workers,
+        mp_context=multiprocessing.get_context("spawn"),
+        initializer=init_worker,
+    )
+
+
+def clear_scan_caches() -> None:
+    """Drop per-scan memo caches. Call at the start of each scan."""
+    _author_cache.clear()
+    _genre_cache.clear()
+    _series_cache.clear()
+
+
+def store_result(
+    result: ParseResult,
+    scanner: opdsScanner,
+) -> None:
+    """Write one worker result as a single database batch."""
+    _store_books_batch(result.books, scanner)
+    scanner.bad_books += result.bad_books
+
+
+def _book_key(meta: BookMeta) -> tuple[str, str]:
+    return (
+        meta.filename[:SIZE_BOOK_FILENAME],
+        meta.rel_path[:SIZE_BOOK_PATH],
+    )
+
+
+@transaction.atomic
+def _store_books_batch(books: list[BookMeta], scanner: opdsScanner) -> None:
+    """Store one bounded batch using bulk operations for rows and M2M links."""
+    if not books:
+        return
+
+    requested_keys = {_book_key(meta) for meta in books}
+    filenames = {filename for filename, _path in requested_keys}
+    paths = {path for _filename, path in requested_keys}
+    existing_books = [
+        book
+        for book in Book.objects.filter(filename__in=filenames, path__in=paths)
+        if (book.filename, book.path) in requested_keys
+    ]
+    existing_keys = {(book.filename, book.path) for book in existing_books}
+    existing_ids = [book.pk for book in existing_books]
+    if existing_ids:
+        Book.objects.filter(pk__in=existing_ids).update(avail=2)
+
+    new_meta: list[BookMeta] = []
+    seen_keys = set(existing_keys)
+    for meta in books:
+        key = _book_key(meta)
+        if key in seen_keys:
+            scanner.books_skipped += 1
+            continue
+        seen_keys.add(key)
+        new_meta.append(meta)
+
+    if not new_meta:
+        return
+
+    catalogs: dict[tuple[str, int], Catalog] = {}
+    for meta in new_meta:
+        catalog_key = (meta.rel_path, meta.cat_type)
+        if catalog_key not in catalogs:
+            catalogs[catalog_key] = opdsdb.addcattree(meta.rel_path, meta.cat_type)
+
+    author_names = {
+        author.name[:SIZE_AUTHOR_NAME] for meta in new_meta for author in meta.authors
+    }
+    genre_names = {genre[:SIZE_GENRE] for meta in new_meta for genre in meta.genres}
+    series_names = {
+        series.title[:SIZE_SERIES] for meta in new_meta for series in meta.series
+    }
+
+    authors = {
+        author.full_name: author
+        for author in Author.objects.filter(full_name__in=author_names)
+    }
+    missing_authors = [
+        Author(
+            full_name=name,
+            search_full_name=name.upper()[:SIZE_AUTHOR_NAME],
+            lang_code=opdsdb.getlangcode(name),
+        )
+        for name in author_names - authors.keys()
+    ]
+    Author.objects.bulk_create(missing_authors)
+    authors.update({author.full_name: author for author in missing_authors})
+    _author_cache.update(authors)
+
+    genres = {
+        genre.genre: genre for genre in Genre.objects.filter(genre__in=genre_names)
+    }
+    missing_genres = [
+        Genre(
+            genre=name,
+            section=opdsdb.unknown_genre,
+            subsection=name[:SIZE_GENRE_SUBSECTION],
+        )
+        for name in genre_names - genres.keys()
+    ]
+    Genre.objects.bulk_create(missing_genres)
+    genres.update({genre.genre: genre for genre in missing_genres})
+    _genre_cache.update(genres)
+
+    series_by_name = {
+        item.ser: item for item in Series.objects.filter(ser__in=series_names)
+    }
+    missing_series = [
+        Series(
+            ser=name,
+            search_ser=name.upper()[:SIZE_SERIES],
+            lang_code=opdsdb.getlangcode(name),
+        )
+        for name in series_names - series_by_name.keys()
+    ]
+    Series.objects.bulk_create(missing_series)
+    series_by_name.update({item.ser: item for item in missing_series})
+    _series_cache.update(series_by_name)
+
+    book_rows = [
+        Book(
+            filename=meta.filename[:SIZE_BOOK_FILENAME],
+            path=meta.rel_path[:SIZE_BOOK_PATH],
+            catalog=catalogs[(meta.rel_path, meta.cat_type)],
+            filesize=meta.filesize,
+            format=meta.ext.lower()[:SIZE_BOOK_FORMAT],
+            title=meta.title[:SIZE_BOOK_TITLE],
+            search_title=meta.title.upper()[:SIZE_BOOK_TITLE],
+            annotation=opdsdb.p(meta.annotation, SIZE_BOOK_ANNOTATION),
+            docdate=meta.docdate[:SIZE_BOOK_DOCDATE],
+            lang=meta.lang[:SIZE_BOOK_LANG],
+            cat_type=meta.cat_type,
+            avail=2,
+            lang_code=opdsdb.getlangcode(meta.title),
+        )
+        for meta in new_meta
+    ]
+    Book.objects.bulk_create(book_rows)
+
+    author_links: list[bauthor] = []
+    genre_links: list[bgenre] = []
+    series_links: list[bseries] = []
+    for meta, book in zip(new_meta, book_rows, strict=True):
+        author_links.extend(
+            bauthor(book=book, author=authors[item.name[:SIZE_AUTHOR_NAME]])
+            for item in meta.authors
+        )
+        genre_links.extend(
+            bgenre(book=book, genre=genres[name[:SIZE_GENRE]]) for name in meta.genres
+        )
+        series_links.extend(
+            bseries(
+                book=book,
+                ser=series_by_name[item.title[:SIZE_SERIES]],
+                ser_no=item.index,
+            )
+            for item in meta.series
+        )
+
+    bauthor.objects.bulk_create(author_links)
+    bgenre.objects.bulk_create(genre_links)
+    bseries.objects.bulk_create(series_links)
+    scanner.books_added += len(book_rows)
+    scanner.books_in_archives += sum(meta.cat_type != 0 for meta in new_meta)
 
 
 class opdsScanner:
@@ -93,8 +308,24 @@ class opdsScanner:
         )
 
     def scan_all(self) -> None:
+        """Scan the book library using a process pool for file parsing.
+
+        Directory discovery and file parsing run in worker processes.
+        The main process only schedules follow-up tasks and serializes
+        database writes to avoid duplicate rows and connection sharing.
+        """
+        from opds_catalog.scan_parser import (
+            discover_directory,
+            discover_inpx_entries,
+            discover_zip_entries,
+            parse_inp_job,
+            parse_standalone_book_job,
+            parse_zip_member_job,
+        )
+
         self.init_stats()
         opdsdb.clear_cat_cache()
+        clear_scan_caches()
         self.log_options()
         self.inp_cat = None
         self.zip_file = None
@@ -102,31 +333,198 @@ class opdsScanner:
 
         opdsdb.avail_check_prepare()
 
-        for full_path, dirs, files in os.walk(
-            settings.SOPDS_ROOT_LIB, followlinks=True
-        ):
-            # Если разрешена обработка inpx, то при нахождении inpx
-            # обрабатываем его и прекращаем обработку текущего каталога
-            if config.SOPDS_INPX_ENABLE:
-                inpx_files = [
-                    inpx for inpx in files if re.match(".*(.inpx|.INPX)$", inpx)
-                ]
-                # Пропускаем обработку файлов в текущем каталоге, если найдены inpx
-                if inpx_files:
-                    for inpx_file in inpx_files:
-                        file = os.path.join(full_path, inpx_file)
-                        self.processinpx(inpx_file, full_path, file)
-                    continue
+        max_workers = settings.SOPDS_SCAN_WORKERS or os.cpu_count()
+        book_extensions = tuple(config.SOPDS_BOOK_EXTENSIONS.lower().split())
 
-            for name in files:
-                file = os.path.join(full_path, name)
-                n, e = os.path.splitext(name)
-                if e.lower() == ".zip":
-                    if config.SOPDS_ZIPSCAN:
-                        self.processzip(name, full_path, file)
-                else:
-                    file_size = os.path.getsize(file)
-                    self.processfile(name, full_path, file, None, 0, file_size)
+        with create_scan_executor(max_workers) as executor:
+            all_futures: set[Future[Any]] = {
+                executor.submit(
+                    discover_directory,
+                    settings.SOPDS_ROOT_LIB,
+                    book_extensions,
+                    config.SOPDS_ZIPSCAN,
+                    config.SOPDS_INPX_ENABLE,
+                )
+            }
+
+            while all_futures:
+                done, all_futures = wait(all_futures, return_when=FIRST_COMPLETED)
+                for future in done:
+                    try:
+                        result = future.result()
+                    except Exception:
+                        self.logger.exception("Worker process failed")
+                        self.bad_archives += 1
+                        continue
+
+                    if isinstance(result, DirectoryDiscovery):
+                        logger.info(
+                            "RESULT discover_directory source=%s "
+                            "dirs=%d files=%d err=%s",
+                            result.source_path,
+                            len(result.directories),
+                            len(result.files),
+                            result.error,
+                        )
+                        if result.error:
+                            self.logger.error(result.error)
+                            self.bad_archives += 1
+                            continue
+                        for directory in result.directories:
+                            all_futures.add(
+                                executor.submit(
+                                    discover_directory,
+                                    directory,
+                                    book_extensions,
+                                    config.SOPDS_ZIPSCAN,
+                                    config.SOPDS_INPX_ENABLE,
+                                )
+                            )
+                        for discovered_file in result.files:
+                            file = discovered_file.path
+                            if discovered_file.kind == "inpx":
+                                rel_file = os.path.relpath(
+                                    file, settings.SOPDS_ROOT_LIB
+                                )
+                                inpx_size = discovered_file.size
+
+                                if (
+                                    config.SOPDS_INPX_SKIP_UNCHANGED
+                                    and opdsdb.inpx_skip(rel_file, inpx_size)
+                                ):
+                                    self.logger.info(
+                                        "Skip INPX file = " + file + ". Not changed."
+                                    )
+                                    continue
+
+                                self.logger.info("Start discovery INPX file = " + file)
+                                opdsdb.addcattree(rel_file, opdsdb.CAT_INPX, inpx_size)
+                                logger.info(
+                                    "DISPATCH discover_inpx_entries inpx=%s", file
+                                )
+                                all_futures.add(
+                                    executor.submit(discover_inpx_entries, file)
+                                )
+                            elif discovered_file.kind == "zip":
+                                rel_file = os.path.relpath(
+                                    file, settings.SOPDS_ROOT_LIB
+                                )
+                                zsize = discovered_file.size
+
+                                if opdsdb.arc_skip(rel_file, zsize):
+                                    self.arch_skipped += 1
+                                    self.logger.debug(
+                                        "Skip ZIP archive "
+                                        + rel_file
+                                        + ". Already scanned."
+                                    )
+                                else:
+                                    logger.info(
+                                        "DISPATCH discover_zip_entries zip=%s", file
+                                    )
+                                    all_futures.add(
+                                        executor.submit(
+                                            discover_zip_entries,
+                                            file,
+                                            book_extensions,
+                                        )
+                                    )
+                            else:
+                                rel_path = os.path.relpath(
+                                    result.source_path, settings.SOPDS_ROOT_LIB
+                                )
+                                name = discovered_file.name
+                                logger.info(
+                                    "DISPATCH parse_standalone_book_job file=%s",
+                                    file,
+                                )
+                                all_futures.add(
+                                    executor.submit(
+                                        parse_standalone_book_job,
+                                        file,
+                                        name,
+                                        rel_path,
+                                    )
+                                )
+                        continue
+
+                    parse_result = result
+                    if isinstance(parse_result, ContainerDiscovery):
+                        logger.info(
+                            "RESULT %s source=%s entries=%d err=%s",
+                            (
+                                "discover_inpx_entries"
+                                if result.source_path
+                                and result.source_path.lower().endswith(".inpx")
+                                else "discover_zip_entries"
+                            ),
+                            result.source_path,
+                            len(parse_result.entries),
+                            parse_result.error,
+                        )
+                    else:
+                        logger.info(
+                            "RESULT parse worker books=%d bad=%d err=%s",
+                            len(parse_result.books),
+                            parse_result.bad_books,
+                            parse_result.error,
+                        )
+                    if isinstance(parse_result, ContainerDiscovery):
+                        result = parse_result
+                        if result.error:
+                            self.logger.error(
+                                "Container discovery failed: " + result.error
+                            )
+                            self.bad_archives += 1
+                            continue
+                        if result.source_path is None:
+                            self.logger.error(
+                                "Container discovery missing source path; skipping"
+                            )
+                            self.bad_archives += 1
+                            continue
+                        is_inpx = (
+                            result.source_path is not None
+                            and result.source_path.lower().endswith(".inpx")
+                        )
+                        for entry in result.entries:
+                            if is_inpx:
+                                logger.info(
+                                    "DISPATCH parse_inp_job inpx=%s entry=%s",
+                                    result.source_path,
+                                    entry.name,
+                                )
+                                all_futures.add(
+                                    executor.submit(
+                                        parse_inp_job,
+                                        result.source_path,
+                                        entry.name,
+                                        settings.SOPDS_ROOT_LIB,
+                                        result.inpx_format,
+                                        result.inpx_folders,
+                                        config.SOPDS_INPX_TEST_ZIP,
+                                        config.SOPDS_INPX_TEST_FILES,
+                                    )
+                                )
+                            else:
+                                rel_file = os.path.relpath(
+                                    result.source_path, settings.SOPDS_ROOT_LIB
+                                )
+                                logger.info(
+                                    "DISPATCH parse_zip_member_job zip=%s entry=%s",
+                                    result.source_path,
+                                    entry.name,
+                                )
+                                all_futures.add(
+                                    executor.submit(
+                                        parse_zip_member_job,
+                                        result.source_path,
+                                        entry.name,
+                                        rel_file,
+                                    )
+                                )
+                    else:
+                        store_result(parse_result, self)
 
         if config.SOPDS_DELETE_LOGICAL:
             self.books_deleted = opdsdb.books_del_logical()
@@ -134,80 +532,6 @@ class opdsScanner:
             self.books_deleted = opdsdb.books_del_phisical()
 
         self.log_stats()
-
-    def inpskip_callback(self, inpx: str, inp_file: str, inp_size: int) -> int:
-
-        self.rel_path = os.path.relpath(
-            os.path.join(inpx, inp_file), settings.SOPDS_ROOT_LIB
-        )
-
-        if config.SOPDS_INPX_SKIP_UNCHANGED and opdsdb.inp_skip(
-            self.rel_path, inp_size
-        ):
-            self.logger.info("Skip INP metafile " + inp_file + ". Not changed.")
-            result = 1
-        else:
-            self.logger.info("Start process INP metafile = " + inp_file)
-            self.inp_cat = opdsdb.addcattree(self.rel_path, opdsdb.CAT_INPX, inp_size)
-            result = 0
-
-        return result
-
-    def inpx_callback(self, inpx: Any, _inp: Any, meta_data: dict[str, Any]) -> None:
-
-        name = "%s.%s" % (meta_data[inpx_parser.sFile], meta_data[inpx_parser.sExt])
-
-        lang = meta_data[inpx_parser.sLang].strip(strip_symbols)
-        title = meta_data[inpx_parser.sTitle].strip(strip_symbols)
-        annotation = ""
-        docdate = meta_data[inpx_parser.sDate].strip(strip_symbols)
-
-        folder = cast(str, meta_data[inpx_parser.sFolder] or "")
-        if self.rel_path is None:
-            return
-        rel_path_current = os.path.join(self.rel_path, folder)
-
-        if opdsdb.findbook(name, rel_path_current, 1) is None:
-            cat = opdsdb.addcattree(rel_path_current, opdsdb.CAT_INP)
-            book = opdsdb.addbook(
-                name,
-                rel_path_current,
-                cat,
-                meta_data[inpx_parser.sExt],
-                title,
-                annotation,
-                docdate,
-                lang,
-                meta_data[inpx_parser.sSize],
-                opdsdb.CAT_INP,
-            )
-            self.books_added += 1
-            self.books_in_archives += 1
-            self.logger.debug("Book " + rel_path_current + "/" + name + " Added ok.")
-
-            for a in meta_data[inpx_parser.sAuthor]:
-                author = opdsdb.addauthor(a.replace(",", " "))
-                opdsdb.addbauthor(book, author)
-
-            for g in meta_data[inpx_parser.sGenre]:
-                opdsdb.addbgenre(book, opdsdb.addgenre(g.lower().strip(strip_symbols)))
-
-            for s in meta_data[inpx_parser.sSeries]:
-                ser = opdsdb.addseries(s.strip())
-                opdsdb.addbseries(book, ser, 0)
-
-    def processinpx(self, name: str, full_path: str, file: str) -> None:
-        rel_file = os.path.relpath(file, settings.SOPDS_ROOT_LIB)
-        inpx_size = os.path.getsize(file)
-        if config.SOPDS_INPX_SKIP_UNCHANGED and opdsdb.inpx_skip(rel_file, inpx_size):
-            self.logger.info("Skip INPX file = " + file + ". Not changed.")
-        else:
-            self.logger.info("Start process INPX file = " + file)
-            opdsdb.addcattree(rel_file, opdsdb.CAT_INPX, inpx_size)
-            inpx = inpx_parser.Inpx(file, self.inpx_callback, self.inpskip_callback)
-            inpx.INPX_TEST_ZIP = config.SOPDS_INPX_TEST_ZIP
-            inpx.INPX_TEST_FILES = config.SOPDS_INPX_TEST_FILES
-            inpx.parse()
 
     def processzip(self, name: str, full_path: str, file: str) -> None:
         rel_file = os.path.relpath(file, settings.SOPDS_ROOT_LIB)

@@ -20,7 +20,6 @@ TOOLING_SECRET_KEY = unsafe-secret-key-for-tooling
 
 UV = uv run
 PYTEST_CMD = DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python -m pytest -v -n auto
-COVERAGE_OPTS = --cov=. --cov-report=term-missing --cov-report=html
 
 DOCKER_IMAGE = sopds
 
@@ -74,9 +73,8 @@ migrate: ## Apply database migrations
 	@echo "Applying migrations..."
 	DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py migrate
 
-test: ## Run tests with coverage report
-	@echo "Running tests with coverage..."
-	$(PYTEST_CMD) $(COVERAGE_OPTS)
+test: ## Run tests (extra args forwarded to pytest)
+	$(PYTEST_CMD) $(if $(filter all,$(MAKECMDGOALS)),,$(filter-out test all,$(MAKECMDGOALS)))
 
 all: lint test dead-code ## Run all checks
 	@echo "All checks completed successfully!"

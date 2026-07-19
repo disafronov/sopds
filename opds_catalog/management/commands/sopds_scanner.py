@@ -11,7 +11,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from constance import config
 from django.conf import settings as main_settings
 from django.core.management.base import BaseCommand
-from django.db import close_old_connections
+from django.db import close_old_connections, connections
 
 from opds_catalog import settings
 from opds_catalog.models import Counter
@@ -55,20 +55,12 @@ class Command(BaseCommand):
         self.logger.setLevel(logging.DEBUG)
         formatter = logging.Formatter("%(asctime)s %(levelname)-8s %(message)s")
 
-        if settings.LOGLEVEL != logging.NOTSET:
-            # Создаем обработчик для записи логов в файл
-            fh = logging.FileHandler(main_settings.SOPDS_SCANNER_LOG)
-            fh.setLevel(settings.LOGLEVEL)
-            fh.setFormatter(formatter)
-            self.logger.addHandler(fh)
-
-        if options["verbose"]:
-            # Создадим обработчик для вывода логов на экран
-            # с максимальным уровнем вывода
-            ch = logging.StreamHandler()
-            ch.setLevel(logging.DEBUG)
-            ch.setFormatter(formatter)
-            self.logger.addHandler(ch)
+        # Always log to stdout (the daemon mode redirects stdout/stderr
+        # itself in daemonize()).  --verbose raises the level to DEBUG.
+        ch = logging.StreamHandler()
+        ch.setLevel(logging.DEBUG if options["verbose"] else logging.INFO)
+        ch.setFormatter(formatter)
+        self.logger.addHandler(ch)
 
         if options["daemonize"] and (action in ["start", "scan"]):
             if sys.platform == "win32":
@@ -109,6 +101,7 @@ class Command(BaseCommand):
                 raise
         finally:
             self.scan_is_active = False
+            connections.close_all()
 
     def update_shedule(self) -> None:
         self.SCAN_SHED_DAY = config.SOPDS_SCAN_SHED_DAY
@@ -153,6 +146,7 @@ class Command(BaseCommand):
             # self.sched is always assigned in start() before any scheduled job runs.
             assert self.sched is not None
             self.sched.add_job(self.scan, id="scan_directly")
+        connections.close_all()
 
     def start(self) -> None:
         writepid(self.pidfile)

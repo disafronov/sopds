@@ -38,7 +38,7 @@ class Inpx:
         append_callback: Callable[[str, str, dict[str, Any]], object],
         inpskip_callback: Callable[
             [str, str, int], object
-        ] = lambda inpx, _inp, size: 0,
+        ] = lambda _inpx, _inp, size: 0,
     ) -> None:
         self.inpx_file = inpx_file
         self.inpx_catalog = os.path.dirname(inpx_file)

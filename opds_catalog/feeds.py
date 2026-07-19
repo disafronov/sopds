@@ -413,7 +413,6 @@ class CatalogsFeed(AuthFeed):
 
         catalogs_list = Catalog.objects.filter(parent=cat).order_by("cat_name")
         catalogs_count = catalogs_list.count()
-        # prefetch_related on sqlite on items >999 therow error "too many SQL variables"
         # books_list = Book.objects.filter(catalog=cat).prefetch_related(
         #     'authors','genres','series').order_by("title")
         books_list = Book.objects.filter(catalog=cat).order_by("search_title")
@@ -806,7 +805,6 @@ class SearchBooksFeed(AuthFeed):
                 .order_by("search_title", "-docdate")
             )
 
-        # prefetch_related on sqlite on items >999 therow error "too many SQL variables"
         # if len(books)>0:
         # books = books.prefetch_related('authors','genres','series').order_by(
         #     'title','authors','-docdate')

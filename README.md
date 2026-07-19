@@ -12,7 +12,7 @@
 - **Scheduled scanning** via APScheduler with cron-like scheduling
 - **INPX archive support** for batch metadata import
 - **ZIP archive scanning** with configurable codepage
-- **PostgreSQL** support for concurrent scanning, SQLite for single-user dev
+- **PostgreSQL** backend for concurrent scanning
 - **Docker image** with multi-stage build (Ubuntu Noble + uv)
 - **Health checks** (liveness and readiness probes)
 - **Admin interface** for runtime configuration via django-constance
@@ -22,13 +22,13 @@
 
 - Python >= 3.12
 - Django 5.2
-- PostgreSQL 17 (recommended) or SQLite (development)
+- PostgreSQL 17
 - Docker (optional)
 - [uv](https://docs.astral.sh/uv/) package manager
 
 ## Quick Start
 
-### Development (SQLite)
+### Local Development
 
 ```bash
 git clone https://github.com/disafronov/sopds.git
@@ -47,6 +47,9 @@ make run
 
 The dev server starts at `http://0.0.0.0:8000/`. If `DJANGO_SUPERUSER_*`
 variables are set in `.env`, an admin user is created automatically.
+
+`DATABASE_URL` is required. For local development, use Docker Compose
+to spin up a PostgreSQL instance (see below).
 
 ### Docker Compose
 
@@ -98,7 +101,7 @@ Settings are read from environment variables. See `env.example` for all options.
 
 | Variable | Description | Default |
 | --- | --- | --- |
-| `DATABASE_URL` | `sqlite:///db.sqlite3` or `postgres://user:pass@host:port/db` | `sqlite:///db.sqlite3` |
+| `DATABASE_URL` | `postgres://user:pass@host:port/db` | **required** |
 
 ### Server
 
