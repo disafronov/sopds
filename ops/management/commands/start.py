@@ -2,6 +2,7 @@
 
 import sys
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
 
 from ..supervisor import _spawn, _supervise
@@ -17,6 +18,11 @@ class Command(BaseCommand):
         _supervise(
             [
                 _spawn(sys.executable, "manage.py", "sopds_scanner", "start"),
-                _spawn("gunicorn", "config.wsgi:application"),
+                _spawn(
+                    "gunicorn",
+                    "config.wsgi:application",
+                    "--workers",
+                    str(settings.GUNICORN_WORKERS),
+                ),
             ]
         )

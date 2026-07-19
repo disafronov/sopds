@@ -70,7 +70,8 @@ COPY --chown=ubuntu:ubuntu --from=builder /home/ubuntu/app/ /home/ubuntu/app/
 
 WORKDIR /home/ubuntu/app
 
-ENV GUNICORN_CMD_ARGS="--control-socket /tmp/gunicorn.ctl --bind 0.0.0.0:8000 --workers 2 --timeout 120 --worker-tmp-dir /tmp --access-logfile - --error-logfile -"
+ENV GUNICORN_WORKERS=2
+ENV GUNICORN_CMD_ARGS="--control-socket /tmp/gunicorn.ctl --bind 0.0.0.0:8000 --timeout 120 --worker-tmp-dir /tmp --access-logfile - --error-logfile -"
 
 # Collect static assets for whitenoise to serve in production.
 RUN DJANGO_SECRET_KEY=unsafe-secret-key-for-tooling \
