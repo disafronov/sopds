@@ -123,9 +123,6 @@ class opdsFeed(Atom1Feed):
             handler.characters("\n")
         handler.addQuickElement("title", self.feed["title"])
         handler.characters("\n")
-        if self.feed.get("subtitle") is not None:
-            handler.addQuickElement("subtitle", self.feed["subtitle"])
-            handler.characters("\n")
         handler.addQuickElement("updated", rfc3339_date(self.latest_post_date()))
         handler.characters("\n")
         if self.feed.get("prev_url") is not None:
@@ -265,7 +262,6 @@ class opdsFeed(Atom1Feed):
 class MainFeed(AuthFeed):
     feed_type = opdsFeed
     title = settings.TITLE
-    subtitle = settings.SUBTITLE
 
     def link(self) -> str:
         return reverse("opds_catalog:main")
@@ -391,7 +387,6 @@ class MainFeed(AuthFeed):
 
 class CatalogsFeed(AuthFeed):
     feed_type = opdsFeed
-    subtitle = settings.SUBTITLE
 
     def get_object(
         self,
@@ -632,7 +627,6 @@ def OpenSearch(request: HttpRequest) -> HttpResponse:
 
 class SearchTypesFeed(AuthFeed):
     feed_type = opdsFeed
-    subtitle = settings.SUBTITLE
 
     def get_object(self, request: HttpRequest, searchterms: str = "") -> Any:
         return searchterms.replace("+", " ")
@@ -712,7 +706,6 @@ class SearchTypesFeed(AuthFeed):
 
 class SearchBooksFeed(AuthFeed):
     feed_type = opdsFeed
-    subtitle = settings.SUBTITLE
 
     def title(self, obj: Any) -> str:
         return "%s | %s (%s)" % (
@@ -1047,7 +1040,6 @@ class SearchBooksFeed(AuthFeed):
 
 class SelectSeriesFeed(AuthFeed):
     feed_type = opdsFeed
-    subtitle = settings.SUBTITLE
 
     def title(self, obj: Any) -> str:
         return "%s | %s" % (settings.TITLE, _("Series by authors select"))
@@ -1142,7 +1134,6 @@ class SelectSeriesFeed(AuthFeed):
 
 class SearchAuthorsFeed(AuthFeed):
     feed_type = opdsFeed
-    subtitle = settings.SUBTITLE
 
     def title(self, obj: Any) -> str:
         return "%s | %s" % (settings.TITLE, _("Authors found"))
@@ -1257,7 +1248,6 @@ class SearchAuthorsFeed(AuthFeed):
 
 class SearchSeriesFeed(AuthFeed):
     feed_type = opdsFeed
-    subtitle = settings.SUBTITLE
 
     def title(self, obj: Any) -> str:
         return "%s | %s" % (settings.TITLE, _("Series found"))
@@ -1383,7 +1373,6 @@ class SearchSeriesFeed(AuthFeed):
 
 class LangFeed(AuthFeed):
     feed_type = opdsFeed
-    subtitle = settings.SUBTITLE
 
     def link(self, obj: Any) -> str:
         return cast(str, self.request.path)
@@ -1432,7 +1421,6 @@ class LangFeed(AuthFeed):
 
 class BooksFeed(AuthFeed):
     feed_type = opdsFeed
-    subtitle = settings.SUBTITLE
 
     def link(self, obj: Any) -> str:
         return cast(str, self.request.path)
@@ -1517,7 +1505,6 @@ class BooksFeed(AuthFeed):
 
 class AuthorsFeed(AuthFeed):
     feed_type = opdsFeed
-    subtitle = settings.SUBTITLE
 
     def link(self, obj: Any) -> str:
         return cast(str, self.request.path)
@@ -1605,7 +1592,6 @@ class AuthorsFeed(AuthFeed):
 
 class SeriesFeed(AuthFeed):
     feed_type = opdsFeed
-    subtitle = settings.SUBTITLE
 
     def link(self, obj: Any) -> str:
         return cast(str, self.request.path)
@@ -1690,7 +1676,6 @@ class SeriesFeed(AuthFeed):
 
 class GenresFeed(AuthFeed):
     feed_type = opdsFeed
-    subtitle = settings.SUBTITLE
 
     def link(self, obj: Any) -> str:
         return cast(str, self.request.path)
