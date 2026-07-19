@@ -64,6 +64,7 @@ WORKDIR /home/ubuntu/app
 
 # Compile translations and collect static assets while build tools are available.
 RUN export DJANGO_SECRET_KEY=unsafe-secret-key-for-tooling \
+        DATABASE_URL=postgresql://unused:unused@localhost/unused \
         DJANGO_DEBUG=False && \
     python3 manage.py compilemessages && \
     python3 manage.py collectstatic --noinput

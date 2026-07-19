@@ -12,7 +12,8 @@
 - **Scheduled scanning** via APScheduler with cron-like scheduling
 - **INPX archive support** for batch metadata import
 - **ZIP archive scanning** with configurable codepage
-- **PostgreSQL** backend for concurrent scanning
+- **PostgreSQL or MySQL/MariaDB** database backend
+- **Parallel scanning** with a configurable process pool
 - **Docker image** with multi-stage build (Ubuntu Noble + uv)
 - **Health checks** (liveness and readiness probes)
 - **Admin interface** for runtime configuration via django-constance
@@ -22,7 +23,7 @@
 
 - Python >= 3.12
 - Django 5.2
-- PostgreSQL 17
+- PostgreSQL 17 or MySQL/MariaDB
 - Docker (optional)
 - [uv](https://docs.astral.sh/uv/) package manager
 
@@ -39,7 +40,7 @@ make install
 
 # Create .env from example
 cp env.example .env
-# Edit .env: set SECRET_KEY, DJANGO_SECRET_KEY, DATABASE_URL, SOPDS_ROOT_LIB
+# Edit .env: set DJANGO_SECRET_KEY, DATABASE_URL, SOPDS_ROOT_LIB
 
 # Apply migrations and start dev server + scanner
 make run
@@ -92,16 +93,22 @@ Settings are read from environment variables. See `env.example` for all options.
 
 | Variable | Description | Default |
 | --- | --- | --- |
-| `DJANGO_SECRET_KEY` | Django `SECRET_KEY`. **Set this.** | hardcoded (insecure) |
-| `DJANGO_DEBUG` | Debug mode (`1`/`true`/`yes`/`on`). | `True` |
+| `DJANGO_SECRET_KEY` | Django `SECRET_KEY`. Required. | none |
+| `DJANGO_DEBUG` | Debug mode (`1`/`true`/`yes`/`on`). | `False` |
 | `DJANGO_ALLOWED_HOSTS` | Comma-separated `ALLOWED_HOSTS`. | `*` |
 | `DJANGO_CSRF_TRUSTED_ORIGINS` | CSRF trusted origins. | empty |
+| `DJANGO_SECURE_SSL_REDIRECT` | Redirect HTTP requests to HTTPS. | `False` |
+| `DJANGO_SESSION_COOKIE_SECURE` | Send the session cookie over HTTPS only. | `False` |
+| `DJANGO_CSRF_COOKIE_SECURE` | Send the CSRF cookie over HTTPS only. | `False` |
+| `DJANGO_SECURE_HSTS_SECONDS` | HSTS duration; `0` disables HSTS. | `0` |
+| `DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS` | Include subdomains in HSTS. | `False` |
+| `DJANGO_SECURE_HSTS_PRELOAD` | Add the HSTS preload directive. | `False` |
 
 ### Database
 
 | Variable | Description | Default |
 | --- | --- | --- |
-| `DATABASE_URL` | `postgres://user:pass@host:port/db` | **required** |
+| `DATABASE_URL` | PostgreSQL or MySQL/MariaDB connection URL. | **required** |
 
 ### Server
 
@@ -109,6 +116,7 @@ Settings are read from environment variables. See `env.example` for all options.
 | --- | --- | --- |
 | `HOST` | Bind address for dev server. | `0.0.0.0` |
 | `PORT` | Bind port for dev server. | `8000` |
+| `GUNICORN_WORKERS` | Gunicorn web worker processes. | `2` |
 
 ### Superuser (used by `make run` and Docker entrypoint)
 
@@ -125,10 +133,11 @@ Settings are read from environment variables. See `env.example` for all options.
 | `SOPDS_ROOT_LIB` | Root directory for books. | `books/` |
 | `SOPDS_ZIPSCAN` | Scan ZIP archives. | `True` |
 | `SOPDS_ZIPCODEPAGE` | Codepage for ZIP filenames. | `cp866` |
-| `SOPDS_DELETE_LOGICAL` | Logical deletion of removed books. | `True` |
-| `SOPDS_INPX_ENABLE` | Enable INPX archive scanning. | `True` |
-| `SOPDS_INPX_SKIP_UNCHANGED` | Skip unchanged INPX files. | `False` |
-| `SOPDS_SCAN_START_DIRECTLY` | Start scanner on server startup. | `True` |
+| `SOPDS_DELETE_LOGICAL` | Logical deletion of removed books. | `False` |
+| `SOPDS_INPX_ENABLE` | Enable INPX archive scanning. | `False` |
+| `SOPDS_INPX_SKIP_UNCHANGED` | Skip unchanged INPX files. | `True` |
+| `SOPDS_SCAN_START_DIRECTLY` | Request a one-shot scan from the scheduler. | `False` |
+| `SOPDS_SCAN_WORKERS` | Scanner worker processes; `0` uses `os.cpu_count()`. | `0` |
 
 Additional knobs are available via the Django admin (`/admin/`) under
 django-constance.
@@ -141,8 +150,7 @@ All commands are run via `uv run python manage.py <command>` (or `make` shortcut
 | --- | --- |
 | `dev` | Start `runserver` + scanner for development. |
 | `start` | Start gunicorn + scanner for production (used by Docker). |
-| `sopds_scanner [scan\|start\|stop\|restart]` | Manage the book scanner. `scan` for one-shot, `start` for scheduled loop. |
-| `sopds_server [start\|stop\|restart]` | Built-in HTTP server (legacy, prefer `start`). |
+| `sopds_scanner [scan\|start]` | Run a one-shot scan or the foreground scheduler. |
 | `sopds_util [clear\|info\|setconf\|getconf\|pg_optimize\|...]` | Utilities: DB info, config management, genre import/export. |
 
 Run `python manage.py <command> --help` for full usage details.
@@ -171,6 +179,7 @@ Run `python manage.py <command> --help` for full usage details.
 | `make all` | lint + test + dead-code (vulture) |
 | `make audit` | Check dependencies for known vulnerabilities |
 | `make dead-code` | Detect unused code with vulture |
+| `make locale` | Update and compile translation catalogs |
 | `make migrate` | Apply database migrations |
 | `make makemigrations` | Create new migrations |
 | `make run` | Migrate + create superuser + dev server + scanner |
@@ -199,9 +208,9 @@ Pre-commit hooks are installed by `make install`.
 ## Project Structure
 
 ```text
-sopds/                  Django project (settings, urls, wsgi)
+config/                 Django project configuration (settings, urls, wsgi)
 opds_catalog/           Core app: models, scanner, OPDS feeds, middleware
-web_backend/      Web UI app: views, templates, static assets
+web_backend/            Web UI app: views, templates, static assets
 ops/                    Operations: dev/start launchers, health checks, supervisor
 book_tools/             Book conversion/processing helpers
 convert/                Bundled FB2 to EPUB/MOBI converter

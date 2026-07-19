@@ -371,6 +371,7 @@ class opdsScanner:
         opdsdb.avail_check_prepare()
 
         max_workers = settings.SOPDS_SCAN_WORKERS or os.cpu_count()
+        self.logger.info("Scanner worker processes: %s", max_workers)
         book_extensions = tuple(config.SOPDS_BOOK_EXTENSIONS.lower().split())
 
         with create_scan_executor(max_workers) as executor:
