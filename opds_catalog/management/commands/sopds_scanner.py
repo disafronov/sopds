@@ -78,7 +78,7 @@ class Command(BaseCommand):
 
         if action == "scan":
             self.stdout.write("Startup once book-scan.")
-            self.scan()
+            self.scan(suppress_errors=False)
             self.stdout.write("Complete book-scan.")
         elif action == "start":
             self.start()
@@ -91,7 +91,7 @@ class Command(BaseCommand):
                 pid = fp.read()
             self.restart(pid)
 
-    def scan(self) -> None:
+    def scan(self, *, suppress_errors: bool = True) -> None:
         if self.scan_is_active:
             self.stdout.write("Scan process already active. Skip currend job.")
             return
@@ -105,6 +105,8 @@ class Command(BaseCommand):
             Counter.objects.update_known_counters()
         except Exception:
             self.logger.exception("Scan failed with an unhandled exception")
+            if not suppress_errors:
+                raise
         finally:
             self.scan_is_active = False
 
