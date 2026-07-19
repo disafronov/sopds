@@ -1,0 +1,23 @@
+{% load i18n %}
+<table class="book-card footer-book-card"><tr>
+    <td width="100px" style="padding:0rem 0rem;">
+        <a href="{% url "web:searchbooks" %}?searchtype=i&searchterms={{ book.id }}">
+            <img class="thumbnail" src="{% url 'opds_catalog:thumb' book.id %}" type="image/jpeg" alt="{{ book.title }}">
+        </a>
+    </td>
+    <td style="font-size:80%; padding:0rem 1rem;">
+        <b>{% trans "Book title:" %}</b> <a href="{% url "web:searchbooks" %}?searchtype=i&searchterms={{ book.id }}">{{ book.title }}</a><br>
+        {% if book.authors %}
+            <b>{% trans "Authors:" %}</b>{% for author in book.authors %} <a href="{% url "web:searchbooks" %}?searchtype=a&searchterms={{ author.id }}">{{ author.full_name }}</a>{% if not forloop.last %},{% endif %}{% endfor %}<br>
+        {% endif %}
+        {% if book.series %}
+            <b>{% trans "Series:" %}</b>{% for series_entry in book.series %} <a href="{% url "web:searchbooks" %}?searchtype=s&searchterms={{ series_entry.ser_id }}">{{ series_entry.ser.ser }}</a>{% if not forloop.last %},{% endif %}{% endfor %}<br>
+            <b>{% trans "No in Series:" %}</b>{% for series_entry in book.series %} {{ series_entry.ser_no }}{% if not forloop.last %},{% endif %}{% endfor %}<br>
+        {% endif %}
+        {% if book.genres %}
+            <b>{% trans "Genres:" %}</b>{% for genre in book.genres %} <a href="{% url "web:searchbooks" %}?searchtype=g&searchterms={{ genre.id }}">{{ genre.subsection }}</a>{% if not forloop.last %},{% endif %}{% endfor %}<br>
+        {% endif %}
+        <b>{% trans "File size:" %}</b> {{ book.filesize }}Кб.<br>
+        <b>{% trans "Changes date:" %}</b> {{ book.docdate }}
+    </td>
+</tr></table>

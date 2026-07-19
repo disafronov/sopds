@@ -188,12 +188,14 @@ def getFileDataMobi(book: Book) -> io.BytesIO | None:
     return getFileDataConv(book, "mobi")
 
 
+def _add_downloaded_book_to_bookshelf(request: HttpRequest, book: Book) -> None:
+    if config.SOPDS_AUTH and request.user.is_authenticated:
+        bookshelf.objects.get_or_create(user=request.user, book=book)
+
+
 def Download(request: HttpRequest, book_id: int, zip_flag: str) -> HttpResponse:
     """Загрузка файла книги"""
     book = Book.objects.get(id=book_id)
-
-    if config.SOPDS_AUTH and request.user.is_authenticated:
-        bookshelf.objects.get_or_create(user=request.user, book=book)
 
     full_path = os.path.join(django_settings.SOPDS_ROOT_LIB, book.path)
 
@@ -264,6 +266,7 @@ def Download(request: HttpRequest, book_id: int, zip_flag: str) -> HttpResponse:
     if fz:
         fz.close()
 
+    _add_downloaded_book_to_bookshelf(request, book)
     return response
 
 
@@ -417,9 +420,6 @@ def ConvertFB2(request: HttpRequest, book_id: int, convert_type: str) -> HttpRes
     if book.format != "fb2":
         raise Http404
 
-    if config.SOPDS_AUTH and request.user.is_authenticated:
-        bookshelf.objects.get_or_create(user=request.user, book=book)
-
     full_path = os.path.join(django_settings.SOPDS_ROOT_LIB, book.path)
     if book.cat_type == opdsdb.CAT_INP:
         inp_path, zip_name = os.path.split(full_path)
@@ -521,4 +521,5 @@ def ConvertFB2(request: HttpRequest, book_id: int, convert_type: str) -> HttpRes
     except Exception:
         pass
 
+    _add_downloaded_book_to_bookshelf(request, book)
     return response

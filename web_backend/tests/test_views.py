@@ -488,12 +488,9 @@ class TestGenresView:
 class TestBSDelView:
     """Tests for BSDelView()."""
 
-    def test_returns_redirect_authenticated(
-        self, db: Any, mocker: MockerFixture
-    ) -> None:
+    def test_returns_redirect_authenticated(self, mocker: MockerFixture) -> None:
         from web_backend import views
 
-        _set_auth(mocker, True)
         mocker.patch.object(views, "reverse", return_value="/search/books/")
         bookshelf_filter = mocker.MagicMock(delete=mocker.MagicMock())
         mocker.patch(
@@ -501,16 +498,16 @@ class TestBSDelView:
             return_value=bookshelf_filter,
         )
         request = make_auth_request()
-        request.GET = QueryDict("book=1")
+        request.method = "POST"
+        request.POST = QueryDict("book=1")
         response = views.BSDelView(request)
         assert response.status_code in (301, 302)
 
-    def test_anonymous_redirects(self, db: Any, mocker: MockerFixture) -> None:
+    def test_anonymous_redirects(self, mocker: MockerFixture) -> None:
         from web_backend import views
 
-        _set_auth(mocker, True)
-        mocker.patch.object(views, "reverse_lazy", return_value="/login/")
         request = make_anon_request()
+        request.method = "POST"
         request.path = "/web/bs/delete/"
         request.META = {"HTTP_HOST": "testserver"}
         response = views.BSDelView(request)
@@ -520,27 +517,25 @@ class TestBSDelView:
 class TestBSClearView:
     """Tests for BSClearView()."""
 
-    def test_returns_redirect_authenticated(
-        self, db: Any, mocker: MockerFixture
-    ) -> None:
+    def test_returns_redirect_authenticated(self, mocker: MockerFixture) -> None:
         from web_backend import views
 
-        _set_auth(mocker, True)
         mocker.patch.object(views, "reverse", return_value="/search/books/")
         bookshelf_filter = mocker.MagicMock(delete=mocker.MagicMock())
         mocker.patch(
             "web_backend.views.bookshelf.objects.filter",
             return_value=bookshelf_filter,
         )
-        response = views.BSClearView(make_auth_request())
+        request = make_auth_request()
+        request.method = "POST"
+        response = views.BSClearView(request)
         assert response.status_code in (301, 302)
 
-    def test_anonymous_redirects(self, db: Any, mocker: MockerFixture) -> None:
+    def test_anonymous_redirects(self, mocker: MockerFixture) -> None:
         from web_backend import views
 
-        _set_auth(mocker, True)
-        mocker.patch.object(views, "reverse_lazy", return_value="/login/")
         request = make_anon_request()
+        request.method = "POST"
         request.path = "/web/bs/clear/"
         request.META = {"HTTP_HOST": "testserver"}
         response = views.BSClearView(request)

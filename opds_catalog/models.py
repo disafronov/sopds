@@ -143,6 +143,13 @@ class bookshelf(models.Model):
     book = models.ForeignKey(Book, db_index=True, on_delete=models.CASCADE)
     readtime = models.DateTimeField(null=False, default=timezone.now, db_index=True)
 
+    class Meta:
+        indexes = [
+            models.Index(
+                fields=["user", "-readtime"], name="bookshelf_user_readtime_idx"
+            ),
+        ]
+
 
 class CounterManager(models.Manager["Counter"]):
     def set_counter(self, counter_name: str, counter_value: int) -> None:

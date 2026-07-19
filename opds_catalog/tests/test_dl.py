@@ -398,6 +398,39 @@ class TestDownloadView(_ViewTestBase):
                 with pytest.raises(Http404):
                     dl.Download(self._request("/opds/download/1/0/"), 1, "0")
 
+    def test_bookshelf_is_updated_only_after_success(
+        self, mocker: MockerFixture
+    ) -> None:
+        book = mocker.MagicMock(spec=Book)
+        book.id = 1
+        book.cat_type = opdsdb.CAT_NORMAL
+        book.path = "."
+        book.filename = "missing.fb2"
+        book.format = "fb2"
+        book.filesize = 100
+        book.title = "Book"
+        mocker.patch("opds_catalog.models.Book.objects.get", return_value=book)
+        mocker.patch("os.path.getsize", return_value=100)
+        mocker.patch("builtins.open", side_effect=FileNotFoundError)
+        add_to_bookshelf = mocker.patch(
+            "opds_catalog.dl.bookshelf.objects.get_or_create"
+        )
+        request = self._request("/opds/download/1/0/")
+        request.user = mocker.MagicMock(is_authenticated=True)
+        with mocker.patch.object(
+            dl,
+            "config",
+            _cfg(SOPDS_TITLE_AS_FILENAME=False, SOPDS_AUTH=True),
+        ):
+            with mocker.patch.object(
+                dl,
+                "django_settings",
+                _cfg(SOPDS_ROOT_LIB="/lib"),
+            ):
+                with pytest.raises(Http404):
+                    dl.Download(request, 1, "0")
+        add_to_bookshelf.assert_not_called()
+
 
 @pytest.mark.django_db
 class TestConvertFB2(_ViewTestBase):
