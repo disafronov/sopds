@@ -403,13 +403,21 @@ class CatalogsFeed(AuthFeed):
             if cat_id is not None:
                 cat = Catalog.objects.get(id=cat_id)
             else:
-                # NOTE: when cat_id is None the parent lookup is effectively
-                # "no parent". django-stubs rejects ``None`` for the FK lookup,
-                # so we cast it away; at runtime ``parent__id=None`` matches the
-                # root catalog (parent IS NULL).
-                cat = Catalog.objects.get(parent__id=cast("int", cat_id))
+                # Ensure root catalog exists even when the database is empty.
+                # get_or_create avoids DoesNotExist on a fresh installation.
+                cat, _created = Catalog.objects.get_or_create(
+                    parent=None,
+                    defaults={"cat_name": ".", "path": ".", "cat_type": 0},
+                )
         except Catalog.DoesNotExist:
             cat = None
+
+        if cat is None:
+            return (
+                [],
+                None,
+                OPDS_Paginator(0, 0, page_num, config.SOPDS_MAXITEMS).get_data_dict(),
+            )
 
         catalogs_list = Catalog.objects.filter(parent=cat).order_by("cat_name")
         catalogs_count = catalogs_list.count()
@@ -459,13 +467,14 @@ class CatalogsFeed(AuthFeed):
 
     def title(self, obj: Any) -> str:
         items, cat, paginator = obj
-        if cat.parent:
-            return "%s | %s | %s" % (settings.TITLE, _("By catalogs"), cat.path)
-        else:
+        if cat is None or not cat.parent:
             return "%s | %s" % (settings.TITLE, _("By catalogs"))
+        return "%s | %s | %s" % (settings.TITLE, _("By catalogs"), cat.path)
 
     def link(self, obj: Any) -> str:
         items, cat, paginator = obj
+        if cat is None:
+            return reverse("opds_catalog:main")
         return reverse(
             "opds_catalog:cat_page",
             kwargs={"cat_id": cat.id, "page": paginator["number"]},
@@ -474,7 +483,10 @@ class CatalogsFeed(AuthFeed):
     def feed_extra_kwargs(self, obj: Any) -> dict[str, Any]:
         items, cat, paginator = obj
         start_url = reverse("opds_catalog:main")
-        if paginator["has_previous"]:
+        if cat is None:
+            prev_url = None
+            next_url = None
+        elif paginator["has_previous"]:
             prev_url = reverse(
                 "opds_catalog:cat_page",
                 kwargs={"cat_id": cat.id, "page": paginator["previous_page_number"]},
@@ -482,11 +494,13 @@ class CatalogsFeed(AuthFeed):
         else:
             prev_url = None
 
-        if paginator["has_next"]:
+        if cat is not None and paginator["has_next"]:
             next_url = reverse(
                 "opds_catalog:cat_page",
                 kwargs={"cat_id": cat.id, "page": paginator["next_page_number"]},
             )
+        elif cat is None:
+            next_url = None
         else:
             next_url = None
 
