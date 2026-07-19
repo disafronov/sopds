@@ -218,26 +218,32 @@ class opdsScanner:
         else:
             zip_process_error = 0
             try:
-                z = zipfile.ZipFile(file, "r", allowZip64=True)
-                filelist = z.namelist()
-                cat = opdsdb.addcattree(rel_file, opdsdb.CAT_ZIP, zsize)
-                for n in filelist:
-                    try:
-                        self.logger.debug(
-                            "Start process ZIP file = " + file + " book file = " + n
-                        )
-                        file_size = z.getinfo(n).file_size
-                        bookfile = z.open(n)
-                        self.processfile(
-                            n, file, bookfile, cat, opdsdb.CAT_ZIP, file_size
-                        )
-                        bookfile.close()
-                    except zipfile.BadZipFile:
-                        self.logger.warning(
-                            "Error processing ZIP file = " + file + " book file = " + n
-                        )
-                        zip_process_error = 1
-                z.close()
+                with zipfile.ZipFile(file, "r", allowZip64=True) as z:
+                    filelist = z.namelist()
+                    cat = opdsdb.addcattree(rel_file, opdsdb.CAT_ZIP, zsize)
+                    for n in filelist:
+                        try:
+                            self.logger.debug(
+                                "Start process ZIP file = " + file + " book file = " + n
+                            )
+                            file_size = z.getinfo(n).file_size
+                            with z.open(n) as bookfile:
+                                self.processfile(
+                                    n,
+                                    file,
+                                    bookfile,
+                                    cat,
+                                    opdsdb.CAT_ZIP,
+                                    file_size,
+                                )
+                        except zipfile.BadZipFile:
+                            self.logger.warning(
+                                "Error processing ZIP file = "
+                                + file
+                                + " book file = "
+                                + n
+                            )
+                            zip_process_error = 1
                 self.arch_scanned += 1
             except zipfile.BadZipFile:
                 self.logger.warning(
