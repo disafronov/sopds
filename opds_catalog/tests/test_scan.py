@@ -1,5 +1,9 @@
+from __future__ import annotations
+
 import logging
 import os
+from concurrent.futures import Future
+from types import TracebackType
 from typing import Any
 from unittest.mock import patch
 
@@ -13,6 +17,33 @@ from opds_catalog import opdsdb
 from opds_catalog.management.commands.sopds_scanner import Command
 from opds_catalog.models import Author, Book, Catalog, Genre, Series
 from opds_catalog.sopdscan import opdsScanner
+
+
+class ImmediateExecutor:
+    """Executor test double that completes submitted work synchronously."""
+
+    def __init__(self) -> None:
+        self.submitted: list[str] = []
+
+    def __enter__(self) -> ImmediateExecutor:
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        return None
+
+    def submit(self, function: Any, *args: Any, **kwargs: Any) -> Future[Any]:
+        self.submitted.append(function.__name__)
+        future: Future[Any] = Future()
+        try:
+            future.set_result(function(*args, **kwargs))
+        except BaseException as exc:
+            future.set_exception(exc)
+        return future
 
 
 class scanTestCase(TestCase):
@@ -212,12 +243,90 @@ EPUB и помещает в БД)"""
             "КУПРИЯНОВ ДЕНИС",
         )
 
+    def test_discover_zip_entries_lists_members(self) -> None:
+        """discover_zip_entries lists every member with name and size."""
+        import tempfile
+
+        from opds_catalog import zipf as zipfile
+        from opds_catalog.scan_parser import discover_zip_entries
+
+        members = {
+            self.test_fb2: os.path.join(self.test_ROOTLIB, self.test_fb2),
+            self.test_epub: os.path.join(self.test_ROOTLIB, self.test_epub),
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            archive_path = os.path.join(tmp, "discover.zip")
+            with zipfile.ZipFile(archive_path, "w") as zf:
+                for name, src in members.items():
+                    with open(src, "rb") as fh:
+                        zf.writestr(name, fh.read())
+
+            discovery = discover_zip_entries(archive_path, (".fb2", ".epub"))
+
+        self.assertIsNone(discovery.error)
+        names = {e.name for e in discovery.entries}
+        self.assertEqual(names, {self.test_fb2, self.test_epub})
+        by_name = {e.name: e.size for e in discovery.entries}
+        self.assertGreater(by_name[self.test_fb2], 0)
+        self.assertGreater(by_name[self.test_epub], 0)
+
+    def test_discover_zip_entries_ignores_non_books(self) -> None:
+        """ZIP discovery must not dispatch INP indexes to the book parser."""
+        import tempfile
+
+        from opds_catalog import zipf as zipfile
+        from opds_catalog.scan_parser import discover_zip_entries
+
+        with tempfile.TemporaryDirectory() as tmp:
+            archive_path = os.path.join(tmp, "discover.zip")
+            with zipfile.ZipFile(archive_path, "w") as zf:
+                zf.writestr("index.inp", b"metadata")
+                zf.writestr("notes.txt", b"notes")
+                zf.writestr("book.fb2", b"book")
+
+            discovery = discover_zip_entries(archive_path, (".fb2",))
+
+        self.assertEqual([entry.name for entry in discovery.entries], ["book.fb2"])
+
+    def test_parse_zip_member_job_parses_single_member(self) -> None:
+        """parse_zip_member_job parses exactly one member of a ZIP archive."""
+        import tempfile
+
+        from opds_catalog import zipf as zipfile
+        from opds_catalog.scan_parser import parse_zip_member_job
+
+        src = os.path.join(self.test_ROOTLIB, self.test_fb2)
+        with tempfile.TemporaryDirectory() as tmp:
+            archive_path = os.path.join(tmp, "member.zip")
+            with zipfile.ZipFile(archive_path, "w") as zf:
+                with open(src, "rb") as fh:
+                    zf.writestr(self.test_fb2, fh.read())
+
+            result = parse_zip_member_job(archive_path, self.test_fb2, ".")
+
+        self.assertIsNone(result.error)
+        self.assertEqual(result.bad_books, 0)
+        self.assertEqual(len(result.books), 1)
+        book = result.books[0]
+        self.assertEqual(book.filename, self.test_fb2)
+        self.assertEqual(book.title, "The Sanctuary Sparrow")
+        self.assertEqual(book.cat_type, 1)
+
     def test_scanall(self) -> None:
         """Тестирование процедуры scanall (извлекает метаданные из книг и \
 помещает в БД)"""
         opdsdb.clear_all()
         scanner = opdsScanner()
-        scanner.scan_all()
+        executor = ImmediateExecutor()
+        with patch(
+            "opds_catalog.sopdscan.create_scan_executor",
+            return_value=executor,
+        ):
+            scanner.scan_all()
+        self.assertIn("discover_directory", executor.submitted)
+        self.assertIn("discover_zip_entries", executor.submitted)
+        self.assertIn("parse_zip_member_job", executor.submitted)
+        self.assertIn("parse_standalone_book_job", executor.submitted)
         self.assertEqual(scanner.books_added, 6)
         self.assertEqual(scanner.bad_books, 1)
         self.assertEqual(Book.objects.all().count(), 6)
@@ -225,6 +334,204 @@ EPUB и помещает в БД)"""
         self.assertEqual(Genre.objects.all().count(), 5)
         self.assertEqual(Series.objects.all().count(), 1)
         self.assertEqual(Catalog.objects.all().count(), 2)
+
+    def test_clear_scan_caches(self) -> None:
+        """Verify clear_scan_caches resets memo caches."""
+        from opds_catalog.sopdscan import (
+            _author_cache,
+            _genre_cache,
+            _series_cache,
+            clear_scan_caches,
+        )
+
+        # Populate caches with dummy entries
+        _author_cache["test"] = Author(full_name="test")
+        _genre_cache["test"] = Genre(genre="test")
+        _series_cache["test"] = Series(ser="test")
+        self.assertEqual(len(_author_cache), 1)
+        self.assertEqual(len(_genre_cache), 1)
+        self.assertEqual(len(_series_cache), 1)
+
+        clear_scan_caches()
+
+        self.assertEqual(len(_author_cache), 0)
+        self.assertEqual(len(_genre_cache), 0)
+        self.assertEqual(len(_series_cache), 0)
+
+    def test_store_result_adds_book(self) -> None:
+        """Verify store_result writes a BookMeta to the database."""
+        from opds_catalog.scan_types import AuthorMeta, BookMeta, ParseResult
+        from opds_catalog.sopdscan import store_result
+
+        opdsdb.clear_all()
+        scanner = opdsScanner()
+        meta = BookMeta(
+            filename="test.fb2",
+            rel_path=".",
+            ext="fb2",
+            title="Test Book",
+            annotation="",
+            docdate="2024",
+            lang="en",
+            filesize=100,
+            cat_type=0,
+            authors=[AuthorMeta(name="Doe John")],
+            genres=["fiction"],
+            series=[],
+        )
+        result = ParseResult(books=[meta])
+        store_result(result, scanner)
+
+        self.assertEqual(scanner.books_added, 1)
+        self.assertEqual(scanner.books_skipped, 0)
+        self.assertEqual(Book.objects.count(), 1)
+        book = Book.objects.get(filename="test.fb2")
+        self.assertEqual(book.title, "Test Book")
+        self.assertEqual(book.authors.count(), 1)
+        # first() returns Optional; safe here because count() == 1 above.
+        author = book.authors.first()
+        self.assertEqual(author.full_name, "Doe John")  # type: ignore[union-attr]
+        self.assertEqual(book.genres.count(), 1)
+
+    def test_store_result_skips_existing_book(self) -> None:
+        """Verify store_result skips books already in the database."""
+        from opds_catalog.scan_types import BookMeta, ParseResult
+        from opds_catalog.sopdscan import store_result
+
+        opdsdb.clear_all()
+        scanner = opdsScanner()
+        # Create a book first
+        cat = opdsdb.addcattree(".", 0)
+        opdsdb.addbook("test.fb2", ".", cat, "fb2", "Test", "", "2024", "en", 100, 0)
+
+        meta = BookMeta(
+            filename="test.fb2",
+            rel_path=".",
+            ext="fb2",
+            title="Test Book",
+            annotation="",
+            docdate="2024",
+            lang="en",
+            filesize=100,
+            cat_type=0,
+        )
+        result = ParseResult(books=[meta])
+        store_result(result, scanner)
+
+        self.assertEqual(scanner.books_added, 0)
+        self.assertEqual(scanner.books_skipped, 1)
+        self.assertEqual(Book.objects.count(), 1)
+
+    def test_store_result_propagates_bad_books(self) -> None:
+        """Verify store_result adds bad_books count to scanner stats."""
+        from opds_catalog.scan_types import ParseResult
+        from opds_catalog.sopdscan import store_result
+
+        opdsdb.clear_all()
+        scanner = opdsScanner()
+        result = ParseResult(bad_books=3)
+        store_result(result, scanner)
+        self.assertEqual(scanner.bad_books, 3)
+
+    def test_store_result_counts_archived_books(self) -> None:
+        """Verify store_result increments books_in_archives for non-zero cat_type."""
+        from opds_catalog.scan_types import BookMeta, ParseResult
+        from opds_catalog.sopdscan import store_result
+
+        opdsdb.clear_all()
+        scanner = opdsScanner()
+        meta = BookMeta(
+            filename="archived.fb2",
+            rel_path="archive.zip",
+            ext="fb2",
+            title="Archived Book",
+            annotation="",
+            docdate="2024",
+            lang="en",
+            filesize=200,
+            cat_type=1,
+        )
+        result = ParseResult(books=[meta])
+        store_result(result, scanner)
+        self.assertEqual(scanner.books_added, 1)
+        self.assertEqual(scanner.books_in_archives, 1)
+
+    def test_store_result_bulk_creates_shared_relations(self) -> None:
+        """A result batch creates books and shared M2M rows without duplicates."""
+        from opds_catalog.scan_types import (
+            AuthorMeta,
+            BookMeta,
+            ParseResult,
+            SeriesMeta,
+        )
+        from opds_catalog.sopdscan import store_result
+
+        opdsdb.clear_all()
+        scanner = opdsScanner()
+        books = [
+            BookMeta(
+                filename=f"book-{index}.fb2",
+                rel_path=".",
+                ext="fb2",
+                title=f"Book {index}",
+                annotation="",
+                docdate="2024",
+                lang="en",
+                filesize=100 + index,
+                cat_type=0,
+                authors=[AuthorMeta(name="Doe John")],
+                genres=["fiction"],
+                series=[SeriesMeta(title="Shared", index=index)],
+            )
+            for index in range(2)
+        ]
+
+        store_result(ParseResult(books=books), scanner)
+
+        self.assertEqual(Book.objects.count(), 2)
+        self.assertEqual(Author.objects.count(), 1)
+        self.assertEqual(Genre.objects.count(), 1)
+        self.assertEqual(Series.objects.count(), 1)
+        self.assertEqual(sum(book.authors.count() for book in Book.objects.all()), 2)
+        self.assertEqual(sum(book.genres.count() for book in Book.objects.all()), 2)
+        self.assertEqual(sum(book.series.count() for book in Book.objects.all()), 2)
+        self.assertEqual(scanner.books_added, 2)
+
+    def test_store_result_skips_duplicate_inside_batch(self) -> None:
+        """Duplicate file/path pairs in one worker result are inserted once."""
+        from opds_catalog.scan_types import BookMeta, ParseResult
+        from opds_catalog.sopdscan import store_result
+
+        opdsdb.clear_all()
+        scanner = opdsScanner()
+        meta = BookMeta(
+            filename="duplicate.fb2",
+            rel_path=".",
+            ext="fb2",
+            title="Duplicate",
+            annotation="",
+            docdate="2024",
+            lang="en",
+            filesize=100,
+            cat_type=0,
+        )
+
+        store_result(ParseResult(books=[meta, meta]), scanner)
+
+        self.assertEqual(Book.objects.count(), 1)
+        self.assertEqual(scanner.books_added, 1)
+        self.assertEqual(scanner.books_skipped, 1)
+
+    def test_parse_standalone_book_job(self) -> None:
+        """Verify parse_standalone_book_job reads a file and returns ParseResult."""
+        from opds_catalog.scan_parser import parse_standalone_book_job
+
+        path = os.path.join(self.test_ROOTLIB, self.test_fb2)
+        result = parse_standalone_book_job(path, self.test_fb2, ".")
+        self.assertEqual(len(result.books), 1)
+        self.assertEqual(result.books[0].filename, self.test_fb2)
+        self.assertEqual(result.books[0].title, "The Sanctuary Sparrow")
+        self.assertEqual(result.bad_books, 0)
 
 
 class ScanIsActiveResetTestCase(TestCase):

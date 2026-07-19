@@ -111,12 +111,12 @@ directory = "htmlcov"
 min_confidence = 80
 paths = [ "." ]
 exclude = [ ".venv", "htmlcov", "tests/*", "*/tests/*", "*/migrations/*" ]
-ignore_names = [ "cls", "owner", "UserType", "db", "obj", "args", "kwargs" ]
+ignore_names = [ "cls", "owner", "UserType", "db", "obj", "args", "kwargs", "test_zip", "test_files" ]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "sopds.settings"
 python_files = [ "test_*.py" ]
-addopts = "--strict-markers --cov --cov-report=term-missing"
+addopts = "--strict-markers --cov --cov-report=term-missing --cov-report=html"
 testpaths = [ "." ]
 filterwarnings = [ "ignore::DeprecationWarning" ]
 

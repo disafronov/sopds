@@ -10,6 +10,7 @@ import pytest
 from pytest_mock import MockerFixture
 
 from opds_catalog.inpx_parser import Inpx, sAuthor, sExt, sFile, sTitle
+from opds_catalog.scan_parser import discover_inpx_entries, parse_inp_job
 
 
 @pytest.fixture
@@ -178,3 +179,153 @@ class TestInpxParseZipCache:
         opened = [c.args[0] for c in zip_open.call_args_list if len(c.args) > 0]
         assert ext_archive in opened
         assert opened.count(ext_archive) == 1
+
+
+def _build_inpx(
+    archive_path: str,
+    inp_name: str,
+    records: list[tuple[str, list[list[bytes]]]],
+    structure: str | None = None,
+) -> None:
+    """Write an .inpx archive with one or more .inp members.
+
+    ``records`` is a list of ``(inp_name, list_of_records)`` tuples; each
+    record is a list of field byte values in the default format order
+    (AUTHOR..LANG).
+    """
+    sep = b"\x04"
+    with zipfile.ZipFile(archive_path, "w") as zf:
+        if structure is not None:
+            zf.writestr("structure.info", structure)
+        for name, recs in records:
+            content = b"".join(sep.join(rec) + sep + b"\r\n" for rec in recs)
+            zf.writestr(name, content)
+
+
+class TestDiscoverInpxEntries:
+    def test_discover_inpx_entries_lists_inp(
+        self, patch_constance: None, tmp_path: Any
+    ) -> None:
+        archive_path = str(tmp_path / "discover.inpx")
+        record = [
+            "Пушкин".encode(),
+            "Поэзия".encode(),
+            "Евгений Онегин".encode(),
+            b"",
+            b"",
+            b"onegin.fb2",
+            b"100",
+            b"1",
+            b"",
+            b"fb2",
+            b"",
+            b"ru",
+        ]
+        _build_inpx(
+            archive_path,
+            "collection.inp",
+            [("collection.inp", [record])],
+            # FOLDER present -> inpx_folders True.
+            structure="AUTHOR;GENRE;TITLE;SERIES;SERNO;FILE;SIZE;LIBID;DEL;EXT;DATE;LANG;FOLDER",  # noqa: E501
+        )
+        disc = discover_inpx_entries(archive_path)
+        assert disc.error is None
+        assert disc.inpx_folders is True
+        assert disc.inpx_format is not None
+        assert "FOLDER" in disc.inpx_format
+        names = [e.name for e in disc.entries]
+        assert "collection.inp" in names
+        entry = next(e for e in disc.entries if e.name == "collection.inp")
+        assert entry.size > 0
+
+    def test_discover_inpx_entries_corrupt(
+        self, patch_constance: None, tmp_path: Any
+    ) -> None:
+        archive_path = str(tmp_path / "broken.inpx")
+        with open(archive_path, "wb") as fh:
+            fh.write(b"not a zip")
+        disc = discover_inpx_entries(archive_path)
+        assert disc.error is not None
+        assert disc.entries == []
+
+
+class TestParseInpJob:
+    def test_parse_inp_job_parses_single_inp(
+        self, patch_constance: None, tmp_path: Any
+    ) -> None:
+        archive_path = str(tmp_path / "single.inpx")
+        record = [
+            "Пушкин".encode(),
+            "Поэзия".encode(),
+            "Евгений Онегин".encode(),
+            b"",
+            b"",
+            b"onegin",
+            b"100",
+            b"1",
+            b"",
+            b"fb2",
+            b"",
+            b"ru",
+        ]
+        _build_inpx(
+            archive_path,
+            "collection.inp",
+            [("collection.inp", [record])],
+        )
+        res = parse_inp_job(
+            archive_path,
+            "collection.inp",
+            root_lib=os.path.dirname(archive_path),
+            inpx_format=None,
+            inpx_folders=False,
+            test_zip=False,
+            test_files=False,
+        )
+        assert res.error is None
+        assert len(res.books) == 1
+        book = res.books[0]
+        assert book.filename == "onegin.fb2"
+        assert book.title == "Евгений Онегин"
+        assert book.ext == "fb2"
+        assert book.filesize == 100
+        assert book.lang == "ru"
+        assert book.cat_type == 3
+        assert book.authors[0].name == "Пушкин"
+        # No FOLDER in format -> folder derived from inp name.
+        assert book.rel_path.endswith("collection.inp")
+
+    def test_parse_inp_job_skips_deleted(
+        self, patch_constance: None, tmp_path: Any
+    ) -> None:
+        archive_path = str(tmp_path / "deleted.inpx")
+        record = [
+            "Пушкин".encode(),
+            "Поэзия".encode(),
+            "Евгений Онегин".encode(),
+            b"",
+            b"",
+            b"onegin",
+            b"100",
+            b"1",
+            b"1",  # DEL = 1 -> skipped
+            b"fb2",
+            b"",
+            b"ru",
+        ]
+        _build_inpx(
+            archive_path,
+            "collection.inp",
+            [("collection.inp", [record])],
+        )
+        res = parse_inp_job(
+            archive_path,
+            "collection.inp",
+            root_lib=os.path.dirname(archive_path),
+            inpx_format=None,
+            inpx_folders=False,
+            test_zip=False,
+            test_files=False,
+        )
+        assert res.error is None
+        assert res.books == []

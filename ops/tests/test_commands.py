@@ -10,15 +10,13 @@ class TestDevCommand:
     def test_dev_help(self) -> None:
         from io import StringIO
 
-        from django.core.management import call_command
-
+        cmd = load_command_class(apps.get_app_config("ops").name, "dev")
+        parser = cmd.create_parser("manage.py", "dev")
         out = StringIO()
-        try:
-            call_command("dev", stdout=out, stderr=StringIO())
-        except SystemExit:
-            pass
+        parser.print_help(out)
         output = out.getvalue()
-        assert "runserver" in output or "scanner" in output or not output
+        assert "runserver" in output
+        assert "scanner" in output
 
     def test_dev_command_exists(self) -> None:
         cmd = load_command_class(apps.get_app_config("ops").name, "dev")
@@ -33,15 +31,13 @@ class TestStartCommand:
     def test_start_help(self) -> None:
         from io import StringIO
 
-        from django.core.management import call_command
-
+        cmd = load_command_class(apps.get_app_config("ops").name, "start")
+        parser = cmd.create_parser("manage.py", "start")
         out = StringIO()
-        try:
-            call_command("start", stdout=out, stderr=StringIO())
-        except SystemExit:
-            pass
+        parser.print_help(out)
         output = out.getvalue()
-        assert "gunicorn" in output or "scanner" in output or not output
+        assert "gunicorn" in output
+        assert "scanner" in output
 
     def test_start_command_exists(self) -> None:
         cmd = load_command_class(apps.get_app_config("ops").name, "start")
