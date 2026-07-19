@@ -11,5 +11,5 @@ def init_worker() -> None:
     """Initialize Django in spawned worker processes."""
     import django
 
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "sopds.settings")
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
     django.setup()

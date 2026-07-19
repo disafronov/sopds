@@ -201,7 +201,7 @@ Pre-commit hooks are installed by `make install`.
 ```text
 sopds/                  Django project (settings, urls, wsgi)
 opds_catalog/           Core app: models, scanner, OPDS feeds, middleware
-sopds_web_backend/      Web UI app: views, templates, static assets
+web_backend/      Web UI app: views, templates, static assets
 ops/                    Operations: dev/start launchers, health checks, supervisor
 book_tools/             Book conversion/processing helpers
 convert/                Bundled FB2 to EPUB/MOBI converter
