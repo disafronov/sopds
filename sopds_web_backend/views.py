@@ -53,7 +53,6 @@ def sopds_processor(request: HttpRequest) -> dict[str, Any]:
     args: dict[str, Any] = {}
     args["app_title"] = settings.TITLE
     args["sopds_auth"] = config.SOPDS_AUTH
-    args["sopds_version"] = settings.VERSION
     args["alphabet"] = config.SOPDS_ALPHABET_MENU
     args["splititems"] = config.SOPDS_SPLITITEMS
     args["fb2tomobi"] = config.SOPDS_FB2TOMOBI != ""
