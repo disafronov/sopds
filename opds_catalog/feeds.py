@@ -392,10 +392,10 @@ class CatalogsFeed(AuthFeed):
         self,
         request: HttpRequest,
         cat_id: int | None = None,
-        page: int = 1,
+        page: int | str = 1,
     ) -> tuple[list[ItemDict], Catalog, dict[str, Any]]:
-        if not isinstance(page, int):
-            page = int(page)  # type: ignore[unreachable]
+        if isinstance(page, str):
+            page = int(page)
         page_num = page if page > 0 else 1
 
         if cat_id is not None:
@@ -719,10 +719,10 @@ class SearchBooksFeed(AuthFeed):
         searchtype: str = "m",
         searchterms: str | None = None,
         searchterms0: str | None = None,
-        page: int = 1,
+        page: int | str = 1,
     ) -> Any:
-        if not isinstance(page, int):
-            page = int(page)  # type: ignore[unreachable]
+        if isinstance(page, str):
+            page = int(page)
         page_num = page if page > 0 else 1
 
         # Поиск книг по подсроке
@@ -1138,10 +1138,14 @@ class SearchAuthorsFeed(AuthFeed):
         return "%s | %s" % (settings.TITLE, _("Authors found"))
 
     def get_object(
-        self, request: HttpRequest, searchterms: str, searchtype: str, page: int = 1
+        self,
+        request: HttpRequest,
+        searchterms: str,
+        searchtype: str,
+        page: int | str = 1,
     ) -> Any:
-        if not isinstance(page, int):
-            page = int(page)  # type: ignore[unreachable]
+        if isinstance(page, str):
+            page = int(page)
         page_num = page if page > 0 else 1
 
         if searchtype == "m":
@@ -1252,11 +1256,15 @@ class SearchSeriesFeed(AuthFeed):
         return "%s | %s" % (settings.TITLE, _("Series found"))
 
     def get_object(
-        self, request: HttpRequest, searchterms: str, searchtype: str, page: int = 1
+        self,
+        request: HttpRequest,
+        searchterms: str,
+        searchtype: str,
+        page: int | str = 1,
     ) -> Any:
         self.author_id = None
-        if not isinstance(page, int):
-            page = int(page)  # type: ignore[unreachable]
+        if isinstance(page, str):
+            page = int(page)
         page_num = page if page > 0 else 1
 
         if searchtype == "m":
