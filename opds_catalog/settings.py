@@ -31,7 +31,3 @@ else:
 #    if updated_key == 'SOPDS_LANGUAGE':
 #        translation.activate(new_value)
 #        print(new_value)
-
-
-def constance_update_all() -> None:
-    pass
