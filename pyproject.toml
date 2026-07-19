@@ -38,6 +38,7 @@ exclude = [ ".venv", "htmlcov", "*/migrations/*.py" ]
 
 [tool.mypy]
 strict = true
+warn_unreachable = true
 plugins = [ "mypy_django_plugin.main" ]
 
   [[tool.mypy.overrides]]

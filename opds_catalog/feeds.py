@@ -395,7 +395,7 @@ class CatalogsFeed(AuthFeed):
         page: int = 1,
     ) -> tuple[list[ItemDict], Catalog, dict[str, Any]]:
         if not isinstance(page, int):
-            page = int(page)
+            page = int(page)  # type: ignore[unreachable]
         page_num = page if page > 0 else 1
 
         if cat_id is not None:
@@ -722,7 +722,7 @@ class SearchBooksFeed(AuthFeed):
         page: int = 1,
     ) -> Any:
         if not isinstance(page, int):
-            page = int(page)
+            page = int(page)  # type: ignore[unreachable]
         page_num = page if page > 0 else 1
 
         # Поиск книг по подсроке
@@ -1141,7 +1141,7 @@ class SearchAuthorsFeed(AuthFeed):
         self, request: HttpRequest, searchterms: str, searchtype: str, page: int = 1
     ) -> Any:
         if not isinstance(page, int):
-            page = int(page)
+            page = int(page)  # type: ignore[unreachable]
         page_num = page if page > 0 else 1
 
         if searchtype == "m":
@@ -1256,7 +1256,7 @@ class SearchSeriesFeed(AuthFeed):
     ) -> Any:
         self.author_id = None
         if not isinstance(page, int):
-            page = int(page)
+            page = int(page)  # type: ignore[unreachable]
         page_num = page if page > 0 else 1
 
         if searchtype == "m":
