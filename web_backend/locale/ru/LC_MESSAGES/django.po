@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-19 20:00+0000\n"
+"POT-Creation-Date: 2026-07-19 20:18+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -302,7 +302,7 @@ msgstr "Всего: %(chars_cnt)s серий."
 msgid "Total: %(s_book_count)s books."
 msgstr "Всего: %(s_book_count)s книг."
 
-#: web_backend/templates/sopds_top.html:19 web_backend/views.py:838
+#: web_backend/templates/sopds_top.html:19 web_backend/views.py:837
 msgid "Logout"
 msgstr "Выход"
 
@@ -351,10 +351,10 @@ msgstr "Выбор"
 msgid "HOME"
 msgstr "ГЛАВНАЯ"
 
-#: web_backend/views.py:819
+#: web_backend/views.py:818
 msgid "This account is not active!"
 msgstr "Учетная запись не активна!"
 
-#: web_backend/views.py:826
+#: web_backend/views.py:825
 msgid "User does not exist or the password is incorrect!"
 msgstr "Пользователь не существует или введен неправильный пароль!"
