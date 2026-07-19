@@ -102,7 +102,6 @@ import dj_database_url  # noqa: E402  — import after os
 
 DATABASES = {
     "default": dj_database_url.config(
-        default="sqlite:///" + str(BASE_DIR / "db.sqlite3"),
         conn_max_age=600,
         conn_health_checks=True,
     )
@@ -336,6 +335,7 @@ SOPDS_SCANNER_PID = os.environ.get(
 )
 SOPDS_TEMP_DIR = os.environ.get("SOPDS_TEMP_DIR", os.path.join(BASE_DIR, "tmp"))
 SOPDS_ROOT_LIB = os.environ.get("SOPDS_ROOT_LIB", "books/")
+SOPDS_SCAN_WORKERS = int(os.environ.get("SOPDS_SCAN_WORKERS", "0"))
 SOPDS_NOCOVER_PATH = os.environ.get(
     "SOPDS_NOCOVER_PATH",
     os.path.join(BASE_DIR, "sopds_web_backend/static/images/nocover.jpg"),
