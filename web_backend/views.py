@@ -799,7 +799,13 @@ def LoginView(request: HttpRequest) -> HttpResponse:
 
     next_url = request.GET.get("next", "")
     if not url_has_allowed_host_and_scheme(
-        next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+        next_url,
+        # Login redirects never need to leave this application.  An empty host
+        # allow-list accepts relative paths while rejecting absolute and
+        # protocol-relative URLs, independently of the user-controlled Host
+        # header.
+        allowed_hosts=set(),
+        require_https=request.is_secure(),
     ):
         next_url = reverse("web:main")
 
