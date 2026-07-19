@@ -1,4 +1,7 @@
+import logging
 import os
+from typing import Any
+from unittest.mock import patch
 
 from constance import config
 from django.conf import settings as django_settings
@@ -7,6 +10,7 @@ from django.test import TestCase
 from opds_catalog import opdsdb
 
 # from opds_catalog import settings
+from opds_catalog.management.commands.sopds_scanner import Command
 from opds_catalog.models import Author, Book, Catalog, Genre, Series
 from opds_catalog.sopdscan import opdsScanner
 
@@ -221,3 +225,37 @@ EPUB и помещает в БД)"""
         self.assertEqual(Genre.objects.all().count(), 5)
         self.assertEqual(Series.objects.all().count(), 1)
         self.assertEqual(Catalog.objects.all().count(), 2)
+
+
+class ScanIsActiveResetTestCase(TestCase):
+    """Verify that scan_is_active is always reset even when scan_all() raises."""
+
+    def setUp(self) -> None:
+        self.cmd = Command()
+        self.cmd.logger = logging.getLogger("test_scanner")
+        self.cmd.logger.setLevel(logging.DEBUG)
+
+    @patch("opds_catalog.management.commands.sopds_scanner.opdsScanner")
+    def test_scan_is_active_resets_on_exception(self, mock_scanner_cls: Any) -> None:
+        """scan_is_active must be False after scan() returns, even on failure."""
+        mock_instance = mock_scanner_cls.return_value
+        mock_instance.scan_all.side_effect = RuntimeError("simulated failure")
+
+        self.assertFalse(self.cmd.scan_is_active)
+        self.cmd.scan()
+
+        self.assertFalse(self.cmd.scan_is_active)
+
+    @patch("opds_catalog.management.commands.sopds_scanner.opdsScanner")
+    def test_scan_logs_exception_on_failure(self, mock_scanner_cls: Any) -> None:
+        """Unhandled scan_all() exceptions must be logged."""
+        mock_instance = mock_scanner_cls.return_value
+        mock_instance.scan_all.side_effect = RuntimeError("simulated failure")
+
+        with self.assertLogs("test_scanner", level=logging.ERROR) as cm:
+            self.cmd.scan()
+
+        self.assertTrue(
+            any("simulated failure" in msg for msg in cm.output),
+            "Expected error log containing 'simulated failure'",
+        )
