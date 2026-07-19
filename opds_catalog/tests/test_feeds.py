@@ -54,6 +54,11 @@ class feedsTestCase(TestCase):
         self.assertIn("Китайски сладкиш с късметче", response.content.decode())
         self.assertIn("Любовь в жизни Обломова", response.content.decode())
 
+    def test_CatalogsFeed_nonexistent_catalog_returns_404(self) -> None:
+        c = Client()
+        response = c.get(reverse("opds:cat_tree", args=["999999"]))
+        self.assertEqual(response.status_code, 404)
+
     def test_OpenSearch(self) -> None:
         c = Client()
         response = c.get("/opds/search/")

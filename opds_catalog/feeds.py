@@ -6,7 +6,7 @@ from constance import config
 from django.contrib.auth.models import User
 from django.contrib.syndication.views import Feed
 from django.db.models import Count, Min
-from django.http import HttpRequest, HttpResponse
+from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.urls import reverse
 from django.utils import timezone
@@ -398,20 +398,21 @@ class CatalogsFeed(AuthFeed):
             page = int(page)
         page_num = page if page > 0 else 1
 
-        cat: Catalog | None = None
-        try:
-            if cat_id is not None:
+        if cat_id is not None:
+            try:
                 cat = Catalog.objects.get(id=cat_id)
-            else:
-                # Ensure root catalog exists even when the database is empty.
-                # get_or_create avoids DoesNotExist on a fresh installation.
-                cat, _created = Catalog.objects.get_or_create(
-                    parent=None,
-                    defaults={"cat_name": ".", "path": ".", "cat_type": 0},
-                )
-        except Catalog.DoesNotExist:
-            cat = None
+            except Catalog.DoesNotExist:
+                raise Http404("Catalog not found")
+        else:
+            # Ensure root catalog exists even when the database is empty.
+            # get_or_create avoids DoesNotExist on a fresh installation.
+            cat, _created = Catalog.objects.get_or_create(
+                parent=None,
+                defaults={"cat_name": ".", "path": ".", "cat_type": 0},
+            )
 
+        # Defense-in-depth: should be unreachable after the logic above,
+        # but protects against future refactoring errors.
         if cat is None:
             return (
                 [],
