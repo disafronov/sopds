@@ -195,6 +195,8 @@ def inpx_entry_to_bookmeta(
     meta_data: dict[str, Any],
     rel_path: str,
     cat_type: int,
+    inp_rel_path: str | None = None,
+    legacy_inp_rel_path: str | None = None,
 ) -> BookMeta:
     """
     Convert an INPX metadata entry into a :class:`BookMeta` object.
@@ -254,6 +256,8 @@ def inpx_entry_to_bookmeta(
         authors=authors,
         genres=genres,
         series=series,
+        inp_rel_path=inp_rel_path,
+        legacy_inp_rel_path=legacy_inp_rel_path,
     )
 
 
@@ -461,9 +465,10 @@ def parse_inp_job(
         ]
     try:
         with zipfile.ZipFile(inpx_path, "r") as finpx:
-            current_rel_path = os.path.relpath(
+            legacy_inp_rel_path = os.path.relpath(
                 os.path.join(os.path.dirname(inpx_path), inp_name), root_lib
             )
+            inp_rel_path = os.path.join(os.path.relpath(inpx_path, root_lib), inp_name)
             with finpx.open(inp_name) as finp:
                 for line in finp:
                     meta_list = line.split(INPX_RECORD_SEPARATOR)
@@ -490,7 +495,16 @@ def parse_inp_job(
                             meta_data[key] = ""
                     if not (meta_data[inpx_parser.sDel].strip() in ["", "0"]):
                         continue
-                    bm = inpx_entry_to_bookmeta(meta_data, current_rel_path, 3)
+                    current_rel_path = os.path.join(
+                        inp_rel_path, meta_data[inpx_parser.sFolder]
+                    )
+                    bm = inpx_entry_to_bookmeta(
+                        meta_data,
+                        current_rel_path,
+                        3,
+                        inp_rel_path=inp_rel_path,
+                        legacy_inp_rel_path=legacy_inp_rel_path,
+                    )
                     res.books.append(bm)
     except (zipfile.BadZipFile, KeyError) as e:
         res.error = f"Error parsing INP {inp_name} from {inpx_path}: {e}"

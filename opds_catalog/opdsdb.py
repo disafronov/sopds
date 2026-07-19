@@ -156,6 +156,51 @@ def books_del_phisical() -> tuple[int, dict[str, int]]:
     return row_count
 
 
+def catalogs_del_empty() -> int:
+    """Delete empty catalog branches while preserving the catalog root."""
+    deleted = 0
+    while True:
+        empty_leaf_ids = list(
+            Catalog.objects.exclude(parent=None)
+            .filter(catalog__isnull=True, book__isnull=True)
+            .values_list("id", flat=True)
+        )
+        if not empty_leaf_ids:
+            break
+        deleted += len(empty_leaf_ids)
+        Catalog.objects.filter(id__in=empty_leaf_ids).delete()
+    clear_cat_cache()
+    return deleted
+
+
+@transaction.atomic
+def normalize_inp_catalog(legacy_path: str, inp_path: str) -> int:
+    """Ensure that an INP catalog belongs to its owning INPX catalog."""
+    legacy_catalog = findcat(legacy_path)
+    if legacy_catalog is None or legacy_path == inp_path:
+        return 0
+
+    inp_catalog = findcat(inp_path)
+    if inp_catalog is None:
+        parent_path, _inp_name = os.path.split(inp_path)
+        parent = addcattree(parent_path, CAT_INPX)
+        legacy_catalog.parent = parent
+        legacy_catalog.path = inp_path[:SIZE_CAT_PATH]
+        legacy_catalog.cat_type = CAT_INP
+        legacy_catalog.save(update_fields=["parent", "path", "cat_type"])
+        inp_catalog = legacy_catalog
+    else:
+        Book.objects.filter(catalog=legacy_catalog).update(catalog=inp_catalog)
+
+    moved = Book.objects.filter(path=legacy_path[:SIZE_BOOK_PATH]).update(
+        path=inp_path[:SIZE_BOOK_PATH],
+        catalog=inp_catalog,
+        cat_type=CAT_INP,
+    )
+    clear_cat_cache()
+    return moved
+
+
 def arc_skip(arcpath: str, arcsize: int) -> int:
     """
     Выясняем изменялся ли архив (ZIP или INP-файл)

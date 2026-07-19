@@ -293,7 +293,11 @@ class TestParseInpJob:
         assert book.cat_type == 3
         assert book.authors[0].name == "Пушкин"
         # No FOLDER in format -> folder derived from inp name.
-        assert book.rel_path.endswith("collection.inp")
+        assert book.rel_path.endswith(
+            os.path.join("single.inpx", "collection.inp", "collection.zip")
+        )
+        assert book.inp_rel_path == os.path.join("single.inpx", "collection.inp")
+        assert book.legacy_inp_rel_path == "collection.inp"
 
     def test_parse_inp_job_skips_deleted(
         self, patch_constance: None, tmp_path: Any
