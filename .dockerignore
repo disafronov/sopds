@@ -55,3 +55,5 @@ opds_catalog/log/
 # CI/CD & editor configs
 .github/
 .opencode/
+
+*.mo
