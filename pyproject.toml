@@ -1,6 +1,6 @@
 [project]
 name = "sopds"
-version = "1.1.0rc2"
+version = "1.1.0rc3"
 description = "Simple OPDS server"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -83,12 +83,8 @@ omit = [
   "tests/*",
   "*/tests/*",
   "*/migrations/*",
-  # Locally modified third-party forks have their own integration tests;
-  # coverage measures the SOPDS adapters and public dispatch instead.
   "book_tools/_vendor/*",
   "book_tools/pymobi/*",
-  # Compatibility fork of Python's legacy zipfile implementation. Archive and
-  # Cyrillic-filename behaviour is covered through public scanner integration.
   "opds_catalog/zipf.py",
   "manage.py",
   "sopds/settings.py",
@@ -119,7 +115,17 @@ directory = "htmlcov"
 min_confidence = 80
 paths = [ "." ]
 exclude = [ ".venv", "htmlcov", "tests/*", "*/tests/*", "*/migrations/*" ]
-ignore_names = [ "cls", "owner", "UserType", "db", "obj", "args", "kwargs", "test_zip", "test_files" ]
+ignore_names = [
+  "cls",
+  "owner",
+  "UserType",
+  "db",
+  "obj",
+  "args",
+  "kwargs",
+  "test_zip",
+  "test_files"
+]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings"
