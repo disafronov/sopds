@@ -11,7 +11,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from constance import config
 from django.conf import settings as main_settings
 from django.core.management.base import BaseCommand
-from django.db import connection, connections
+from django.db import close_old_connections
 
 from opds_catalog import settings
 from opds_catalog.models import Counter
@@ -83,10 +83,12 @@ class Command(BaseCommand):
         elif action == "start":
             self.start()
         elif action == "stop":
-            pid = open(self.pidfile, "r").read()
+            with open(self.pidfile, "r") as fp:
+                pid = fp.read()
             self.stop(pid)
         elif action == "restart":
-            pid = open(self.pidfile, "r").read()
+            with open(self.pidfile, "r") as fp:
+                pid = fp.read()
             self.restart(pid)
 
     def scan(self) -> None:
@@ -96,9 +98,7 @@ class Command(BaseCommand):
 
         self.scan_is_active = True
         try:
-            if connection.connection and not connection.is_usable():
-                # Access the private per-connection cache to drop a dead connection.
-                del connections._connections.default  # type: ignore[attr-defined]
+            close_old_connections()
 
             scanner = opdsScanner(self.logger)
             scanner.scan_all()
@@ -134,9 +134,7 @@ class Command(BaseCommand):
         )
 
     def check_settings(self) -> None:
-        if connection.connection and not connection.is_usable():
-            # Access the private per-connection cache to drop a dead connection.
-            del connections._connections.default  # type: ignore[attr-defined]
+        close_old_connections()
         settings.constance_update_all()
         if not (
             self.SCAN_SHED_MIN == config.SOPDS_SCAN_SHED_MIN
@@ -199,13 +197,9 @@ class Command(BaseCommand):
 
 
 def writepid(pid_file: str) -> None:
-    """
-    Write the process ID to disk.
-    """
-    fp = open(pid_file, "w")
-    fp.write(str(os.getpid()))
-    fp.close()
-    return None
+    """Write the process ID to disk."""
+    with open(pid_file, "w") as fp:
+        fp.write(str(os.getpid()))
 
 
 def daemonize() -> None:
