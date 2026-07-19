@@ -34,7 +34,7 @@ FROM base AS builder
 # Build dependencies required to compile C extensions (lxml).
 # Git is also required for dependencies installed directly from Git repositories.
 USER root
-ARG BUILD_DEPENDENCIES="pkg-config build-essential libxml2-dev libxslt-dev libffi-dev libjpeg-turbo8-dev zlib1g-dev liblzma-dev libbz2-dev libmariadb-dev"
+ARG BUILD_DEPENDENCIES="pkg-config build-essential gettext libxml2-dev libxslt-dev libffi-dev libjpeg-turbo8-dev zlib1g-dev liblzma-dev libbz2-dev libmariadb-dev"
 RUN apt-get update && \
     apt-get install -y --no-install-recommends ${BUILD_DEPENDENCIES} git && \
     apt-get clean && \
@@ -60,6 +60,14 @@ RUN --mount=from=uv,source=/uv,target=/bin/uv \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     uv sync --frozen --link-mode=copy --no-editable
 
+WORKDIR /home/ubuntu/app
+
+# Compile translations and collect static assets while build tools are available.
+RUN export DJANGO_SECRET_KEY=unsafe-secret-key-for-tooling \
+        DJANGO_DEBUG=False && \
+    python3 manage.py compilemessages && \
+    python3 manage.py collectstatic --noinput
+
 ##########################
 
 FROM base AS runtime
@@ -72,11 +80,6 @@ WORKDIR /home/ubuntu/app
 
 ENV GUNICORN_WORKERS=2
 ENV GUNICORN_CMD_ARGS="--control-socket /tmp/gunicorn.ctl --bind 0.0.0.0:8000 --timeout 120 --worker-tmp-dir /tmp --access-logfile - --error-logfile -"
-
-# Collect static assets for whitenoise to serve in production.
-RUN DJANGO_SECRET_KEY=unsafe-secret-key-for-tooling \
-    DJANGO_DEBUG=False \
-    python3 manage.py collectstatic --noinput
 
 EXPOSE 8000
 
