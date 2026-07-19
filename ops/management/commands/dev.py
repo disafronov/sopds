@@ -16,9 +16,7 @@ class Command(BaseCommand):
         """Launch child processes and hand off to the supervisor loop."""
         _supervise(
             [
-                _spawn(
-                    sys.executable, "manage.py", "sopds_scanner", "start", "--verbose"
-                ),
+                _spawn(sys.executable, "manage.py", "sopds_scanner", "start"),
                 _spawn(sys.executable, "manage.py", "runserver", "0.0.0.0:8000"),
             ]
         )
