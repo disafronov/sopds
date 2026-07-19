@@ -95,15 +95,18 @@ class Command(BaseCommand):
             return
 
         self.scan_is_active = True
+        try:
+            if connection.connection and not connection.is_usable():
+                # Access the private per-connection cache to drop a dead connection.
+                del connections._connections.default  # type: ignore[attr-defined]
 
-        if connection.connection and not connection.is_usable():
-            # Access the private per-connection cache to drop a dead connection.
-            del connections._connections.default  # type: ignore[attr-defined]
-
-        scanner = opdsScanner(self.logger)
-        scanner.scan_all()
-        Counter.objects.update_known_counters()
-        self.scan_is_active = False
+            scanner = opdsScanner(self.logger)
+            scanner.scan_all()
+            Counter.objects.update_known_counters()
+        except Exception:
+            self.logger.exception("Scan failed with an unhandled exception")
+        finally:
+            self.scan_is_active = False
 
     def update_shedule(self) -> None:
         self.SCAN_SHED_DAY = config.SOPDS_SCAN_SHED_DAY
