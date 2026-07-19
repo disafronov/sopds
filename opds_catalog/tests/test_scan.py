@@ -259,3 +259,16 @@ class ScanIsActiveResetTestCase(TestCase):
             any("simulated failure" in msg for msg in cm.output),
             "Expected error log containing 'simulated failure'",
         )
+
+    @patch("opds_catalog.management.commands.sopds_scanner.opdsScanner")
+    def test_scan_raises_when_suppress_errors_false(
+        self, mock_scanner_cls: Any
+    ) -> None:
+        """scan(suppress_errors=False) must re-raise the exception."""
+        mock_instance = mock_scanner_cls.return_value
+        mock_instance.scan_all.side_effect = RuntimeError("simulated failure")
+
+        with self.assertRaises(RuntimeError):
+            self.cmd.scan(suppress_errors=False)
+
+        self.assertFalse(self.cmd.scan_is_active)
