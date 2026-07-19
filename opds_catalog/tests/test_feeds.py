@@ -63,7 +63,7 @@ class feedsTestCase(TestCase):
         c = Client()
         response = c.get("/opds/search/")
         self.assertEqual(response.status_code, 200)
-        self.assertIn("www.sopds.ru", response.content.decode())
+        self.assertIn("/static/images/favicon.ico", response.content.decode())
 
     def test_SearchTypes(self) -> None:
         c = Client()
