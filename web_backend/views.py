@@ -4,16 +4,17 @@ from typing import Any, cast
 
 from constance import config
 from django.contrib.auth import REDIRECT_FIELD_NAME, authenticate, login, logout
-from django.contrib.auth.decorators import user_passes_test
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from django.db.models import Count, Min
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import redirect, render
 from django.template.context_processors import csrf
 from django.urls import reverse, reverse_lazy
 from django.utils.html import strip_tags
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext as _
+from django.views.decorators.http import require_POST
 from django.views.decorators.vary import vary_on_headers
 
 from opds_catalog import models, settings
@@ -66,35 +67,53 @@ def sopds_processor(request: HttpRequest) -> dict[str, Any]:
     if config.SOPDS_AUTH:
         user = request.user
         if user.is_authenticated:
-            result = []
-            for row in bookshelf.objects.filter(user=user).order_by("-readtime")[:8]:
-                book = Book.objects.get(id=row.book_id)
-                p = {
-                    "id": row.id,
-                    "readtime": row.readtime,
-                    "book_id": row.book_id,
-                    "title": book.title,
-                    "authors": book.authors.values(),
-                }
-                result.append(p)
-            args["bookshelf"] = result
+            latest_bookshelf_entry = (
+                bookshelf.objects.filter(user=user)
+                .select_related("book")
+                .prefetch_related(
+                    "book__authors", "book__genres", "book__bseries_set__ser"
+                )
+                .order_by("-readtime")
+                .first()
+            )
+            args["last_bookshelf_book"] = (
+                _footer_book_data(latest_bookshelf_entry.book)
+                if latest_bookshelf_entry
+                else None
+            )
 
     books_count = Counter.objects.get_counter(models.counter_allbooks)
     if books_count:
         random_id = randint(1, books_count)
         try:
-            random_book = Book.objects.all()[random_id - 1 : random_id][0]
+            random_book = Book.objects.prefetch_related(
+                "authors", "genres", "bseries_set__ser"
+            ).all()[random_id - 1 : random_id][0]
         except Book.DoesNotExist:
             random_book = None
     else:
         random_book = None
 
-    args["random_book"] = random_book
+    args["random_book"] = _footer_book_data(random_book) if random_book else None
     stats: dict[str, Any] = {d["name"]: d["value"] for d in Counter.obj.all().values()}
     stats["lastscan_date"] = Counter.objects.get_lastscan()
     args["stats"] = stats
 
     return args
+
+
+def _footer_book_data(book: Book) -> dict[str, Any]:
+    """Prepare book metadata shared by the two footer cards."""
+
+    return {
+        "id": book.id,
+        "title": book.title,
+        "docdate": book.docdate,
+        "filesize": book.filesize // 1000,
+        "authors": book.authors.all(),
+        "genres": book.genres.all(),
+        "series": book.bseries_set.all(),
+    }
 
 
 # Create your views here.
@@ -104,6 +123,8 @@ def SearchBooksView(request: HttpRequest) -> HttpResponse:
     # Read searchtype, searchterms, searchterms0, page from form
     args: dict[str, Any] = {}
     args.update(csrf(request))
+    cache_scope = ""
+    cache_time = config.SOPDS_CACHE_TIME
 
     if request.GET:
         searchtype = request.GET.get("searchtype", "m")
@@ -193,6 +214,8 @@ def SearchBooksView(request: HttpRequest) -> HttpResponse:
         elif searchtype == "u":
             if config.SOPDS_AUTH:
                 assert request.user.is_authenticated
+                cache_scope = "uncached:%s:" % request.user.pk
+                cache_time = 0
                 books = Book.objects.filter(bookshelf__user=request.user).order_by(
                     "-bookshelf__readtime"
                 )
@@ -334,8 +357,13 @@ def SearchBooksView(request: HttpRequest) -> HttpResponse:
         args["searchtype"] = searchtype
         args["books"] = items
         args["current"] = "search"
-        args["cache_id"] = "%s:%s:%s" % (searchterms, searchtype, op.page_num)
-        args["cache_t"] = config.SOPDS_CACHE_TIME
+        args["cache_id"] = "%s%s:%s:%s" % (
+            cache_scope,
+            searchterms,
+            searchtype,
+            op.page_num,
+        )
+        args["cache_t"] = cache_time
 
     return render(request, "sopds_books.html", args)
 
@@ -728,27 +756,28 @@ def GenresView(request: HttpRequest) -> HttpResponse:
 
 
 @vary_on_headers("HTTP_ACCEPT_LANGUAGE")
-@sopds_login(url="web:login")
+@login_required(login_url=reverse_lazy("web:login"))
+@require_POST
 def BSDelView(request: HttpRequest) -> HttpResponse:
-    if request.GET:
-        book = request.GET.get("book", None)
-    else:
-        book = None
+    try:
+        book_id = int(request.POST["book"])
+    except (KeyError, ValueError):
+        return HttpResponseBadRequest()
 
-    assert book is not None
-    book_id = int(book)
+    bookshelf.objects.filter(user=cast(User, request.user), book_id=book_id).delete()
 
-    assert request.user.is_authenticated
-    bookshelf.objects.filter(user=request.user, book=book_id).delete()
-
-    return redirect("%s?searchtype=u" % reverse("web:searchbooks"))
+    return _redirect_to_bookshelf()
 
 
 @vary_on_headers("HTTP_ACCEPT_LANGUAGE")
-@sopds_login(url="web:login")
+@login_required(login_url=reverse_lazy("web:login"))
+@require_POST
 def BSClearView(request: HttpRequest) -> HttpResponse:
-    assert request.user.is_authenticated
-    bookshelf.objects.filter(user=request.user).delete()
+    bookshelf.objects.filter(user=cast(User, request.user)).delete()
+    return _redirect_to_bookshelf()
+
+
+def _redirect_to_bookshelf() -> HttpResponse:
     return redirect("%s?searchtype=u" % reverse("web:searchbooks"))
 
 
