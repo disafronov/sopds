@@ -31,7 +31,7 @@ DOCKER_RUN_OPTS = --rm \
 	$(if $(wildcard env.docker),--env-file env.docker,) \
 	$(if $(wildcard .env),--env-file .env,)
 
-.PHONY: all audit clean dead-code dev docker docker-build docker-run format help install lint makemigrations migrate run scanner test
+.PHONY: all audit clean dead-code dev docker docker-build docker-run format help install lint locale makemigrations migrate run scanner test
 
 help: ## Show this help message
 	@echo "Available commands:"
@@ -65,6 +65,12 @@ dead-code: ## Check for dead code using vulture
 	@echo "Checking for dead code..."
 	uv run vulture
 
+locale: ## Make and compile locale messages
+	@echo "Making translation messages..."
+	DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py makemessages --no-obsolete --all --ignore=".venv/*" --ignore="staticfiles/*" --ignore="*/static/*" --ignore="*/tests/*" --ignore="conftest.py"
+	@echo "Compiling translation messages..."
+	DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py compilemessages --ignore=".venv/*"
+
 makemigrations: ## Create new migrations
 	@echo "Creating migrations..."
 	DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py makemigrations
@@ -73,13 +79,13 @@ migrate: ## Apply database migrations
 	@echo "Applying migrations..."
 	DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py migrate
 
-test: ## Run tests (extra args forwarded to pytest)
+test: locale ## Run tests (extra args forwarded to pytest)
 	$(PYTEST_CMD) $(if $(filter all,$(MAKECMDGOALS)),,$(filter-out test all,$(MAKECMDGOALS)))
 
 all: lint test dead-code ## Run all checks
 	@echo "All checks completed successfully!"
 
-run: migrate ## Apply migrations, create admin, start dev server + scanner
+run: locale migrate ## Build translations, apply migrations, create admin, start dev server + scanner
 	@echo "Running Django dev server + scanner..."
 	@if [ -n "$$DJANGO_SUPERUSER_USERNAME" ] && [ -n "$$DJANGO_SUPERUSER_PASSWORD" ] && [ -n "$$DJANGO_SUPERUSER_EMAIL" ]; then \
 		echo "Ensuring Django superuser exists..."; \
