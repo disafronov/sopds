@@ -102,17 +102,53 @@ def _store_books_batch(books: list[BookMeta], scanner: opdsScanner) -> None:
         return
 
     requested_keys = {_book_key(meta) for meta in books}
-    filenames = {filename for filename, _path in requested_keys}
-    paths = {path for _filename, path in requested_keys}
+    fallback_keys = {
+        (meta.filename[:SIZE_BOOK_FILENAME], path[:SIZE_BOOK_PATH])
+        for meta in books
+        for path in (meta.inp_rel_path, meta.legacy_inp_rel_path)
+        if path
+    }
+    lookup_keys = requested_keys | fallback_keys
+    filenames = {filename for filename, _path in lookup_keys}
+    paths = {path for _filename, path in lookup_keys}
     existing_books = [
         book
         for book in Book.objects.filter(filename__in=filenames, path__in=paths)
-        if (book.filename, book.path) in requested_keys
+        if (book.filename, book.path) in lookup_keys
     ]
-    existing_keys = {(book.filename, book.path) for book in existing_books}
-    existing_ids = [book.pk for book in existing_books]
-    if existing_ids:
-        Book.objects.filter(pk__in=existing_ids).update(avail=2)
+    existing_by_key = {(book.filename, book.path): book for book in existing_books}
+
+    catalogs: dict[tuple[str, int], Catalog] = {}
+    migrated_books: list[Book] = []
+    existing_keys: set[tuple[str, str]] = set()
+    for meta in books:
+        key = _book_key(meta)
+        book = existing_by_key.get(key)
+        if book is None:
+            for path in (meta.inp_rel_path, meta.legacy_inp_rel_path):
+                if path:
+                    book = existing_by_key.get(
+                        (meta.filename[:SIZE_BOOK_FILENAME], path[:SIZE_BOOK_PATH])
+                    )
+                if book is not None:
+                    break
+        if book is None:
+            continue
+        existing_keys.add(key)
+        if book.path != key[1]:
+            catalog_key = (meta.rel_path, meta.cat_type)
+            if catalog_key not in catalogs:
+                catalogs[catalog_key] = opdsdb.addcattree(meta.rel_path, meta.cat_type)
+            book.path = key[1]
+            book.catalog = catalogs[catalog_key]
+            book.cat_type = meta.cat_type
+        book.avail = 2
+        migrated_books.append(book)
+
+    if migrated_books:
+        Book.objects.bulk_update(
+            migrated_books, ["path", "catalog", "cat_type", "avail"]
+        )
 
     new_meta: list[BookMeta] = []
     seen_keys = set(existing_keys)
@@ -127,7 +163,6 @@ def _store_books_batch(books: list[BookMeta], scanner: opdsScanner) -> None:
     if not new_meta:
         return
 
-    catalogs: dict[tuple[str, int], Catalog] = {}
     for meta in new_meta:
         catalog_key = (meta.rel_path, meta.cat_type)
         if catalog_key not in catalogs:
@@ -253,6 +288,7 @@ class opdsScanner:
         self.books_added = 0
         self.books_skipped = 0
         self.books_deleted: int | tuple[int, dict[str, int]] = 0
+        self.catalogs_deleted = 0
         self.arch_scanned = 0
         self.arch_skipped = 0
         self.bad_archives = 0
@@ -288,6 +324,7 @@ class opdsScanner:
             self.logger.info("Books deleted    : " + str(self.books_deleted))
         else:
             self.logger.info("Books DB entries deleted : " + str(self.books_deleted))
+        self.logger.info("Catalogs deleted : " + str(self.catalogs_deleted))
         self.logger.info("Books in archives: " + str(self.books_in_archives))
         self.logger.info("Archives scanned : " + str(self.arch_scanned))
         self.logger.info("Archives skipped : " + str(self.arch_skipped))
@@ -489,6 +526,19 @@ class opdsScanner:
                         )
                         for entry in result.entries:
                             if is_inpx:
+                                inpx_rel_path = os.path.relpath(
+                                    result.source_path, settings.SOPDS_ROOT_LIB
+                                )
+                                legacy_inp_path = os.path.relpath(
+                                    os.path.join(
+                                        os.path.dirname(result.source_path), entry.name
+                                    ),
+                                    settings.SOPDS_ROOT_LIB,
+                                )
+                                opdsdb.normalize_inp_catalog(
+                                    legacy_inp_path,
+                                    os.path.join(inpx_rel_path, entry.name),
+                                )
                                 logger.info(
                                     "DISPATCH parse_inp_job inpx=%s entry=%s",
                                     result.source_path,
@@ -530,6 +580,7 @@ class opdsScanner:
             self.books_deleted = opdsdb.books_del_logical()
         else:
             self.books_deleted = opdsdb.books_del_phisical()
+        self.catalogs_deleted = opdsdb.catalogs_del_empty()
 
         self.log_stats()
 

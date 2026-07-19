@@ -422,6 +422,52 @@ EPUB и помещает в БД)"""
         self.assertEqual(scanner.books_skipped, 1)
         self.assertEqual(Book.objects.count(), 1)
 
+    def test_store_result_moves_inp_book_to_zip_without_recreating_it(self) -> None:
+        """An INP result moves the existing book into its external ZIP."""
+        from opds_catalog.scan_types import BookMeta, ParseResult
+        from opds_catalog.sopdscan import store_result
+
+        opdsdb.clear_all()
+        scanner = opdsScanner()
+        inp_path = "books/index.inpx/part.inp"
+        inp_catalog = opdsdb.addcattree(inp_path, opdsdb.CAT_INP)
+        book = opdsdb.addbook(
+            "test.fb2",
+            inp_path,
+            inp_catalog,
+            "fb2",
+            "Test",
+            "",
+            "2024",
+            "ru",
+            100,
+            opdsdb.CAT_INP,
+        )
+        book_id = book.pk
+        zip_path = f"{inp_path}/part.zip"
+        meta = BookMeta(
+            filename="test.fb2",
+            rel_path=zip_path,
+            ext="fb2",
+            title="Test",
+            annotation="",
+            docdate="2024",
+            lang="ru",
+            filesize=100,
+            cat_type=opdsdb.CAT_INP,
+            inp_rel_path=inp_path,
+            legacy_inp_rel_path="books/part.inp",
+        )
+
+        store_result(ParseResult(books=[meta]), scanner)
+
+        book.refresh_from_db()
+        self.assertEqual(Book.objects.count(), 1)
+        self.assertEqual(book.pk, book_id)
+        self.assertEqual(book.path, zip_path)
+        self.assertEqual(book.catalog.path, zip_path)
+        self.assertEqual(scanner.books_skipped, 1)
+
     def test_store_result_propagates_bad_books(self) -> None:
         """Verify store_result adds bad_books count to scanner stats."""
         from opds_catalog.scan_types import ParseResult

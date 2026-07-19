@@ -109,3 +109,82 @@ class opdsdbTestCase(TestCase):
         opdsdb.addcattree("a/b/c", opdsdb.CAT_NORMAL)
         opdsdb.addcattree("a/b/c", opdsdb.CAT_NORMAL)
         self.assertEqual(Catalog.objects.filter(path="a/b/c").count(), 1)
+
+    def test_catalogs_del_empty_removes_missing_branches(self) -> None:
+        gone = opdsdb.addcattree("gone/nested", opdsdb.CAT_NORMAL)
+        missing_book = opdsdb.addbook(
+            "missing.fb2",
+            "gone/nested",
+            gone,
+            "fb2",
+            "Missing Book",
+            "",
+            "",
+            "ru",
+        )
+        missing_book.delete()
+
+        deleted = opdsdb.catalogs_del_empty()
+
+        self.assertGreaterEqual(deleted, 2)
+        self.assertFalse(Catalog.objects.filter(path="gone").exists())
+        self.assertFalse(Book.objects.filter(pk=missing_book.pk).exists())
+        self.assertTrue(Catalog.objects.filter(path="root/child").exists())
+        self.assertTrue(Catalog.objects.filter(parent=None, path=".").exists())
+
+    def test_catalogs_del_empty_preserves_logically_deleted_books(self) -> None:
+        gone = opdsdb.addcattree("gone/nested", opdsdb.CAT_NORMAL)
+        missing_book = opdsdb.addbook(
+            "missing.fb2",
+            "gone/nested",
+            gone,
+            "fb2",
+            "Missing Book",
+            "",
+            "",
+            "ru",
+        )
+        Book.objects.filter(pk=missing_book.pk).update(avail=0)
+
+        opdsdb.catalogs_del_empty()
+
+        self.assertTrue(Catalog.objects.filter(path="gone/nested").exists())
+        self.assertTrue(Book.objects.filter(pk=missing_book.pk, avail=0).exists())
+
+    def test_normalize_inp_catalog_reparents_catalog_and_books(self) -> None:
+        opdsdb.addcattree("books/index.inpx", opdsdb.CAT_INPX)
+        legacy = opdsdb.addcattree("books/part.inp", opdsdb.CAT_INP)
+        book = opdsdb.addbook(
+            "book.fb2",
+            "books/part.inp",
+            legacy,
+            "fb2",
+            "Book",
+            "",
+            "",
+            "ru",
+            archive=opdsdb.CAT_INP,
+        )
+        book_id = book.pk
+
+        moved = opdsdb.normalize_inp_catalog(
+            "books/part.inp",
+            "books/index.inpx/part.inp",
+        )
+
+        book.refresh_from_db()
+        legacy.refresh_from_db()
+        self.assertEqual(moved, 1)
+        self.assertEqual(book.pk, book_id)
+        self.assertEqual(book.path, "books/index.inpx/part.inp")
+        self.assertEqual(book.catalog, legacy)
+        self.assertEqual(legacy.path, "books/index.inpx/part.inp")
+        self.assertEqual(cast(Catalog, legacy.parent).path, "books/index.inpx")
+
+        self.assertEqual(
+            opdsdb.normalize_inp_catalog(
+                "books/part.inp",
+                "books/index.inpx/part.inp",
+            ),
+            0,
+        )

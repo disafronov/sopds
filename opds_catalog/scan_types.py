@@ -47,6 +47,8 @@ class BookMeta:
     authors: list[AuthorMeta] = field(default_factory=list)
     genres: list[str] = field(default_factory=list)
     series: list[SeriesMeta] = field(default_factory=list)
+    inp_rel_path: str | None = None
+    legacy_inp_rel_path: str | None = None
 
 
 @dataclass(slots=True)
