@@ -83,6 +83,13 @@ omit = [
   "tests/*",
   "*/tests/*",
   "*/migrations/*",
+  # Locally modified third-party forks have their own integration tests;
+  # coverage measures the SOPDS adapters and public dispatch instead.
+  "book_tools/_vendor/*",
+  "book_tools/pymobi/*",
+  # Compatibility fork of Python's legacy zipfile implementation. Archive and
+  # Cyrillic-filename behaviour is covered through public scanner integration.
+  "opds_catalog/zipf.py",
   "manage.py",
   "sopds/settings.py",
   "config/wsgi.py"
@@ -91,7 +98,7 @@ branch = true
 parallel = true
 
 [tool.coverage.report]
-fail_under = 60
+fail_under = 80
 exclude_lines = [
   "raise AssertionError",
   "raise NotImplementedError",
