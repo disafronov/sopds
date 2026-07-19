@@ -1,10 +1,11 @@
+{% load static %}
 {% autoescape off %}
 <?xml version="1.0" encoding="utf-8"?>
 <OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/">
     <ShortName>SimpleOPDS</ShortName>
     <LongName>SimpleOPDS</LongName>
     <Url type="application/atom+xml" template="{% url "opds_catalog:opensearch" %}{searchTerms}/" />
-    <Image width="16" height="16">http://www.sopds.ru/favicon.ico</Image>
+    <Image width="16" height="16">{% static "images/favicon.ico" %}</Image>
     <Tags />
     <Contact />
     <Developer />

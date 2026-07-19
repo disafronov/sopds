@@ -2,12 +2,37 @@
 {% load i18n %}
 
 {% block ext-body %}
-<div class="row">
-<div class="small-12 medium-8 large-8 small-centered columns">
-<h3 style="text-align:center;">{% trans "Hello" %} {% if user.is_authenticated %}{{ user.username }}{% endif %}{% if not user.is_authenticated %}{% trans "Guest" %}{% endif %} !</h3>
-<p style="text-align:justify;">
-   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{% trans "Simple OPDS Catalog - is a free program for Linux and Windows, which allows for the rapid creation of electronic OPDS-catalog books. OPDS (Open Publication Distribution System) directory allows you to access your library through the Internet with many devices for reading electronic books, tablets, smartphones, etc. More about the program can be found on the project website:" %} <a href="http://www.sopds.ru/"> www.sopds.ru</a>.
-</p>
-</div>
-</div>
-{% endblock %}  {# body #}
+    <div class="row">
+        <div class="small-12 medium-8 large-8 small-centered columns">
+            <h3 style="text-align:center;">
+                {% trans "Hello" %}
+                {% if user.is_authenticated %}
+                    {{ user.username }}
+                {% else %}
+                    {% trans "Guest" %}
+                {% endif %}!
+            </h3>
+            <p style="text-align:justify;">
+                {% blocktrans trimmed %}
+                    Simple OPDS Catalog is a free self-hosted application for
+                    creating an electronic OPDS book catalog.
+                {% endblocktrans %}
+                <br>
+                {% blocktrans trimmed %}
+                    OPDS (Open Publication Distribution System) lets you access
+                    your library over the Internet from e-book readers,
+                    tablets, smartphones, and other devices.
+                {% endblocktrans %}
+            </p>
+            <p style="text-align:center;">
+                {% trans "OPDS catalog address to add to your reading app:" %}
+                <a href="{% url "opds:main" %}"><code>{% url "opds:main" %}</code></a>
+            </p>
+            <p style="text-align:center;">
+                <a href="https://github.com/disafronov/sopds/issues">
+                    {% trans "Report bugs and request features on GitHub Issues." %}
+                </a>
+            </p>
+        </div>
+    </div>
+{% endblock %}

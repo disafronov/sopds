@@ -56,7 +56,7 @@ class modelsTestCase(TestCase):
         bseries.objects.create(book=book, ser=series, ser_no=1)
         user = User.objects.create_user(
             "testuser",
-            "testuser@sopds.ru",
+            "testuser@example.com",
             "testpassword",
             first_name="Test",
             last_name="User",

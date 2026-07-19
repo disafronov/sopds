@@ -260,7 +260,11 @@ class TestHello:
 
     def test_hello_returns_200(self, db: Any, client: Client) -> None:
         response = client.get("/web/")
-        assert response.status_code in (200, 302)
+        content = response.content.decode()
+
+        assert response.status_code == 200
+        assert 'href="/opds/"' in content
+        assert "https://github.com/disafronov/sopds/issues" in content
 
 
 class TestHandler403:
