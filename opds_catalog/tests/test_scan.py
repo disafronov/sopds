@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 from constance import config
 from django.conf import settings as django_settings
+from django.core.management.base import CommandError
 from django.test import TestCase
 
 from opds_catalog import opdsdb
@@ -587,6 +588,14 @@ class ScanIsActiveResetTestCase(TestCase):
         self.cmd = Command()
         self.cmd.logger = logging.getLogger("test_scanner")
         self.cmd.logger.setLevel(logging.DEBUG)
+
+    def test_command_accepts_only_foreground_actions(self) -> None:
+        """Process supervision owns daemon stop/restart lifecycle operations."""
+        parser = self.cmd.create_parser("manage.py", "sopds_scanner")
+        self.assertEqual(parser.parse_args(["scan"]).command, "scan")
+        self.assertEqual(parser.parse_args(["start"]).command, "start")
+        with self.assertRaises(CommandError):
+            parser.parse_args(["stop"])
 
     @patch("opds_catalog.management.commands.sopds_scanner.opdsScanner")
     def test_scan_is_active_resets_on_exception(self, mock_scanner_cls: Any) -> None:

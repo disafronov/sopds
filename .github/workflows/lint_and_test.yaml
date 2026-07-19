@@ -56,11 +56,7 @@ jobs:
         env:
           UV_PYTHON: ${{ steps.python_version.outputs.version }}
           DJANGO_DEBUG: "1"
-          DATABASE_HOST: 127.0.0.1
-          DATABASE_PORT: "5432"
-          DATABASE_NAME: database
-          DATABASE_USER: user
-          DATABASE_PASSWORD: password
+          DATABASE_URL: postgres://user:password@127.0.0.1:5432/database
 
       - name: Audit dependencies
         run: make audit

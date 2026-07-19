@@ -159,12 +159,24 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 import dj_database_url  # noqa: E402  — import after os
 
+DATABASE_URL = os.environ.get("DATABASE_URL")
+if not DATABASE_URL:
+    raise ImproperlyConfigured("DATABASE_URL is required")
+
 DATABASES = {
-    "default": dj_database_url.config(
+    "default": dj_database_url.parse(
+        DATABASE_URL,
         conn_max_age=600,
         conn_health_checks=True,
     )
 }
+if DATABASES["default"]["ENGINE"] not in {
+    "django.db.backends.postgresql",
+    "django.db.backends.mysql",
+}:
+    raise ImproperlyConfigured(
+        "DATABASE_URL must use PostgreSQL or MySQL/MariaDB; SQLite is unsupported"
+    )
 
 # SOPDS DATABASE SETTINGS FINISH
 
@@ -194,7 +206,6 @@ LOCALE_PATHS = (os.path.join(BASE_DIR, "config/locale"),)
 
 TIME_ZONE = "UTC"
 USE_I18N = True
-USE_L10N = True
 USE_TZ = True
 
 CACHE_BACKEND = "locmem://"
@@ -376,22 +387,6 @@ CONSTANCE_CONFIG_FIELDSETS = {
     "5. Converters Options": ("SOPDS_FB2TOEPUB", "SOPDS_FB2TOMOBI"),
 }
 
-SOPDS_SERVER_LOG = os.environ.get(
-    "SOPDS_SERVER_LOG",
-    os.path.join(BASE_DIR, "opds_catalog/log/sopds_server.log"),
-)
-SOPDS_SCANNER_LOG = os.environ.get(
-    "SOPDS_SCANNER_LOG",
-    os.path.join(BASE_DIR, "opds_catalog/log/sopds_scanner.log"),
-)
-SOPDS_SERVER_PID = os.environ.get(
-    "SOPDS_SERVER_PID",
-    os.path.join(BASE_DIR, "opds_catalog/tmp/sopds_server.pid"),
-)
-SOPDS_SCANNER_PID = os.environ.get(
-    "SOPDS_SCANNER_PID",
-    os.path.join(BASE_DIR, "opds_catalog/tmp/sopds_scanner.pid"),
-)
 SOPDS_TEMP_DIR = os.environ.get("SOPDS_TEMP_DIR", os.path.join(BASE_DIR, "tmp"))
 SOPDS_ROOT_LIB = os.environ.get("SOPDS_ROOT_LIB", "books/")
 SOPDS_SCAN_WORKERS = int(os.environ.get("SOPDS_SCAN_WORKERS", "0"))
@@ -401,3 +396,31 @@ SOPDS_NOCOVER_PATH = os.environ.get(
 )
 
 SECURE_REDIRECT_EXEMPT = [r"^health/"]
+SECURE_SSL_REDIRECT = os.getenv("DJANGO_SECURE_SSL_REDIRECT", "False").lower() in (
+    "1",
+    "true",
+    "yes",
+    "on",
+)
+SESSION_COOKIE_SECURE = os.getenv("DJANGO_SESSION_COOKIE_SECURE", "False").lower() in (
+    "1",
+    "true",
+    "yes",
+    "on",
+)
+CSRF_COOKIE_SECURE = os.getenv("DJANGO_CSRF_COOKIE_SECURE", "False").lower() in (
+    "1",
+    "true",
+    "yes",
+    "on",
+)
+SECURE_HSTS_SECONDS = int(os.getenv("DJANGO_SECURE_HSTS_SECONDS", "0"))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = os.getenv(
+    "DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS", "False"
+).lower() in ("1", "true", "yes", "on")
+SECURE_HSTS_PRELOAD = os.getenv("DJANGO_SECURE_HSTS_PRELOAD", "False").lower() in (
+    "1",
+    "true",
+    "yes",
+    "on",
+)
