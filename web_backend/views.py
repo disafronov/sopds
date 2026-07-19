@@ -800,11 +800,10 @@ def LoginView(request: HttpRequest) -> HttpResponse:
     next_url = request.GET.get("next", "")
     if not url_has_allowed_host_and_scheme(
         next_url,
-        # Login redirects never need to leave this application.  An empty host
-        # allow-list accepts relative paths while rejecting absolute and
-        # protocol-relative URLs, independently of the user-controlled Host
-        # header.
-        allowed_hosts=set(),
+        # Login redirects never need to leave this application.  Django treats
+        # ``None`` as an empty host allow-list, accepting relative paths while
+        # rejecting absolute and protocol-relative URLs.
+        allowed_hosts=None,
         require_https=request.is_secure(),
     ):
         next_url = reverse("web:main")
