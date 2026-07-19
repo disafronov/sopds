@@ -1,131 +1,67 @@
-# SOPDS
+# Simple OPDS Server (SOPDS)
 
-SOPDS (Simple OPDS) is an OPDS catalog server for e-books, built on Django. It
-scans a directory of book files (fb2, epub, mobi, pdf, djvu), indexes their
-metadata into a database, and exposes the collection both as an HTTP library
-browsing UI and as an OPDS 1.2 feed for OPDS-compatible reading apps. It can
-convert fb2 books to epub/mobi on download.
+> A Django-based OPDS catalog server for e-book collections.
+> Fork of [mitshel/sopds](https://github.com/mitshel/sopds/) by Dmitry Shelepnev.
 
-## Fork relationship
+## Features
 
-This repository is a soft fork of the original [**SOPDS**](https://github.com/mitshel/sopds/) by Dmitry Shelepnev. Upstream attribution and the original license are preserved:
-
-- Original author: Dmitry V. Shelepnev
-- Current maintainer / fork base: Dmitrii Safronov
-
-This fork modernizes the toolchain (uv, Django 5.2, semantic-release CI, Docker
-image) but keeps the original OPDS behavior and license intact.
+- **OPDS 1.2 feed** at `/opds/` for OPDS-compatible reading apps (KOReader, FBReader, etc.)
+- **Web UI** at `/web/` for browsing the catalog in a browser
+- **Book formats**: FB2, EPUB, MOBI, PDF, DJVU
+- **FB2 conversion** to EPUB/MOBI on download
+- **Scheduled scanning** via APScheduler with cron-like scheduling
+- **INPX archive support** for batch metadata import
+- **ZIP archive scanning** with configurable codepage
+- **PostgreSQL** support for concurrent scanning, SQLite for single-user dev
+- **Docker image** with multi-stage build (Ubuntu Noble + uv)
+- **Health checks** (liveness and readiness probes)
+- **Admin interface** for runtime configuration via django-constance
+- **Whitenoise** for static file serving in production
 
 ## Requirements
 
-- **Python**: 3.10, 3.11, or 3.12 (pinned to `3.12` via `.python-version`; CI
-  and Docker use that version). Python 3.13 is not supported.
-- **uv** — package and environment manager (<https://docs.astral.sh/uv/>).
-- **PostgreSQL** 17 (recommended for concurrent scanning) or the default
-  **SQLite** (`sqlite:///db.sqlite3`).
-- **Django** 5.2.x.
+- Python >= 3.12
+- Django 5.2
+- PostgreSQL 17 (recommended) or SQLite (development)
+- Docker (optional)
+- [uv](https://docs.astral.sh/uv/) package manager
 
-Runtime system libraries are listed in the `Dockerfile` (libxml2, libxslt,
-libjpeg, zlib, etc.); for local installs these come via `uv sync`.
+## Quick Start
 
-## Installation (local development)
+### Development (SQLite)
 
 ```bash
 git clone https://github.com/disafronov/sopds.git
 cd sopds
 
-# Install the pinned Python and sync the environment (writes .venv, installs hooks)
+# Install dependencies (uv + pre-commit hooks)
 make install
 
-# Create your local env file from the example
+# Create .env from example
 cp env.example .env
-#   edit .env: set SECRET_KEY, DJANGO_SECRET_KEY, DATABASE_URL, etc.
+# Edit .env: set SECRET_KEY, DJANGO_SECRET_KEY, DATABASE_URL, SOPDS_ROOT_LIB
 
-# Apply migrations
-make migrate
-
-# Create an admin user (optional; reads DJANGO_SUPERUSER_* from the Makefile env)
-make run      # also runs createsuperuser (if DJANGO_SUPERUSER_* are set) + dev server
+# Apply migrations and start dev server + scanner
+make run
 ```
 
-`make install` runs `uv python install`, `uv sync`, and `uv run pre-commit install`.
-`make run` runs `manage.py migrate`, attempts `createsuperuser --noinput` when the
-`DJANGO_SUPERUSER_*` env vars are present, then launches `manage.py dev`.
+The dev server starts at `http://0.0.0.0:8000/`. If `DJANGO_SUPERUSER_*`
+variables are set in `.env`, an admin user is created automatically.
 
-## Configuration
+### Docker Compose
 
-Settings are read from environment variables (see `sopds/settings.py`). The
-Makefile auto-exports `env.example` and `.env` for local runs.
-
-| Variable | Meaning | Default |
-| --- | --- | --- |
-| `DJANGO_SECRET_KEY` | Django `SECRET_KEY`. Falls back to an insecure hardcoded key if unset. **Set it.** | hardcoded |
-| `SECRET_KEY` | Legacy alias (not read by settings; `DJANGO_SECRET_KEY` wins). | – |
-| `DJANGO_DEBUG` | Enable Django debug mode (`1`/`true`/`yes`/`on`). | `True` |
-| `DEBUG` | Legacy alias (not read by settings). | – |
-| `DJANGO_ALLOWED_HOSTS` | Comma-separated `ALLOWED_HOSTS`. | `*` |
-| `ALLOWED_HOSTS` | Legacy alias (not read by settings). | – |
-| `DATABASE_URL` | Database DSN: `sqlite:///db.sqlite3` or `postgres://user:pass@host:port/db`. | `sqlite:///db.sqlite3` |
-| `HOST` / `PORT` | Bind host/port for the dev server launcher. | `0.0.0.0` / `8000` |
-| `SOPDS_USER` / `SOPDS_EMAIL` / `SOPDS_PASSWORD` | Example initial admin credentials (informational; `DJANGO_SUPERUSER_*` are what `make run` consumes). | – |
-| `DJANGO_SUPERUSER_USERNAME` / `DJANGO_SUPERUSER_PASSWORD` / `DJANGO_SUPERUSER_EMAIL` | Create an admin user via `createsuperuser --noinput` (used by `make run` and the container entrypoint). | – |
-
-### Database
-
-`DATABASE_URL` selects the engine:
-
-- `sqlite:///...` → SQLite (single-user; scanning blocks reads).
-- `postgres://` or `postgresql://` → Django `postgresql` backend (uses
-  `psycopg2-binary`). Credentials are parsed from the URL.
-
-Application behavior knobs (scanner schedule, book extensions, covers,
-etc.) live in **django-constance** (`CONSTANCE_CONFIG` in `sopds/settings.py`),
-stored in the database and editable via the Django admin (`/admin/`). Many have
-env overrides read at startup (e.g. `SOPDS_ROOT_LIB`, `SOPDS_ZIPSCAN`,
-`SOPDS_INPX_ENABLE`, `SOPDS_SCAN_START_DIRECTLY`, ...); see `env.example`.
-
-> **CI note:** `.github/workflows/lint_and_test.yaml` injects
-> `DATABASE_HOST`/`DATABASE_PORT`/`DATABASE_NAME`/`DATABASE_USER`/`DATABASE_PASSWORD`,
-> but `sopds/settings.py` only reads `DATABASE_URL`. The CI job relies on the
-> default SQLite `DATABASE_URL` unless the workflow is updated to set `DATABASE_URL`.
-
-## Running locally
+For local development with PostgreSQL and an SMTP sink (Mailpit):
 
 ```bash
-# Dev: supervised runserver (0.0.0.0:8000) + scanner, with auto-reload
-make run
-python manage.py dev
+docker compose up -d
 
-# Production-style WSGI via gunicorn (2 workers, timeout 120) + scanner
-python manage.py start
-gunicorn sopds.wsgi:application --bind 0.0.0.0:8000
+# Then run locally against the Postgres container
+cp env.example .env
+# Set DATABASE_URL=postgres://sopds:sopds@127.0.0.1:5432/sopds
+make run
 ```
 
-- `manage.py dev` launches `runserver 0.0.0.0:8000` and `sopds_scanner start` as
-  supervised child processes. Use for local development only.
-- `manage.py start` launches `gunicorn sopds.wsgi:application` and
-  `sopds_scanner start` under the same supervisor — this is what the Docker image
-  uses.
-
-After startup, the catalog is served at:
-
-- HTTP UI: `http://<host>:8000/`
-- OPDS feed: `http://<host>:8000/opds/`
-- Admin: `http://<host>:8000/admin/`
-- Readiness probe: `http://<host>:8000/health/readiness/`
-
-## Docker
-
-The Dockerfile builds a `ubuntu:noble` image using the `astral-sh/uv` base for
-dependency install. The image:
-
-- Exposes port **8000**.
-- Mounts a volume at **`/books`**.
-- Runs `python3 manage.py collectstatic` at build time (served by whitenoise).
-- Uses entrypoint `python3 manage.py` with default command `start` (i.e.
-  `manage.py start` → gunicorn + scanner).
-
-Build and run:
+### Docker Image
 
 ```bash
 docker build -t sopds .
@@ -137,141 +73,141 @@ docker run --rm -p 8000:8000 \
   sopds
 ```
 
-The Makefile provides helpers:
+Or via Makefile:
 
 ```bash
 make docker-build   # docker build -t sopds .
-make docker-run     # migrate, createsuperuser (if DJANGO_SUPERUSER_* set), run on :8000
+make docker-run     # migrate + createsuperuser + start on :8000
 make docker         # docker-build + docker-run
 ```
 
-`docker-run` auto-loads `env.example`, `env.docker`, and `.env` via
-`--env-file` and adds `host.docker.internal` host mapping.
+## Configuration
 
-For local Postgres without production concerns, `compose.yml` provides a
-`postgres:17` service and a `mailpit` SMTP sink (dev only — not for production).
+Settings are read from environment variables. See `env.example` for all options.
 
-## Management commands
+### Django
 
-All commands are standard Django management commands (`python manage.py <cmd>`),
-run via `uv run` in this repo.
+| Variable | Description | Default |
+| --- | --- | --- |
+| `DJANGO_SECRET_KEY` | Django `SECRET_KEY`. **Set this.** | hardcoded (insecure) |
+| `DJANGO_DEBUG` | Debug mode (`1`/`true`/`yes`/`on`). | `True` |
+| `DJANGO_ALLOWED_HOSTS` | Comma-separated `ALLOWED_HOSTS`. | `*` |
+| `DJANGO_CSRF_TRUSTED_ORIGINS` | CSRF trusted origins. | empty |
 
-### `dev`
+### Database
 
-Start `runserver` and the scanner together (development only). No arguments.
-Launches `sopds_scanner start` and `runserver 0.0.0.0:8000` as supervised
-children. See `ops/management/commands/dev.py`.
+| Variable | Description | Default |
+| --- | --- | --- |
+| `DATABASE_URL` | `sqlite:///db.sqlite3` or `postgres://user:pass@host:port/db` | `sqlite:///db.sqlite3` |
 
-### `start`
+### Server
 
-Start `gunicorn sopds.wsgi:application` and the scanner under a common supervisor
-(no arguments). Used by the Docker image. See `ops/management/commands/start.py`.
+| Variable | Description | Default |
+| --- | --- | --- |
+| `HOST` | Bind address for dev server. | `0.0.0.0` |
+| `PORT` | Bind port for dev server. | `8000` |
 
-### `sopds_scanner`
+### Superuser (used by `make run` and Docker entrypoint)
 
-Scan the book collection. `help`: "Scan Books Collection."
-
-```shell
-python manage.py sopds_scanner [scan|start|stop|restart] [--verbose] [--daemon]
-```
-
-- `scan` — run a single one-time scan.
-- `start` — run the APScheduler loop (scheduled scans per constance cron knobs).
-- `stop` / `restart` — signal the running scanner via its pidfile.
-- `--verbose` — also log to stdout.
-- `--daemon` — detach to background (POSIX only; not used by Docker).
-
-### `sopds_server`
-
-HTTP/OPDS built-in server (legacy; prefer `start`/gunicorn). `help`:
-"HTTP/OPDS built-in server."
-
-```shell
-python manage.py sopds_server [start|stop|restart] [--host H] [--port N] [--daemon]
-```
-
-- `--host` — bind address (default `0.0.0.0`).
-- `--port` — port (default `8001`).
-- `--daemon` — detach to background (POSIX only).
-
-### `sopds_util`
-
-Utilities. `help`: "Utils for SOPDS." Takes one or more positional subcommands:
-
-```shell
-python manage.py sopds_util [clear|info|save_mygenres|load_mygenres|setconf|getconf|pg_optimize] [--verbose] [--nogenres]
-```
-
-- `clear` — wipe the book DB and reload genre fixtures.
-- `info` — print counts (books, catalogs, authors, genres, series).
-- `save_mygenres` / `load_mygenres` — dump/load the genre directory to/from
-  `opds_catalog/fixtures/mygenres.json`.
-- `setconf <param> <value>` — set a constance config value.
-- `getconf [param]` — show one or all config values.
-- `pg_optimize` — PostgreSQL table optimization (`fillfactor=50` on the book table).
-- `--verbose`, `--nogenres` — verbosity / skip genre reload on `clear`.
-
-## Development & CI
-
-### Makefile targets
-
-| Target | What it does |
+| Variable | Description |
 | --- | --- |
-| `make install` | `uv python install` + `uv sync` + `pre-commit install`. |
-| `make lint` | `black --check`, `isort --check-only`, `flake8`, `mypy .`, `bandit`. |
-| `make test` | `pytest -v -n auto` with coverage. |
-| `make all` | `lint` + `test` + `dead-code` (vulture). |
-| `make format` | `black` + `isort` (in-place). |
-| `make migrate` / `makemigrations` | Django migrations. |
-| `make run` / `scanner` | Dev server / standalone scanner. |
-| `make audit` | `pip-audit` on dependencies. |
-| `make dead-code` | `vulture` check. |
-| `make docker-build` / `docker-run` / `docker` | Image build/run. |
-| `make clean` | Remove caches, `.venv`, coverage outputs. |
+| `DJANGO_SUPERUSER_USERNAME` | Admin username |
+| `DJANGO_SUPERUSER_PASSWORD` | Admin password |
+| `DJANGO_SUPERUSER_EMAIL` | Admin email |
 
-`mypy` runs in **strict** mode (`[tool.mypy] strict = true` in `pyproject.toml`)
-with the django-stubs plugin. `bandit` runs with the skip list in
-`[tool.bandit]`. Pre-commit hooks are installed by `make install`.
+### SOPDS Scanner
 
-### GitHub Actions
+| Variable | Description | Default |
+| --- | --- | --- |
+| `SOPDS_ROOT_LIB` | Root directory for books. | `books/` |
+| `SOPDS_ZIPSCAN` | Scan ZIP archives. | `True` |
+| `SOPDS_ZIPCODEPAGE` | Codepage for ZIP filenames. | `cp866` |
+| `SOPDS_DELETE_LOGICAL` | Logical deletion of removed books. | `True` |
+| `SOPDS_INPX_ENABLE` | Enable INPX archive scanning. | `True` |
+| `SOPDS_INPX_SKIP_UNCHANGED` | Skip unchanged INPX files. | `False` |
+| `SOPDS_SCAN_START_DIRECTLY` | Start scanner on server startup. | `True` |
 
-- **`lint_and_test.yaml`** — on PR to `main`/`release`: checkout, install uv,
-  `uv sync --frozen`, `make all`, `make audit` (Postgres 17 service, gettext).
-- **`docker.yaml`** — on PR to `main` (unsigned PR image) and on `vX.Y.Z` /
-  `vX.Y.Z-rc.N` tags (pushed + cosign-signed for non-RC releases) via
-  `docker/build-push-action` to `ghcr.io`.
-- **`semantic.yaml`** — semantic-release via `ghcr.io/disafronov/semantic-release`;
-  dry-run validation on PR, release on push to `main`/`release`, and a sync of
-  `release` → `main`.
-- **`auto-pr-description.yml`** — on PR to `release`: auto-generates the PR
-  description/title (release PRs).
+Additional knobs are available via the Django admin (`/admin/`) under
+django-constance.
 
-## Project layout
+## Management Commands
 
-- `sopds/` — Django project package: `settings.py`, `urls.py`, `wsgi.py`, `locale/`.
-- `opds_catalog/` — core app: models, scanner (`sopdscan`), OPDS feed generation,
-  middleware, fixtures, and the `sopds_scanner` / `sopds_server` / `sopds_util`
-  management commands.
-- `sopds_web_backend/` — web UI app: views, templates, admin, static assets,
-  and its own settings knobs (e.g. `HALF_PAGES_LINKS`).
-- `ops/` — operations app: `dev` and `start` launchers, process supervisor
-  (`supervisor.py`), `health` checks.
-- `book_tools/` — book conversion/processing helpers.
-- `convert/` — bundled fb2→epub / fb2→mobi converter sources.
-- `assets/`, `static/` — front-end assets and collected static files.
+All commands are run via `uv run python manage.py <command>` (or `make` shortcuts).
 
-## Legacy documentation
+| Command | Description |
+| --- | --- |
+| `dev` | Start `runserver` + scanner for development. |
+| `start` | Start gunicorn + scanner for production (used by Docker). |
+| `sopds_scanner [scan\|start\|stop\|restart]` | Manage the book scanner. `scan` for one-shot, `start` for scheduled loop. |
+| `sopds_server [start\|stop\|restart]` | Built-in HTTP server (legacy, prefer `start`). |
+| `sopds_util [clear\|info\|setconf\|getconf\|pg_optimize\|...]` | Utilities: DB info, config management, genre import/export. |
 
-The original SimpleOPDS README described OPDS as a catalog protocol for e-book
-libraries and the distinction between the HTTP browsing UI and the OPDS feed.
-That conceptual framing still applies: SOPDS exposes the same collection at
-`/opds/` (machine-readable OPDS 1.2) and `/` (human browsing UI). Historical
-setup details (Python 3.4, Django 1.10, `requirements.txt`, MySQL/MyISAM
-instructions, `sopds.ru` downloads, built-in `sopds_server` on port 8001 as the
-primary server) are obsolete and have been removed.
+Run `python manage.py <command> --help` for full usage details.
 
----
+## API Endpoints
 
-> WIP draft — reflects the repository state as of `main` @ `18b09ff`. Some
-> sections (e.g. the CI `DATABASE_URL` gap noted above) need confirmation before
-> this becomes the canonical README.
+| Path | Description |
+| --- | --- |
+| `/` | Redirects to web UI (`/web/`) |
+| `/web/` | Web browsing interface |
+| `/opds/` | OPDS 1.2 catalog feed |
+| `/admin/` | Django admin interface |
+| `/health/liveness/` | Liveness probe (returns 200) |
+| `/health/readiness/` | Readiness probe (checks DB connectivity) |
+
+## Development
+
+### Makefile Targets
+
+| Target | Description |
+| --- | --- |
+| `make install` | Install Python + dependencies + pre-commit hooks |
+| `make format` | Auto-format with black + isort |
+| `make lint` | Check with black, isort, flake8, mypy (strict), bandit |
+| `make test` | Run pytest with coverage |
+| `make all` | lint + test + dead-code (vulture) |
+| `make audit` | Check dependencies for known vulnerabilities |
+| `make dead-code` | Detect unused code with vulture |
+| `make migrate` | Apply database migrations |
+| `make makemigrations` | Create new migrations |
+| `make run` | Migrate + create superuser + dev server + scanner |
+| `make scanner` | Run scanner standalone (APScheduler loop) |
+| `make docker-build` | Build Docker image |
+| `make docker-run` | Run Docker container |
+| `make docker` | Build + run Docker container |
+| `make clean` | Remove caches, .venv, coverage outputs |
+
+### Linting
+
+- **black** (line-length 88)
+- **isort** (black profile)
+- **flake8** (max-line-length 88)
+- **mypy** (strict mode with django-stubs)
+- **bandit** (security linter)
+
+Pre-commit hooks are installed by `make install`.
+
+### CI/CD
+
+- **lint_and_test** -- runs `make all` + `make audit` on PRs
+- **docker** -- builds and pushes Docker image to `ghcr.io` on tags
+- **semantic-release** -- automated versioning on `main`/`release` branches
+
+## Project Structure
+
+```text
+sopds/                  Django project (settings, urls, wsgi)
+opds_catalog/           Core app: models, scanner, OPDS feeds, middleware
+sopds_web_backend/      Web UI app: views, templates, static assets
+ops/                    Operations: dev/start launchers, health checks, supervisor
+book_tools/             Book conversion/processing helpers
+convert/                Bundled FB2 to EPUB/MOBI converter
+assets/                 Front-end assets
+books/                  Book storage directory (mounted as Docker volume)
+```
+
+## Versioning
+
+This project uses [Semantic Versioning](https://semver.org/) with
+[Conventional Commits](https://www.conventionalcommits.org/).
+Releases are automated via [semantic-release](https://github.com/semantic-release/semantic-release).
