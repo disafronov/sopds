@@ -215,6 +215,37 @@ class TestLoginView:
         )
         assert response.status_code in (200, 302, 301)
 
+    def test_redirects_to_internal_next_url(
+        self, db: Any, client: Client, user: User
+    ) -> None:
+        response = client.post(
+            "/web/login/",
+            {"username": "testuser", "password": "testpass"},
+            query_params={"next": "/web/search/books/?searchtype=u"},
+        )
+
+        assert response.status_code == 302
+        assert response.headers["Location"] == "/web/search/books/?searchtype=u"
+
+    @pytest.mark.parametrize(
+        "next_url",
+        [
+            "https://attacker.example/steal",
+            "//attacker.example/steal",
+        ],
+    )
+    def test_rejects_external_next_url(
+        self, db: Any, client: Client, user: User, next_url: str
+    ) -> None:
+        response = client.post(
+            "/web/login/",
+            {"username": "testuser", "password": "testpass"},
+            query_params={"next": next_url},
+        )
+
+        assert response.status_code == 302
+        assert response.headers["Location"] == "/web/"
+
 
 class TestLogoutView:
     """Tests for LogoutView()."""
