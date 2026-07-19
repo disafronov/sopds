@@ -4339,7 +4339,7 @@ version = "15.0.0"
 
 [[package]]
 name = "sopds"
-version = "1.0.0rc14"
+version = "1.0.0"
 
   [package.source]
   virtual = "."
