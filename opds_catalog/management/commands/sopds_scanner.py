@@ -22,7 +22,7 @@ class Command(BaseCommand):
     help = "Scan Books Collection."
     scan_is_active: bool = False
     pidfile: str = ""
-    logger: logging.Logger = logging.getLogger("")
+    logger: logging.Logger = logging.getLogger("opds_catalog.scanner")
     sched: BlockingScheduler | None = None  # Initialized in start(); annotations only.
     SCAN_SHED_DAY: str = ""
     SCAN_SHED_DOW: str = ""
@@ -31,13 +31,6 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser: ArgumentParser) -> None:
         parser.add_argument("command", help="Use [ scan | start | stop | restart ]")
-        parser.add_argument(
-            "--verbose",
-            action="store_true",
-            dest="verbose",
-            default=False,
-            help="Set verbosity level for books collection scan.",
-        )
         parser.add_argument(
             "--daemon",
             action="store_true",
@@ -51,16 +44,7 @@ class Command(BaseCommand):
             main_settings.BASE_DIR, main_settings.SOPDS_SCANNER_PID
         )
         action = options["command"]
-        self.logger = logging.getLogger("")
-        self.logger.setLevel(logging.DEBUG)
-        formatter = logging.Formatter("%(asctime)s %(levelname)-8s %(message)s")
-
-        # Always log to stdout (the daemon mode redirects stdout/stderr
-        # itself in daemonize()).  --verbose raises the level to DEBUG.
-        ch = logging.StreamHandler()
-        ch.setLevel(logging.DEBUG if options["verbose"] else logging.INFO)
-        ch.setFormatter(formatter)
-        self.logger.addHandler(ch)
+        self.logger = logging.getLogger("opds_catalog.scanner")
 
         if options["daemonize"] and (action in ["start", "scan"]):
             if sys.platform == "win32":

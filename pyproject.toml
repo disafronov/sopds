@@ -58,7 +58,7 @@ plugins = [ "mypy_django_plugin.main" ]
   ignore_missing_imports = true
 
 [tool.django-stubs]
-django_settings_module = "sopds.settings"
+django_settings_module = "config.settings"
 
 [tool.bandit]
 exclude_dirs = [ ".venv", "htmlcov", "tests", "*/migrations/*" ]
@@ -85,7 +85,7 @@ omit = [
   "*/migrations/*",
   "manage.py",
   "sopds/settings.py",
-  "sopds/wsgi.py"
+  "config/wsgi.py"
 ]
 branch = true
 parallel = true
@@ -115,7 +115,7 @@ exclude = [ ".venv", "htmlcov", "tests/*", "*/tests/*", "*/migrations/*" ]
 ignore_names = [ "cls", "owner", "UserType", "db", "obj", "args", "kwargs", "test_zip", "test_files" ]
 
 [tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "sopds.settings"
+DJANGO_SETTINGS_MODULE = "config.settings"
 python_files = [ "test_*.py" ]
 addopts = "--strict-markers --cov --cov-report=term-missing --cov-report=html"
 testpaths = [ "." ]

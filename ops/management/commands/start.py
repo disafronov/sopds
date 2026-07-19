@@ -17,6 +17,6 @@ class Command(BaseCommand):
         _supervise(
             [
                 _spawn(sys.executable, "manage.py", "sopds_scanner", "start"),
-                _spawn("gunicorn", "sopds.wsgi:application"),
+                _spawn("gunicorn", "config.wsgi:application"),
             ]
         )
