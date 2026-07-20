@@ -47,7 +47,7 @@ RUN --mount=from=uv,source=/uv,target=/bin/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     --mount=type=bind,source=.python-version,target=.python-version \
-    uv sync --frozen --no-install-project --link-mode=copy --no-editable
+    uv sync --frozen --no-install-project --link-mode=copy --no-editable --no-group dev
 
 # Copy the project into the image — no src/, files are at root.
 COPY --chown=ubuntu:ubuntu \
@@ -58,7 +58,7 @@ RUN --mount=from=uv,source=/uv,target=/bin/uv \
     --mount=type=cache,target=/home/ubuntu/.cache/uv,uid=1000,gid=1000 \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --frozen --link-mode=copy --no-editable
+    uv sync --frozen --link-mode=copy --no-editable --no-group dev
 
 WORKDIR /home/ubuntu/app
 
