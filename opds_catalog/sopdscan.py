@@ -100,6 +100,8 @@ def _store_books_batch(books: list[BookMeta], scanner: opdsScanner) -> None:
     if not books:
         return
 
+    batch_size = settings.SOPDS_SCAN_INSERT_BATCH_SIZE or None
+
     requested_keys = {_book_key(meta) for meta in books}
     fallback_keys = {
         (meta.filename[:SIZE_BOOK_FILENAME], path[:SIZE_BOOK_PATH])
@@ -187,7 +189,7 @@ def _store_books_batch(books: list[BookMeta], scanner: opdsScanner) -> None:
         )
         for name in author_names - authors.keys()
     ]
-    Author.objects.bulk_create(missing_authors)
+    Author.objects.bulk_create(missing_authors, batch_size=batch_size)
     authors.update({author.full_name: author for author in missing_authors})
     _author_cache.update(authors)
 
@@ -202,7 +204,7 @@ def _store_books_batch(books: list[BookMeta], scanner: opdsScanner) -> None:
         )
         for name in genre_names - genres.keys()
     ]
-    Genre.objects.bulk_create(missing_genres)
+    Genre.objects.bulk_create(missing_genres, batch_size=batch_size)
     genres.update({genre.genre: genre for genre in missing_genres})
     _genre_cache.update(genres)
 
@@ -217,7 +219,7 @@ def _store_books_batch(books: list[BookMeta], scanner: opdsScanner) -> None:
         )
         for name in series_names - series_by_name.keys()
     ]
-    Series.objects.bulk_create(missing_series)
+    Series.objects.bulk_create(missing_series, batch_size=batch_size)
     series_by_name.update({item.ser: item for item in missing_series})
     _series_cache.update(series_by_name)
 
@@ -239,7 +241,7 @@ def _store_books_batch(books: list[BookMeta], scanner: opdsScanner) -> None:
         )
         for meta in new_meta
     ]
-    Book.objects.bulk_create(book_rows)
+    Book.objects.bulk_create(book_rows, batch_size=batch_size)
 
     author_links: list[bauthor] = []
     genre_links: list[bgenre] = []
@@ -261,9 +263,9 @@ def _store_books_batch(books: list[BookMeta], scanner: opdsScanner) -> None:
             for item in meta.series
         )
 
-    bauthor.objects.bulk_create(author_links)
-    bgenre.objects.bulk_create(genre_links)
-    bseries.objects.bulk_create(series_links)
+    bauthor.objects.bulk_create(author_links, batch_size=batch_size)
+    bgenre.objects.bulk_create(genre_links, batch_size=batch_size)
+    bseries.objects.bulk_create(series_links, batch_size=batch_size)
     scanner.books_added += len(book_rows)
     scanner.books_in_archives += sum(meta.cat_type != 0 for meta in new_meta)
 
