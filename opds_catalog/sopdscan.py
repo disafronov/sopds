@@ -549,11 +549,27 @@ class opdsScanner:
                                     os.path.join(inpx_rel_path, entry.name),
                                 )
                                 inp_path = os.path.join(inpx_rel_path, entry.name)
-                                inp_cat = opdsdb.findcat(inp_path)
                                 if (
-                                    inp_cat is not None
-                                    and inp_cat.cat_size != entry.size
+                                    config.SOPDS_INPX_SKIP_UNCHANGED
+                                    and opdsdb.inp_skip(inp_path, entry.size)
                                 ):
+                                    self.logger.info(
+                                        "Skip %s %s. Not changed.",
+                                        "INP",
+                                        os.path.abspath(
+                                            os.path.join(
+                                                os.path.dirname(result.source_path),
+                                                entry.name,
+                                            )
+                                        ),
+                                    )
+                                    continue
+                                inp_cat = opdsdb.findcat(inp_path)
+                                if inp_cat is None:
+                                    opdsdb.addcattree(
+                                        inp_path, opdsdb.CAT_INP, entry.size
+                                    )
+                                elif inp_cat.cat_size != entry.size:
                                     inp_cat.cat_size = entry.size
                                     inp_cat.save(update_fields=["cat_size"])
                                 logger.info(
