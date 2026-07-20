@@ -680,6 +680,58 @@ class InpxCatalogSizeTestCase(TestCase):
             self.assertEqual(cat_size, inpx_file_size)
 
 
+class ZipCatalogSizeTestCase(TestCase):
+    """Verify that scan_all preserves cat_size on ZIP catalogs."""
+
+    def _make_zip(self, tmp: str) -> str:
+        """Create a minimal ZIP archive with one .fb2 book."""
+        from opds_catalog import zipf as zipfile
+
+        src = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "tests/data/262001.fb2",
+        )
+        zip_path = os.path.join(tmp, "test_archive.zip")
+        with zipfile.ZipFile(zip_path, "w") as zf:
+            with open(src, "rb") as fh:
+                zf.writestr("262001.fb2", fh.read())
+        return zip_path
+
+    def test_zip_catalog_cat_size_matches_filesystem(self) -> None:
+        """ZIP catalog must get cat_size from the actual file on disk,
+        even if the catalog already exists with a stale size."""
+        opdsdb.clear_all()
+        config.SOPDS_ZIPSCAN = True
+        config.SOPDS_INPX_ENABLE = True
+        config.SOPDS_INPX_SKIP_UNCHANGED = False
+        scanner = opdsScanner()
+        executor = ImmediateExecutor()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            zip_path = self._make_zip(tmp)
+            zip_file_size = os.path.getsize(zip_path)
+
+            # Pre-create the ZIP catalog with a wrong cat_size to simulate
+            # a stale entry from a previous scan.
+            zip_rel = os.path.relpath(zip_path, tmp)
+            stale_cat = opdsdb.addcattree(zip_rel, opdsdb.CAT_ZIP, size=0)
+            self.assertEqual(stale_cat.cat_size, 0)
+
+            django_settings.SOPDS_ROOT_LIB = tmp
+
+            with patch(
+                "opds_catalog.sopdscan.create_scan_executor",
+                return_value=executor,
+            ):
+                scanner.scan_all()
+
+            zip_cat = opdsdb.findcat(zip_rel)
+
+            self.assertIsNotNone(zip_cat, f"ZIP catalog not found for {zip_rel}")
+            cat_size = zip_cat.cat_size  # type: ignore[union-attr]
+            self.assertEqual(cat_size, zip_file_size)
+
+
 class ScanIsActiveResetTestCase(TestCase):
     """Verify that scan_is_active is always reset even when scan_all() raises."""
 
