@@ -564,14 +564,7 @@ class opdsScanner:
                                         ),
                                     )
                                     continue
-                                inp_cat = opdsdb.findcat(inp_path)
-                                if inp_cat is None:
-                                    opdsdb.addcattree(
-                                        inp_path, opdsdb.CAT_INP, entry.size
-                                    )
-                                elif inp_cat.cat_size != entry.size:
-                                    inp_cat.cat_size = entry.size
-                                    inp_cat.save(update_fields=["cat_size"])
+                                opdsdb.addcattree(inp_path, opdsdb.CAT_INP, entry.size)
                                 logger.info(
                                     "DISPATCH parse_inp_job inpx=%s entry=%s",
                                     result.source_path,
