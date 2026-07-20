@@ -291,6 +291,23 @@ def inpx_skip(arcpath: str, arcsize: int) -> int:
     return 0
 
 
+def zip_skip(arcpath: str, arcsize: int) -> int:
+    """Check if a ZIP archive has been scanned before with the same size.
+
+    Returns a positive number (books marked) when the archive is
+    unchanged and books have been set ``avail=2``.
+    Returns zero when the archive does not exist in the catalog or
+    its size has changed — meaning it should be re-scanned.
+    """
+    catalog = findcat(arcpath)
+    if catalog is None:
+        return 0
+    if arcsize == catalog.cat_size:
+        row_count = Book.objects.filter(catalog=catalog).update(avail=2)
+        return row_count
+    return 0
+
+
 # Cache of Catalog objects keyed by cat_name. The catalog tree is fully
 # determined by the path, so it is safe to populate this once per scan and
 # never invalidate it mid-scan (call clear_cat_cache() at the start of a scan).

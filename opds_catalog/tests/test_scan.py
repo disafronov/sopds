@@ -731,6 +731,65 @@ class ZipCatalogSizeTestCase(TestCase):
             cat_size = zip_cat.cat_size  # type: ignore[union-attr]
             self.assertEqual(cat_size, zip_file_size)
 
+    def test_zip_unchanged_skip(self) -> None:
+        """Second scan must skip ZIP when size unchanged and mark books avail=2."""
+        opdsdb.clear_all()
+        config.SOPDS_ZIPSCAN = True
+        config.SOPDS_INPX_ENABLE = False
+        config.SOPDS_ZIP_SKIP_UNCHANGED = True
+        scanner = opdsScanner()
+        executor = ImmediateExecutor()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            zip_path = self._make_zip(tmp)
+            django_settings.SOPDS_ROOT_LIB = tmp
+
+            # --- first scan: ZIP must be dispatched (not skipped) ---
+            with patch(
+                "opds_catalog.sopdscan.create_scan_executor",
+                return_value=executor,
+            ):
+                scanner.scan_all()
+
+            self.assertEqual(
+                executor.submitted.count("discover_zip_entries"),
+                1,
+                "First scan must dispatch discover_zip_entries",
+            )
+
+            zip_rel = os.path.relpath(zip_path, tmp)
+            zip_cat = opdsdb.findcat(zip_rel)
+            self.assertIsNotNone(zip_cat)
+
+            # Books inserted by the first scan should exist.
+            books_after_first = Book.objects.filter(catalog=zip_cat).count()
+            self.assertGreater(books_after_first, 0)
+
+            # --- second scan: ZIP must be skipped ---
+            executor.submitted.clear()
+            scanner.arch_skipped = 0
+
+            with patch(
+                "opds_catalog.sopdscan.create_scan_executor",
+                return_value=executor,
+            ):
+                scanner.scan_all()
+
+            self.assertEqual(
+                executor.submitted.count("discover_zip_entries"),
+                0,
+                "Second scan must NOT dispatch discover_zip_entries",
+            )
+            self.assertGreater(scanner.arch_skipped, 0)
+
+            # All books from the ZIP must have avail=2.
+            skipped_books = Book.objects.filter(catalog=zip_cat, avail=2).count()
+            self.assertEqual(
+                skipped_books,
+                books_after_first,
+                "All books must be marked avail=2 on skip",
+            )
+
 
 class ScanIsActiveResetTestCase(TestCase):
     """Verify that scan_is_active is always reset even when scan_all() raises."""
