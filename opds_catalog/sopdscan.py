@@ -457,6 +457,7 @@ class opdsScanner:
                                         + ". Already scanned."
                                     )
                                 else:
+                                    opdsdb.addcattree(rel_file, opdsdb.CAT_ZIP, zsize)
                                     logger.info(
                                         "DISPATCH discover_zip_entries zip=%s", file
                                     )
@@ -592,6 +593,16 @@ class opdsScanner:
                                 if inpx_cat.cat_size != inpx_file_size:
                                     inpx_cat.cat_size = inpx_file_size
                                     inpx_cat.save(update_fields=["cat_size"])
+                        else:
+                            zip_rel_file = os.path.relpath(
+                                result.source_path, settings.SOPDS_ROOT_LIB
+                            )
+                            zip_cat = opdsdb.findcat(zip_rel_file)
+                            if zip_cat is not None:
+                                zip_file_size = os.path.getsize(result.source_path)
+                                if zip_cat.cat_size != zip_file_size:
+                                    zip_cat.cat_size = zip_file_size
+                                    zip_cat.save(update_fields=["cat_size"])
                     else:
                         store_result(parse_result, self)
 
