@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import tempfile
 from concurrent.futures import Future
 from types import TracebackType
 from typing import Any
@@ -579,6 +580,104 @@ EPUB и помещает в БД)"""
         self.assertEqual(result.books[0].filename, self.test_fb2)
         self.assertEqual(result.books[0].title, "The Sanctuary Sparrow")
         self.assertEqual(result.bad_books, 0)
+
+
+class InpxCatalogSizeTestCase(TestCase):
+    """Verify that scan_all preserves cat_size on INPX and INP catalogs."""
+
+    INPX_FORMAT = "AUTHOR;GENRE;TITLE;SERIES;SERNO;FILE;SIZE;LIBID;DEL;EXT;DATE;LANG"
+    INP_RECORD = (
+        b"Author\x04Genre\x04Test Book\x04Series\x040"
+        b"\x04book\x0412345\x04lib\x040\x04fb2\x042024\x04en"
+    )
+
+    def _make_inpx(self, tmp: str) -> str:
+        """Create a minimal INPX archive with one .inp entry."""
+        import zipfile as _zipfile
+
+        inpx_path = os.path.join(tmp, "test.index.inpx")
+        with _zipfile.ZipFile(inpx_path, "w") as zf:
+            zf.writestr("structure.info", self.INPX_FORMAT)
+            zf.writestr("test.inp", self.INP_RECORD)
+        return inpx_path
+
+    def test_inp_catalog_cat_size_matches_entry_size(self) -> None:
+        """Patch 3: INP catalog must get cat_size from ContainerEntry.size."""
+        import zipfile as _zipfile
+
+        opdsdb.clear_all()
+        config.SOPDS_INPX_ENABLE = True
+        config.SOPDS_INPX_SKIP_UNCHANGED = False
+        scanner = opdsScanner()
+        executor = ImmediateExecutor()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            inpx_path = self._make_inpx(tmp)
+            with _zipfile.ZipFile(inpx_path, "r") as zf:
+                inp_entry_size = zf.getinfo("test.inp").file_size
+
+            # Pre-create the legacy INP catalog so normalize_inp_catalog
+            # can reparent it under the INPX catalog. This simulates a
+            # re-scan where the INP was already scanned previously.
+            inp_legacy_path = os.path.relpath(
+                os.path.join(os.path.dirname(inpx_path), "test.inp"),
+                tmp,
+            )
+            # Also pre-create the INPX catalog so that normalize_inp_catalog
+            # can set the right parent.
+            inpx_rel = os.path.relpath(inpx_path, tmp)
+            opdsdb.addcattree(
+                inpx_rel, opdsdb.CAT_INPX, size=os.path.getsize(inpx_path)
+            )
+            legacy_inp = opdsdb.addcattree(inp_legacy_path, opdsdb.CAT_INP, size=0)
+            self.assertEqual(legacy_inp.cat_size, 0)
+
+            django_settings.SOPDS_ROOT_LIB = tmp
+
+            with patch(
+                "opds_catalog.sopdscan.create_scan_executor",
+                return_value=executor,
+            ):
+                scanner.scan_all()
+
+            inp_rel = os.path.join(inpx_rel, "test.inp")
+            inp_cat = opdsdb.findcat(inp_rel)
+            self.assertIsNotNone(inp_cat, f"INP catalog not found for {inp_rel}")
+            cat_size = inp_cat.cat_size  # type: ignore[union-attr]
+            self.assertEqual(cat_size, inp_entry_size)
+
+    def test_inpx_catalog_cat_size_matches_filesystem(self) -> None:
+        """Patch 4: INPX catalog must get cat_size from the actual file on disk,
+        even if the catalog already exists with a stale size."""
+        opdsdb.clear_all()
+        config.SOPDS_INPX_ENABLE = True
+        config.SOPDS_INPX_SKIP_UNCHANGED = False
+        scanner = opdsScanner()
+        executor = ImmediateExecutor()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            inpx_path = self._make_inpx(tmp)
+            inpx_file_size = os.path.getsize(inpx_path)
+
+            # Pre-create the INPX catalog with a wrong cat_size to simulate
+            # a stale entry from a previous scan.
+            inpx_rel = os.path.relpath(inpx_path, tmp)
+            stale_cat = opdsdb.addcattree(inpx_rel, opdsdb.CAT_INPX, size=0)
+            self.assertEqual(stale_cat.cat_size, 0)
+
+            django_settings.SOPDS_ROOT_LIB = tmp
+
+            with patch(
+                "opds_catalog.sopdscan.create_scan_executor",
+                return_value=executor,
+            ):
+                scanner.scan_all()
+
+            inpx_cat = opdsdb.findcat(inpx_rel)
+
+            self.assertIsNotNone(inpx_cat, f"INPX catalog not found for {inpx_rel}")
+            cat_size = inpx_cat.cat_size  # type: ignore[union-attr]
+            self.assertEqual(cat_size, inpx_file_size)
 
 
 class ScanIsActiveResetTestCase(TestCase):
