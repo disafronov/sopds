@@ -146,7 +146,7 @@ dev = [
   "pytest-xdist>=3.6.0",
   "pytest-mock>=3.14.0",
   "mypy",
-  "django-stubs[compatible-mypy]>=5.2,<5.3",
+  "django-stubs[compatible-mypy]>=6.0.7,<6.1",
   "bandit>=1.7.5",
   "pre-commit>=4.6.0",
   "vulture>=2.16",
