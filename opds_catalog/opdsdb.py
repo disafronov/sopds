@@ -321,6 +321,9 @@ def findcat(cat_name: str) -> Catalog | None:
 def addcattree(cat_name: str, archive: int = 0, size: int = 0) -> Catalog:
     catalog = findcat(cat_name)
     if catalog:
+        if size and catalog.cat_size != size:
+            catalog.cat_size = size
+            catalog.save(update_fields=["cat_size"])
         return catalog
     if cat_name in ("", "."):
         catalog = Catalog.objects.get_or_create(

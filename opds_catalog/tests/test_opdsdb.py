@@ -188,3 +188,41 @@ class opdsdbTestCase(TestCase):
             ),
             0,
         )
+
+    def test_catalogs_del_empty_removes_empty_container_catalogs(self) -> None:
+        """catalogs_del_empty must delete empty leaf catalogs regardless of cat_type."""
+        opdsdb.addcattree("arch/index.inpx", opdsdb.CAT_INPX, size=9999)
+        opdsdb.addcattree("arch/inner.zip", opdsdb.CAT_ZIP, size=8888)
+        opdsdb.addcattree("arch/index.inpx/part.inp", opdsdb.CAT_INP, size=7777)
+
+        deleted = opdsdb.catalogs_del_empty()
+
+        self.assertGreaterEqual(deleted, 3)
+        self.assertFalse(Catalog.objects.filter(path="arch/inner.zip").exists())
+        self.assertFalse(
+            Catalog.objects.filter(path="arch/index.inpx/part.inp").exists()
+        )
+
+    def test_catalogs_del_empty_deletes_regular_empty_leaf(self) -> None:
+        """catalogs_del_empty with an empty leaf regular node must still delete it."""
+        opdsdb.addcattree("gone/nested/leaf", opdsdb.CAT_NORMAL)
+        opdsdb.catalogs_del_empty()
+        self.assertFalse(Catalog.objects.filter(path="gone/nested/leaf").exists())
+
+    def test_addcattree_updates_cat_size_on_existing(self) -> None:
+        """addcattree must update cat_size when size differs on an existing catalog."""
+        cat = opdsdb.addcattree("sized/leaf", opdsdb.CAT_NORMAL, size=0)
+        self.assertEqual(cat.cat_size, 0)
+
+        updated = opdsdb.addcattree("sized/leaf", opdsdb.CAT_NORMAL, size=42)
+        updated.refresh_from_db()
+        self.assertEqual(updated.cat_size, 42)
+
+    def test_addcattree_preserves_cat_size_when_same(self) -> None:
+        """addcattree must not touch cat_size when the size is already correct."""
+        cat = opdsdb.addcattree("same/leaf", opdsdb.CAT_NORMAL, size=100)
+        self.assertEqual(cat.cat_size, 100)
+
+        same = opdsdb.addcattree("same/leaf", opdsdb.CAT_NORMAL, size=100)
+        same.refresh_from_db()
+        self.assertEqual(same.cat_size, 100)
