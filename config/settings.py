@@ -276,6 +276,13 @@ CONSTANCE_CONFIG = OrderedDict(
             ),
         ),
         (
+            "SOPDS_ZIP_SKIP_UNCHANGED",
+            (
+                True,
+                _("Skip unchanged ZIP archives on re-scan by comparing file size"),
+            ),
+        ),
+        (
             "SOPDS_ZIPCODEPAGE",
             (
                 os.getenv("SOPDS_ZIPCODEPAGE", "cp866"),
@@ -371,6 +378,7 @@ CONSTANCE_CONFIG_FIELDSETS = {
     "3. Scanner Options": (
         "SOPDS_FB2SAX",
         "SOPDS_ZIPSCAN",
+        "SOPDS_ZIP_SKIP_UNCHANGED",
         "SOPDS_ZIPCODEPAGE",
         "SOPDS_INPX_ENABLE",
         "SOPDS_INPX_SKIP_UNCHANGED",

@@ -226,3 +226,59 @@ class opdsdbTestCase(TestCase):
         same = opdsdb.addcattree("same/leaf", opdsdb.CAT_NORMAL, size=100)
         same.refresh_from_db()
         self.assertEqual(same.cat_size, 100)
+
+
+class ZipSkipTestCase(TestCase):
+    """Tests for the zip_skip helper function."""
+
+    def setUp(self) -> None:
+        opdsdb.clear_all()
+
+    def test_zip_skip_returns_zero_when_catalog_missing(self) -> None:
+        """zip_skip must return 0 when no catalog exists for the path."""
+        result = opdsdb.zip_skip("nonexistent/archive.zip", 12345)
+        self.assertEqual(result, 0)
+
+    def test_zip_skip_returns_zero_when_size_differs(self) -> None:
+        """zip_skip must return 0 when the on-disk size differs from stored."""
+        opdsdb.addcattree("books/archive.zip", opdsdb.CAT_ZIP, size=100)
+        result = opdsdb.zip_skip("books/archive.zip", 9999)
+        self.assertEqual(result, 0)
+
+    def test_zip_skip_marks_books_avail2_on_match(self) -> None:
+        """zip_skip must set avail=2 on all books and return their count."""
+        zip_cat = opdsdb.addcattree("books/archive.zip", opdsdb.CAT_ZIP, size=500)
+        book1 = opdsdb.addbook(
+            "first.fb2",
+            "books/archive.zip",
+            zip_cat,
+            ".fb2",
+            "First",
+            "",
+            "",
+            "ru",
+        )
+        book2 = opdsdb.addbook(
+            "second.fb2",
+            "books/archive.zip",
+            zip_cat,
+            ".fb2",
+            "Second",
+            "",
+            "",
+            "ru",
+        )
+        # Reset avail to 0 so we can verify zip_skip changes it.
+        Book.objects.filter(pk__in=[book1.pk, book2.pk]).update(avail=0)
+        book1.refresh_from_db()
+        book2.refresh_from_db()
+        self.assertEqual(book1.avail, 0)
+        self.assertEqual(book2.avail, 0)
+
+        result = opdsdb.zip_skip("books/archive.zip", 500)
+
+        self.assertEqual(result, 2)
+        book1.refresh_from_db()
+        book2.refresh_from_db()
+        self.assertEqual(book1.avail, 2)
+        self.assertEqual(book2.avail, 2)

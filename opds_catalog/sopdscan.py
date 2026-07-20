@@ -449,25 +449,29 @@ class opdsScanner:
                                 )
                                 zsize = discovered_file.size
 
-                                if opdsdb.arc_skip(rel_file, zsize):
+                                if config.SOPDS_ZIP_SKIP_UNCHANGED and opdsdb.zip_skip(
+                                    rel_file, zsize
+                                ):
                                     self.arch_skipped += 1
-                                    self.logger.debug(
+                                    self.logger.info(
                                         "Skip ZIP archive "
                                         + rel_file
                                         + ". Already scanned."
                                     )
-                                else:
-                                    opdsdb.addcattree(rel_file, opdsdb.CAT_ZIP, zsize)
-                                    logger.info(
-                                        "DISPATCH discover_zip_entries zip=%s", file
+                                    continue
+
+                                opdsdb.addcattree(rel_file, opdsdb.CAT_ZIP, zsize)
+                                logger.info(
+                                    "DISPATCH discover_zip_entries zip=%s",
+                                    file,
+                                )
+                                all_futures.add(
+                                    executor.submit(
+                                        discover_zip_entries,
+                                        file,
+                                        book_extensions,
                                     )
-                                    all_futures.add(
-                                        executor.submit(
-                                            discover_zip_entries,
-                                            file,
-                                            book_extensions,
-                                        )
-                                    )
+                                )
                             else:
                                 rel_path = os.path.relpath(
                                     result.source_path, settings.SOPDS_ROOT_LIB
