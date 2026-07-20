@@ -201,81 +201,40 @@ def normalize_inp_catalog(legacy_path: str, inp_path: str) -> int:
     return moved
 
 
-def inp_skip(arcpath: str, arcsize: int) -> int:
-    """
-    Выясняем изменялся ли INPX-файл)
-    если нет, то пытаемся пропустить сканирование, устанавливая для всех книг из
-    INPX avail=2
-    Если не одной такой книги не нашлось, то считаем что пропуск сканирования не удался
-    и возвращаем 0
-    Если книги из искомого INPX имелись и для них установлен avail=2,
-    то пропуск возможен и возвращаем 1 (или row_count)
+def _skip_archive(arcpath: str, arcsize: int, cat_rel: str) -> int:
+    """Common skip logic for archive-type containers.
+
+    Looks up the catalog by *arcpath*, compares its stored *cat_size*
+    against *arcsize*.  If they match, marks all books reachable via
+    the *cat_rel* relation as ``avail=2`` and returns the count of
+    updated rows (truthy = skip).  If the catalog is absent or sizes
+    differ, returns 0 (falsy = must re-scan).
+
+    *cat_rel* is a Django ORM relation path such as ``"catalog"``,
+    ``"catalog__parent"``, or ``"catalog__parent__parent"``.
     """
     catalog = findcat(arcpath)
-
-    # Если такого INPX еще нет в БД, то значит считаем что INPX изменен
-    # и пропуск невозможен
     if catalog is None:
         return 0
-
-    # Если INPX в БД найден и его размер совпадает с текущим, то считаем
-    # что файл INPX не менялся. Поэтому делаем update всех книг из этого INPX,
-    # однако если ни одного изменения не произошло, то таких книг нет, поэтому
-    # видимо нужно пересканировать архив
     if arcsize == catalog.cat_size:
-        row_count = Book.objects.filter(catalog__parent=catalog).update(avail=2)
+        row_count = Book.objects.filter(**{cat_rel: catalog}).update(avail=2)
         return row_count
-
-    # Здесь мы оказываемся если размеры INPX в БД и в наличии разные, поэтому
-    # считаем что изменения в архиве есть и пропуск сканирования невозможен
     return 0
+
+
+def inp_skip(arcpath: str, arcsize: int) -> int:
+    """Check if an INP entry is unchanged (books are one level deep)."""
+    return _skip_archive(arcpath, arcsize, "catalog__parent")
 
 
 def inpx_skip(arcpath: str, arcsize: int) -> int:
-    """
-    Выясняем изменялся ли INPX-файл)
-    если нет, то пытаемся пропустить сканирование, устанавливая для всех книг из
-    INPX avail=2
-    Если не одной такой книги не нашлось, то считаем что пропуск сканирования не удался
-    и возвращаем 0
-    Если книги из искомого INPX имелись и для них установлен avail=2,
-    то пропуск возможен и возвращаем 1 (или row_count)
-    """
-    catalog = findcat(arcpath)
-
-    # Если такого INPX еще нет в БД, то значит считаем что INPX изменен
-    # и пропуск невозможен
-    if catalog is None:
-        return 0
-
-    # Если INPX в БД найден и его размер совпадает с текущим, то считаем
-    # что файл INPX не менялся. Поэтому делаем update всех книг из этого INPX,
-    # однако если ни одного изменения не произошло, то таких книг нет, поэтому
-    # видимо нужно пересканировать архив
-    if arcsize == catalog.cat_size:
-        row_count = Book.objects.filter(catalog__parent__parent=catalog).update(avail=2)
-        return row_count
-
-    # Здесь мы оказываемся если размеры INPX в БД и в наличии разные, поэтому
-    # считаем что изменения в архиве есть и пропуск сканирования невозможен
-    return 0
+    """Check if an INPX file is unchanged (books are two levels deep)."""
+    return _skip_archive(arcpath, arcsize, "catalog__parent__parent")
 
 
 def zip_skip(arcpath: str, arcsize: int) -> int:
-    """Check if a ZIP archive has been scanned before with the same size.
-
-    Returns a positive number (books marked) when the archive is
-    unchanged and books have been set ``avail=2``.
-    Returns zero when the archive does not exist in the catalog or
-    its size has changed — meaning it should be re-scanned.
-    """
-    catalog = findcat(arcpath)
-    if catalog is None:
-        return 0
-    if arcsize == catalog.cat_size:
-        row_count = Book.objects.filter(catalog=catalog).update(avail=2)
-        return row_count
-    return 0
+    """Check if a ZIP archive is unchanged (books are direct children)."""
+    return _skip_archive(arcpath, arcsize, "catalog")
 
 
 # Cache of Catalog objects keyed by cat_name. The catalog tree is fully
