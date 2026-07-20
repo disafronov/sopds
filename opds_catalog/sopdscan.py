@@ -540,6 +540,14 @@ class opdsScanner:
                                     legacy_inp_path,
                                     os.path.join(inpx_rel_path, entry.name),
                                 )
+                                inp_path = os.path.join(inpx_rel_path, entry.name)
+                                inp_cat = opdsdb.findcat(inp_path)
+                                if (
+                                    inp_cat is not None
+                                    and inp_cat.cat_size != entry.size
+                                ):
+                                    inp_cat.cat_size = entry.size
+                                    inp_cat.save(update_fields=["cat_size"])
                                 logger.info(
                                     "DISPATCH parse_inp_job inpx=%s entry=%s",
                                     result.source_path,
@@ -574,6 +582,16 @@ class opdsScanner:
                                         rel_file,
                                     )
                                 )
+                        if is_inpx:
+                            inpx_rel_file = os.path.relpath(
+                                result.source_path, settings.SOPDS_ROOT_LIB
+                            )
+                            inpx_cat = opdsdb.findcat(inpx_rel_file)
+                            if inpx_cat is not None:
+                                inpx_file_size = os.path.getsize(result.source_path)
+                                if inpx_cat.cat_size != inpx_file_size:
+                                    inpx_cat.cat_size = inpx_file_size
+                                    inpx_cat.save(update_fields=["cat_size"])
                     else:
                         store_result(parse_result, self)
 
