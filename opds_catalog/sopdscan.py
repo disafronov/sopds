@@ -430,11 +430,15 @@ class opdsScanner:
                                     and opdsdb.inpx_skip(rel_file, inpx_size)
                                 ):
                                     self.logger.info(
-                                        "Skip INPX file = " + file + ". Not changed."
+                                        "Skip %s %s. Not changed.",
+                                        "INPX",
+                                        os.path.abspath(file),
                                     )
                                     continue
 
-                                self.logger.info("Start discovery INPX file = " + file)
+                                self.logger.info(
+                                    "Start discovery INPX %s.", os.path.abspath(file)
+                                )
                                 opdsdb.addcattree(rel_file, opdsdb.CAT_INPX, inpx_size)
                                 logger.info(
                                     "DISPATCH discover_inpx_entries inpx=%s", file
@@ -453,9 +457,9 @@ class opdsScanner:
                                 ):
                                     self.arch_skipped += 1
                                     self.logger.info(
-                                        "Skip ZIP archive "
-                                        + rel_file
-                                        + ". Already scanned."
+                                        "Skip %s %s. Not changed.",
+                                        "ZIP",
+                                        os.path.abspath(file),
                                     )
                                     continue
 
