@@ -20,7 +20,6 @@ from django.conf import settings
 from django.db import transaction
 from django.utils.translation import gettext as _
 
-import opds_catalog.zipf as zipfile
 from book_tools.format import create_bookfile
 from book_tools.format.util import strip_symbols
 from opds_catalog import fb2parse, opdsdb
@@ -617,49 +616,6 @@ class opdsScanner:
         self.catalogs_deleted = opdsdb.catalogs_del_empty()
 
         self.log_stats()
-
-    def processzip(self, name: str, full_path: str, file: str) -> None:
-        rel_file = os.path.relpath(file, settings.SOPDS_ROOT_LIB)
-        zsize = os.path.getsize(file)
-        if opdsdb.arc_skip(rel_file, zsize):
-            self.arch_skipped += 1
-            self.logger.debug("Skip ZIP archive " + rel_file + ". Already scanned.")
-        else:
-            zip_process_error = 0
-            try:
-                with zipfile.ZipFile(file, "r", allowZip64=True) as z:
-                    filelist = z.namelist()
-                    cat = opdsdb.addcattree(rel_file, opdsdb.CAT_ZIP, zsize)
-                    for n in filelist:
-                        try:
-                            self.logger.debug(
-                                "Start process ZIP file = " + file + " book file = " + n
-                            )
-                            file_size = z.getinfo(n).file_size
-                            with z.open(n) as bookfile:
-                                self.processfile(
-                                    n,
-                                    file,
-                                    bookfile,
-                                    cat,
-                                    opdsdb.CAT_ZIP,
-                                    file_size,
-                                )
-                        except zipfile.BadZipFile:
-                            self.logger.warning(
-                                "Error processing ZIP file = "
-                                + file
-                                + " book file = "
-                                + n
-                            )
-                            zip_process_error = 1
-                self.arch_scanned += 1
-            except zipfile.BadZipFile:
-                self.logger.warning(
-                    "Error while read ZIP archive. File " + file + " corrupt."
-                )
-                zip_process_error = 1
-            self.bad_archives += zip_process_error
 
     def processfile(
         self,

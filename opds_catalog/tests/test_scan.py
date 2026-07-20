@@ -189,62 +189,6 @@ EPUB и помещает в БД)"""
             book.authors.get(full_name="Cook Robin").search_full_name, "COOK ROBIN"
         )
 
-    def test_processzip(self) -> None:
-        """Тестирование процедуры processzip (извлекает метаданные из книг, \
-помещенных в архив и помещает их БД)"""
-        opdsdb.clear_all()
-        scanner = opdsScanner()
-        scanner.processzip(
-            self.test_zip,
-            self.test_ROOTLIB,
-            os.path.join(self.test_ROOTLIB, self.test_zip),
-        )
-        self.assertEqual(scanner.books_added, 3)
-        self.assertEqual(Book.objects.all().count(), 3)
-        self.assertEqual(Catalog.objects.all().count(), 2)
-
-        book = Book.objects.get(filename="539603.fb2")
-        self.assertEqual(book.filesize, 15194)
-        self.assertEqual(book.path, self.test_zip)
-        self.assertEqual(book.cat_type, 1)
-        self.assertEqual(book.catalog.path, self.test_zip)
-        self.assertEqual(book.catalog.cat_name, self.test_zip)
-        self.assertEqual(book.catalog.cat_type, 1)
-        self.assertEqual(book.docdate, "2014-09-15")
-        self.assertEqual(book.title, "Любовь в жизни Обломова")
-        self.assertEqual(book.avail, 2)
-        self.assertEqual(book.authors.count(), 1)
-        self.assertEqual(
-            book.authors.get(full_name="Логинов Святослав").search_full_name,
-            "ЛОГИНОВ СВЯТОСЛАВ",
-        )
-        self.assertEqual(book.genres.count(), 1)
-        self.assertEqual(
-            book.genres.get(genre="nonf_criticism").section, opdsdb.unknown_genre
-        )
-        self.assertEqual(
-            book.genres.get(genre="nonf_criticism").subsection, "nonf_criticism"
-        )
-
-        book = Book.objects.get(filename="539485.fb2")
-        self.assertEqual(book.filesize, 12293)
-        self.assertEqual(book.path, self.test_zip)
-        self.assertEqual(book.cat_type, 1)
-        self.assertEqual(book.title, "Китайски сладкиш с късметче")
-        self.assertEqual(
-            book.authors.get(full_name="Фрич Чарлз").search_full_name, "ФРИЧ ЧАРЛЗ"
-        )
-
-        book = Book.objects.get(filename="539273.fb2")
-        self.assertEqual(book.filesize, 21722)
-        self.assertEqual(book.path, self.test_zip)
-        self.assertEqual(book.cat_type, 1)
-        self.assertEqual(book.title, "Драконьи Услуги")
-        self.assertEqual(
-            book.authors.get(full_name="Куприянов Денис").search_full_name,
-            "КУПРИЯНОВ ДЕНИС",
-        )
-
     def test_discover_zip_entries_lists_members(self) -> None:
         """discover_zip_entries lists every member with name and size."""
         import tempfile
