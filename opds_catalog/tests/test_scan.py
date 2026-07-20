@@ -489,6 +489,124 @@ EPUB и помещает в БД)"""
         self.assertEqual(sum(book.series.count() for book in Book.objects.all()), 2)
         self.assertEqual(scanner.books_added, 2)
 
+    def test_store_books_batch_uses_batch_size_when_configured(self) -> None:
+        """All bulk_create calls receive batch_size when the setting is > 0."""
+        from unittest.mock import patch
+
+        from django.test import override_settings
+
+        from opds_catalog import models as catalog_models
+        from opds_catalog.scan_types import (
+            AuthorMeta,
+            BookMeta,
+            SeriesMeta,
+        )
+        from opds_catalog.sopdscan import _store_books_batch, opdsScanner
+
+        opdsdb.clear_all()
+        scanner = opdsScanner()
+        meta = BookMeta(
+            filename="book.fb2",
+            rel_path=".",
+            ext="fb2",
+            title="Book",
+            annotation="",
+            docdate="2024",
+            lang="en",
+            filesize=100,
+            cat_type=0,
+            authors=[AuthorMeta(name="Doe John")],
+            genres=["fiction"],
+            series=[SeriesMeta(title="Shared", index=1)],
+        )
+
+        expected = 100
+        with override_settings(SOPDS_SCAN_INSERT_BATCH_SIZE=expected):
+            with (
+                patch.object(
+                    catalog_models.Author.objects, "bulk_create"
+                ) as author_bulk,
+                patch.object(catalog_models.Genre.objects, "bulk_create") as genre_bulk,
+                patch.object(
+                    catalog_models.Series.objects, "bulk_create"
+                ) as series_bulk,
+                patch.object(catalog_models.Book.objects, "bulk_create") as book_bulk,
+                patch.object(
+                    catalog_models.bauthor.objects, "bulk_create"
+                ) as bauthor_bulk,
+                patch.object(
+                    catalog_models.bgenre.objects, "bulk_create"
+                ) as bgenre_bulk,
+                patch.object(
+                    catalog_models.bseries.objects, "bulk_create"
+                ) as bseries_bulk,
+            ):
+                _store_books_batch([meta], scanner)
+
+        for bulk in (
+            author_bulk,
+            genre_bulk,
+            series_bulk,
+            book_bulk,
+            bauthor_bulk,
+            bgenre_bulk,
+            bseries_bulk,
+        ):
+            bulk.assert_called_once()
+            self.assertEqual(bulk.call_args.kwargs.get("batch_size"), expected)
+
+    def test_store_books_batch_uses_none_batch_size_by_default(self) -> None:
+        """With the default setting 0, batch_size is passed as None."""
+        from unittest.mock import patch
+
+        from opds_catalog import models as catalog_models
+        from opds_catalog.scan_types import (
+            AuthorMeta,
+            BookMeta,
+            SeriesMeta,
+        )
+        from opds_catalog.sopdscan import _store_books_batch, opdsScanner
+
+        opdsdb.clear_all()
+        scanner = opdsScanner()
+        meta = BookMeta(
+            filename="book.fb2",
+            rel_path=".",
+            ext="fb2",
+            title="Book",
+            annotation="",
+            docdate="2024",
+            lang="en",
+            filesize=100,
+            cat_type=0,
+            authors=[AuthorMeta(name="Doe John")],
+            genres=["fiction"],
+            series=[SeriesMeta(title="Shared", index=1)],
+        )
+
+        with (
+            patch.object(catalog_models.Author.objects, "bulk_create") as author_bulk,
+            patch.object(catalog_models.Genre.objects, "bulk_create") as genre_bulk,
+            patch.object(catalog_models.Series.objects, "bulk_create") as series_bulk,
+            patch.object(catalog_models.Book.objects, "bulk_create") as book_bulk,
+            patch.object(catalog_models.bauthor.objects, "bulk_create") as bauthor_bulk,
+            patch.object(catalog_models.bgenre.objects, "bulk_create") as bgenre_bulk,
+            patch.object(catalog_models.bseries.objects, "bulk_create") as bseries_bulk,
+        ):
+            _store_books_batch([meta], scanner)
+
+        for bulk in (
+            author_bulk,
+            genre_bulk,
+            series_bulk,
+            book_bulk,
+            bauthor_bulk,
+            bgenre_bulk,
+            bseries_bulk,
+        ):
+            bulk.assert_called_once()
+            self.assertIsNone(bulk.call_args.kwargs.get("batch_size"))
+
     def test_store_result_skips_duplicate_inside_batch(self) -> None:
         """Duplicate file/path pairs in one worker result are inserted once."""
         from opds_catalog.scan_types import BookMeta, ParseResult
