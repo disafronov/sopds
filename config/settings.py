@@ -184,7 +184,8 @@ if DATABASES["default"]["ENGINE"] not in {
     "django.db.backends.mysql",
 }:
     raise ImproperlyConfigured(
-        "DATABASE_URL must use PostgreSQL or MySQL/MariaDB; SQLite is unsupported"
+        "Unsupported database backend in DATABASE_URL; supported backends are "
+        "PostgreSQL and MySQL/MariaDB"
     )
 
 # SOPDS DATABASE SETTINGS FINISH
