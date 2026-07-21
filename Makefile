@@ -31,7 +31,7 @@ DOCKER_RUN_OPTS = --rm \
 	$(if $(wildcard env.docker),--env-file env.docker,) \
 	$(if $(wildcard .env),--env-file .env,)
 
-.PHONY: all audit clean dead-code dev docker docker-build docker-run format help install lint locale makemigrations migrate run scanner test
+.PHONY: all audit clean dead-code dev docker docker-build docker-run format help install lint locale makemigrations migrate run scanner scan test
 
 help: ## Show this help message
 	@echo "Available commands:"
