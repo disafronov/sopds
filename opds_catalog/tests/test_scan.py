@@ -13,7 +13,8 @@ import django
 from constance import config
 from django.conf import settings as django_settings
 from django.core.management.base import CommandError
-from django.test import TestCase, override_settings
+from django.db import connection
+from django.test import TestCase, TransactionTestCase, override_settings
 
 from opds_catalog import opdsdb
 
@@ -917,67 +918,115 @@ class BulkRetryTestCase(TestCase):
         SOPDS_SCAN_DB_RETRY_COUNT=0,
         SOPDS_SCAN_DB_RETRY_DELAY=0,
     )
-    def test_bulk_no_retry_on_operational_error(self) -> None:
-        """With retry_count=0, OperationalError is raised immediately."""
-        from opds_catalog.sopdscan import _bulk_with_retry
+    def test_batch_no_retry_on_operational_error(self) -> None:
+        """With retry_count=0, a connection error is raised immediately."""
+        from opds_catalog.sopdscan import _store_books_batch
 
-        logger = logging.getLogger("test")
-        with mock.patch("opds_catalog.sopdscan.time.sleep") as mock_sleep:
+        scanner = opdsScanner()
+        with (
+            mock.patch(
+                "opds_catalog.sopdscan._store_books_batch_atomic",
+                side_effect=django.db.utils.OperationalError("gone away"),
+            ) as atomic_batch,
+            mock.patch("opds_catalog.sopdscan.connection.close") as close,
+            mock.patch("opds_catalog.sopdscan.time.sleep") as sleep,
+        ):
             with self.assertRaises(django.db.utils.OperationalError):
-                _bulk_with_retry(
-                    logger,
-                    "Author",
-                    "create",
-                    None,
-                    1,
-                    lambda: (_ for _ in ()).throw(
-                        django.db.utils.OperationalError("gone away")
-                    ),
-                )
-            mock_sleep.assert_not_called()
+                _store_books_batch([mock.Mock()], scanner)
+        atomic_batch.assert_called_once()
+        close.assert_called_once()
+        sleep.assert_not_called()
 
     @override_settings(
         SOPDS_SCAN_DB_RETRY_COUNT=2,
         SOPDS_SCAN_DB_RETRY_DELAY=100,
     )
-    def test_bulk_retries_on_operational_error(self) -> None:
-        """With retry_count=2, bulk retries twice then succeeds."""
-        from opds_catalog.sopdscan import _bulk_with_retry
+    def test_batch_retries_connection_errors(self) -> None:
+        """The complete atomic batch is retried with exponential backoff."""
+        from opds_catalog.sopdscan import _store_books_batch
 
-        logger = logging.getLogger("test")
-        call_count = 0
-
-        def flaky() -> None:
-            nonlocal call_count
-            call_count += 1
-            if call_count < 3:
-                raise django.db.utils.OperationalError("gone away")
-
-        with mock.patch("opds_catalog.sopdscan.time.sleep") as mock_sleep:
-            _bulk_with_retry(logger, "Author", "create", None, 1, flaky)
-            self.assertEqual(call_count, 3)
-            # backoff: 100ms * 2^0 = 100ms, 100ms * 2^1 = 200ms
-            mock_sleep.assert_any_call(0.1)
-            mock_sleep.assert_any_call(0.2)
+        scanner = opdsScanner()
+        error = django.db.utils.OperationalError("gone away")
+        with (
+            mock.patch(
+                "opds_catalog.sopdscan._store_books_batch_atomic",
+                side_effect=[error, error, None],
+            ) as atomic_batch,
+            mock.patch("opds_catalog.sopdscan.connection.close") as close,
+            mock.patch("opds_catalog.sopdscan.time.sleep") as sleep,
+        ):
+            _store_books_batch([mock.Mock()], scanner)
+        self.assertEqual(atomic_batch.call_count, 3)
+        self.assertEqual(close.call_count, 2)
+        sleep.assert_has_calls([mock.call(0.1), mock.call(0.2)])
 
     @override_settings(
         SOPDS_SCAN_DB_RETRY_COUNT=2,
         SOPDS_SCAN_DB_RETRY_DELAY=100,
     )
-    def test_bulk_exhausts_retries(self) -> None:
-        """With retry_count=2, all 3 attempts fail and last error is raised."""
-        from opds_catalog.sopdscan import _bulk_with_retry
+    def test_batch_exhausts_retries(self) -> None:
+        """The final connection error is raised after all attempts fail."""
+        from opds_catalog.sopdscan import _store_books_batch
 
-        logger = logging.getLogger("test")
-
-        def always_fail() -> None:
-            raise django.db.utils.OperationalError("gone away")
-
-        with mock.patch("opds_catalog.sopdscan.time.sleep") as mock_sleep:
+        scanner = opdsScanner()
+        with (
+            mock.patch(
+                "opds_catalog.sopdscan._store_books_batch_atomic",
+                side_effect=django.db.utils.OperationalError("gone away"),
+            ) as atomic_batch,
+            mock.patch("opds_catalog.sopdscan.connection.close"),
+            mock.patch("opds_catalog.sopdscan.time.sleep") as sleep,
+        ):
             with self.assertRaises(django.db.utils.OperationalError):
-                _bulk_with_retry(logger, "Author", "create", None, 1, always_fail)
-            # 2 retries = 2 sleeps
-            self.assertEqual(mock_sleep.call_count, 2)
+                _store_books_batch([mock.Mock()], scanner)
+        self.assertEqual(atomic_batch.call_count, 3)
+        self.assertEqual(sleep.call_count, 2)
+
+    @override_settings(
+        SOPDS_SCAN_DB_RETRY_COUNT=1,
+        SOPDS_SCAN_DB_RETRY_DELAY=0,
+    )
+    def test_batch_retry_rolls_back_the_complete_insert(self) -> None:
+        """A post-insert disconnect retries without leaving partial rows."""
+        from opds_catalog.scan_types import BookMeta
+        from opds_catalog.sopdscan import _store_books_batch
+
+        opdsdb.clear_all()
+        scanner = opdsScanner()
+        meta = BookMeta(
+            filename="retry.fb2",
+            rel_path=".",
+            ext="fb2",
+            title="Retry",
+            annotation="",
+            docdate="2024",
+            lang="en",
+            filesize=100,
+            cat_type=0,
+        )
+        real_bulk_create = Book.objects.bulk_create
+        calls = 0
+
+        def disconnect_after_insert(*args: Any, **kwargs: Any) -> Any:
+            nonlocal calls
+            calls += 1
+            result = real_bulk_create(*args, **kwargs)
+            if calls == 1:
+                raise django.db.utils.OperationalError(2006, "server has gone away")
+            return result
+
+        with (
+            mock.patch.object(
+                Book.objects, "bulk_create", side_effect=disconnect_after_insert
+            ),
+            mock.patch("opds_catalog.sopdscan.connection.close"),
+            mock.patch("opds_catalog.sopdscan.time.sleep"),
+        ):
+            _store_books_batch([meta], scanner)
+
+        self.assertEqual(calls, 2)
+        self.assertEqual(Book.objects.filter(filename="retry.fb2").count(), 1)
+        self.assertEqual(scanner.books_added, 1)
 
     def test_log_bulk_emits_info_message(self) -> None:
         """_log_bulk sends INFO message with correct parameters."""
@@ -1010,3 +1059,40 @@ class BulkRetryTestCase(TestCase):
             _log_bulk(logger, "Book", "update", 10, None, 5.0)
         self.assertEqual(len(cm.output), 1)
         self.assertIn("auto", cm.output[0])
+
+
+class DatabaseDisconnectRetryTestCase(TransactionTestCase):
+    """Retry a batch after the underlying database connection is lost."""
+
+    @override_settings(
+        SOPDS_SCAN_DB_RETRY_COUNT=1,
+        SOPDS_SCAN_DB_RETRY_DELAY=0,
+    )
+    def test_store_batch_reconnects_after_real_disconnect(self) -> None:
+        from opds_catalog.scan_types import BookMeta
+        from opds_catalog.sopdscan import _store_books_batch
+
+        scanner = opdsScanner()
+        meta = BookMeta(
+            filename="reconnect.fb2",
+            rel_path=".",
+            ext="fb2",
+            title="Reconnect",
+            annotation="",
+            docdate="2024",
+            lang="en",
+            filesize=100,
+            cat_type=0,
+        )
+
+        connection.ensure_connection()
+        raw_connection = connection.connection
+        self.assertIsNotNone(raw_connection)
+        raw_connection.close()
+
+        with mock.patch("opds_catalog.sopdscan.time.sleep") as sleep:
+            _store_books_batch([meta], scanner)
+
+        sleep.assert_called_once_with(0)
+        self.assertEqual(Book.objects.filter(filename="reconnect.fb2").count(), 1)
+        self.assertEqual(scanner.books_added, 1)
