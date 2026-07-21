@@ -280,10 +280,12 @@ def _store_books_batch_atomic(
             bulk_metrics,
             "Book",
             "update",
-            None,
+            batch_size,
             len(migrated_books),
             lambda: Book.objects.bulk_update(
-                migrated_books, ["path", "catalog", "cat_type", "avail"]
+                migrated_books,
+                ["path", "catalog", "cat_type", "avail"],
+                batch_size=batch_size,
             ),
         )
 

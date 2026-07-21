@@ -371,6 +371,7 @@ EPUB и помещает в БД)"""
         self.assertEqual(scanner.books_skipped, 1)
         self.assertEqual(Book.objects.count(), 1)
 
+    @override_settings(SOPDS_SCAN_DB_BATCH_SIZE=100)
     def test_store_result_moves_inp_book_to_zip_without_recreating_it(self) -> None:
         """An INP result moves the existing book into its external ZIP."""
         from opds_catalog.scan_types import BookMeta, ParseResult
@@ -408,7 +409,10 @@ EPUB и помещает в БД)"""
             legacy_inp_rel_path="books/part.inp",
         )
 
-        store_result(ParseResult(books=[meta]), scanner)
+        with patch.object(
+            Book.objects, "bulk_update", wraps=Book.objects.bulk_update
+        ) as bulk_update:
+            store_result(ParseResult(books=[meta]), scanner)
 
         book.refresh_from_db()
         self.assertEqual(Book.objects.count(), 1)
@@ -416,6 +420,7 @@ EPUB и помещает в БД)"""
         self.assertEqual(book.path, zip_path)
         self.assertEqual(book.catalog.path, zip_path)
         self.assertEqual(scanner.books_skipped, 1)
+        self.assertEqual(bulk_update.call_args.kwargs["batch_size"], 100)
 
     def test_store_result_propagates_bad_books(self) -> None:
         """Verify store_result adds bad_books count to scanner stats."""
