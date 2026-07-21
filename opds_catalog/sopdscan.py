@@ -104,12 +104,12 @@ def _bulk_with_retry(
 ) -> None:
     """Execute a bulk operation with optional retry on DB errors.
 
-    Retries ``settings.SOPDS_SCAN_INSERT_RETRY_COUNT`` times with
+    Retries ``settings.SOPDS_SCAN_DB_RETRY_COUNT`` times with
     exponential backoff starting at
-    ``settings.SOPDS_SCAN_INSERT_RETRY_BACKOFF`` ms.
+    ``settings.SOPDS_SCAN_DB_RETRY_DELAY`` ms.
     """
-    retry_count = settings.SOPDS_SCAN_INSERT_RETRY_COUNT
-    retry_backoff = settings.SOPDS_SCAN_INSERT_RETRY_BACKOFF
+    retry_count = settings.SOPDS_SCAN_DB_RETRY_COUNT
+    retry_backoff = settings.SOPDS_SCAN_DB_RETRY_DELAY
 
     for attempt in range(1 + retry_count):
         t_bulk = time.monotonic()
@@ -176,13 +176,13 @@ def _store_books_batch(books: list[BookMeta], scanner: opdsScanner) -> None:
 
     Each bulk_create / bulk_update is timed and logged at INFO level.
     The ``batch_size`` parameter is read from
-    ``settings.SOPDS_SCAN_INSERT_BATCH_SIZE`` (0 means no batching,
+    ``settings.SOPDS_SCAN_DB_BATCH_SIZE`` (0 means no batching,
     which preserves the original single-INSERT behaviour).
     """
     if not books:
         return
 
-    batch_size = settings.SOPDS_SCAN_INSERT_BATCH_SIZE or None
+    batch_size = settings.SOPDS_SCAN_DB_BATCH_SIZE or None
 
     requested_keys = {_book_key(meta) for meta in books}
     fallback_keys = {
