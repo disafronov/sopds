@@ -24,5 +24,24 @@ services:
       - "1026:1025"
       - "8025:8025"
 
+  mariadb:
+    image: 'mariadb:10'
+    ports:
+      - "3306:3306"
+    environment:
+      MARIADB_USER: sopds
+      MARIADB_PASSWORD: sopds
+      MARIADB_DATABASE: sopds
+      MARIADB_ROOT_PASSWORD: sopds
+    volumes:
+      - mariadb_data:/var/lib/mysql/
+    healthcheck:
+      test: [ "CMD-SHELL", "mysqladmin ping -h localhost -u $${MARIADB_USER} -p$${MARIADB_PASSWORD}" ]
+      interval: 30s
+      timeout: 60s
+      retries: 5
+      start_period: 60s
+
 volumes:
   postgres_data:
+  mariadb_data:
