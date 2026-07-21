@@ -99,6 +99,10 @@ scanner: ## Run the sopds scanner (APScheduler)
 	@echo "Running sopds scanner..."
 	$(UV) python manage.py sopds_scanner start
 
+scan: ## Run the sopds scanner oneshot scan
+	@echo "Running sopds scanner oneshot scan..."
+	$(UV) python manage.py sopds_scanner scan
+
 clean: ## Clean caches and coverage outputs
 	@echo "Cleaning cache and temporary files..."
 	rm -rf .mypy_cache/ .pytest_cache/ .venv/ build/ dist/ htmlcov/ .coverage
