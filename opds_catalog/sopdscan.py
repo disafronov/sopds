@@ -13,7 +13,7 @@ from concurrent.futures import (
     ProcessPoolExecutor,
     wait,
 )
-from typing import Any
+from typing import Any, Callable
 
 from constance import config
 from django.conf import settings
@@ -92,6 +92,61 @@ def _book_key(meta: BookMeta) -> tuple[str, str]:
         meta.filename[:SIZE_BOOK_FILENAME],
         meta.rel_path[:SIZE_BOOK_PATH],
     )
+
+
+def _bulk_with_retry(
+    logger: logging.Logger,
+    model_name: str,
+    operation: str,
+    batch_size: int | None,
+    count: int,
+    fn: Callable[[], object],
+) -> None:
+    """Execute a bulk operation with optional retry on DB errors.
+
+    Retries ``settings.SOPDS_SCAN_INSERT_RETRY_COUNT`` times with
+    exponential backoff starting at
+    ``settings.SOPDS_SCAN_INSERT_RETRY_BACKOFF`` ms.
+    """
+    retry_count = settings.SOPDS_SCAN_INSERT_RETRY_COUNT
+    retry_backoff = settings.SOPDS_SCAN_INSERT_RETRY_BACKOFF
+
+    for attempt in range(1 + retry_count):
+        t_bulk = time.monotonic()
+        try:
+            fn()
+        except Exception as exc:
+            elapsed_ms = (time.monotonic() - t_bulk) * 1000
+            if attempt < retry_count:
+                wait_ms = retry_backoff * (2**attempt)
+                logger.warning(
+                    "DB bulk %s %s failed (attempt %d/%d, %.1fms): %s"
+                    " \u2014 retrying in %dms",
+                    operation,
+                    model_name,
+                    attempt + 1,
+                    1 + retry_count,
+                    elapsed_ms,
+                    exc,
+                    wait_ms,
+                )
+                time.sleep(wait_ms / 1000)
+            else:
+                logger.error(
+                    "DB bulk %s %s failed (attempt %d/%d, %.1fms): %s"
+                    " \u2014 no retries left",
+                    operation,
+                    model_name,
+                    attempt + 1,
+                    1 + retry_count,
+                    elapsed_ms,
+                    exc,
+                )
+                raise
+        else:
+            elapsed_ms = (time.monotonic() - t_bulk) * 1000
+            _log_bulk(logger, model_name, operation, count, batch_size, elapsed_ms)
+            return
 
 
 def _log_bulk(
@@ -174,17 +229,15 @@ def _store_books_batch(books: list[BookMeta], scanner: opdsScanner) -> None:
         migrated_books.append(book)
 
     if migrated_books:
-        t_bulk = time.monotonic()
-        Book.objects.bulk_update(
-            migrated_books, ["path", "catalog", "cat_type", "avail"]
-        )
-        _log_bulk(
+        _bulk_with_retry(
             scanner.logger,
             "Book",
             "update",
-            len(migrated_books),
             None,
-            (time.monotonic() - t_bulk) * 1000,
+            len(migrated_books),
+            lambda: Book.objects.bulk_update(
+                migrated_books, ["path", "catalog", "cat_type", "avail"]
+            ),
         )
 
     new_meta: list[BookMeta] = []
@@ -225,15 +278,13 @@ def _store_books_batch(books: list[BookMeta], scanner: opdsScanner) -> None:
         )
         for name in author_names - authors.keys()
     ]
-    t_bulk = time.monotonic()
-    Author.objects.bulk_create(missing_authors, batch_size=batch_size)
-    _log_bulk(
+    _bulk_with_retry(
         scanner.logger,
         "Author",
         "create",
-        len(missing_authors),
         batch_size,
-        (time.monotonic() - t_bulk) * 1000,
+        len(missing_authors),
+        lambda: Author.objects.bulk_create(missing_authors, batch_size=batch_size),
     )
     authors.update({author.full_name: author for author in missing_authors})
     _author_cache.update(authors)
@@ -249,15 +300,13 @@ def _store_books_batch(books: list[BookMeta], scanner: opdsScanner) -> None:
         )
         for name in genre_names - genres.keys()
     ]
-    t_bulk = time.monotonic()
-    Genre.objects.bulk_create(missing_genres, batch_size=batch_size)
-    _log_bulk(
+    _bulk_with_retry(
         scanner.logger,
         "Genre",
         "create",
-        len(missing_genres),
         batch_size,
-        (time.monotonic() - t_bulk) * 1000,
+        len(missing_genres),
+        lambda: Genre.objects.bulk_create(missing_genres, batch_size=batch_size),
     )
     genres.update({genre.genre: genre for genre in missing_genres})
     _genre_cache.update(genres)
@@ -273,15 +322,13 @@ def _store_books_batch(books: list[BookMeta], scanner: opdsScanner) -> None:
         )
         for name in series_names - series_by_name.keys()
     ]
-    t_bulk = time.monotonic()
-    Series.objects.bulk_create(missing_series, batch_size=batch_size)
-    _log_bulk(
+    _bulk_with_retry(
         scanner.logger,
         "Series",
         "create",
-        len(missing_series),
         batch_size,
-        (time.monotonic() - t_bulk) * 1000,
+        len(missing_series),
+        lambda: Series.objects.bulk_create(missing_series, batch_size=batch_size),
     )
     series_by_name.update({item.ser: item for item in missing_series})
     _series_cache.update(series_by_name)
@@ -304,15 +351,13 @@ def _store_books_batch(books: list[BookMeta], scanner: opdsScanner) -> None:
         )
         for meta in new_meta
     ]
-    t_bulk = time.monotonic()
-    Book.objects.bulk_create(book_rows, batch_size=batch_size)
-    _log_bulk(
+    _bulk_with_retry(
         scanner.logger,
         "Book",
         "create",
-        len(book_rows),
         batch_size,
-        (time.monotonic() - t_bulk) * 1000,
+        len(book_rows),
+        lambda: Book.objects.bulk_create(book_rows, batch_size=batch_size),
     )
 
     author_links: list[bauthor] = []
@@ -335,37 +380,31 @@ def _store_books_batch(books: list[BookMeta], scanner: opdsScanner) -> None:
             for item in meta.series
         )
 
-    t_bulk = time.monotonic()
-    bauthor.objects.bulk_create(author_links, batch_size=batch_size)
-    _log_bulk(
+    _bulk_with_retry(
         scanner.logger,
         "bauthor",
         "create",
-        len(author_links),
         batch_size,
-        (time.monotonic() - t_bulk) * 1000,
+        len(author_links),
+        lambda: bauthor.objects.bulk_create(author_links, batch_size=batch_size),
     )
 
-    t_bulk = time.monotonic()
-    bgenre.objects.bulk_create(genre_links, batch_size=batch_size)
-    _log_bulk(
+    _bulk_with_retry(
         scanner.logger,
         "bgenre",
         "create",
-        len(genre_links),
         batch_size,
-        (time.monotonic() - t_bulk) * 1000,
+        len(genre_links),
+        lambda: bgenre.objects.bulk_create(genre_links, batch_size=batch_size),
     )
 
-    t_bulk = time.monotonic()
-    bseries.objects.bulk_create(series_links, batch_size=batch_size)
-    _log_bulk(
+    _bulk_with_retry(
         scanner.logger,
         "bseries",
         "create",
-        len(series_links),
         batch_size,
-        (time.monotonic() - t_bulk) * 1000,
+        len(series_links),
+        lambda: bseries.objects.bulk_create(series_links, batch_size=batch_size),
     )
     scanner.books_added += len(book_rows)
     scanner.books_in_archives += sum(meta.cat_type != 0 for meta in new_meta)
