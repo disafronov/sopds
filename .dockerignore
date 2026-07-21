@@ -56,4 +56,7 @@ opds_catalog/log/
 .github/
 .opencode/
 
+.env
+.env.docker
+
 *.mo

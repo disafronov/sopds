@@ -41,5 +41,6 @@ build/
 
 
 .env
+.env.docker
 
 *.mo
