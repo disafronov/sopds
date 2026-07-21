@@ -155,6 +155,15 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
+# Scanner-agnostic database connection tuning (affects both scanner and web).
+SOPDS_DB_CONN_MAX_AGE = int(os.environ.get("SOPDS_DB_CONN_MAX_AGE", "600"))
+SOPDS_DB_HEALTH_CHECKS = os.environ.get("SOPDS_DB_HEALTH_CHECKS", "True").lower() in (
+    "1",
+    "true",
+    "yes",
+    "on",
+)
+
 # SOPDS DATABASE SETTINGS START
 
 import dj_database_url  # noqa: E402  — import after os
@@ -166,8 +175,8 @@ if not DATABASE_URL:
 DATABASES = {
     "default": dj_database_url.parse(
         DATABASE_URL,
-        conn_max_age=600,
-        conn_health_checks=True,
+        conn_max_age=SOPDS_DB_CONN_MAX_AGE,
+        conn_health_checks=SOPDS_DB_HEALTH_CHECKS,
     )
 }
 if DATABASES["default"]["ENGINE"] not in {
