@@ -29,7 +29,9 @@ DOCKER_RUN_OPTS = --rm \
 	--add-host=host.docker.internal:host-gateway \
 	$(if $(wildcard env.example),--env-file env.example,) \
 	$(if $(wildcard env.docker),--env-file env.docker,) \
-	$(if $(wildcard .env),--env-file .env,)
+	$(if $(wildcard .env),--env-file .env,) \
+	$(if $(wildcard .env.docker),--env-file .env.docker,) \
+	-v "${PWD}/opds_catalog/tests/data":/books
 
 .PHONY: all audit clean dead-code dev docker docker-build docker-run format help install lint locale makemigrations migrate run scanner scan test
 
