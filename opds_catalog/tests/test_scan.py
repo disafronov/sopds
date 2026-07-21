@@ -6,12 +6,14 @@ import tempfile
 from concurrent.futures import Future
 from types import TracebackType
 from typing import Any
+from unittest import mock
 from unittest.mock import patch
 
+import django
 from constance import config
 from django.conf import settings as django_settings
 from django.core.management.base import CommandError
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 from opds_catalog import opdsdb
 
@@ -906,3 +908,73 @@ class ScanIsActiveResetTestCase(TestCase):
             self.cmd.scan(suppress_errors=False)
 
         self.assertFalse(self.cmd.scan_is_active)
+
+
+class BulkRetryTestCase(TestCase):
+    """Retry logic for bulk DB operations."""
+
+    @override_settings(
+        SOPDS_SCAN_INSERT_RETRY_COUNT=0,
+        SOPDS_SCAN_INSERT_RETRY_BACKOFF=0,
+    )
+    def test_bulk_no_retry_on_operational_error(self) -> None:
+        """With retry_count=0, OperationalError is raised immediately."""
+        from opds_catalog.sopdscan import _bulk_with_retry
+
+        logger = logging.getLogger("test")
+        with mock.patch("opds_catalog.sopdscan.time.sleep") as mock_sleep:
+            with self.assertRaises(django.db.utils.OperationalError):
+                _bulk_with_retry(
+                    logger,
+                    "Author",
+                    "create",
+                    None,
+                    1,
+                    lambda: (_ for _ in ()).throw(
+                        django.db.utils.OperationalError("gone away")
+                    ),
+                )
+            mock_sleep.assert_not_called()
+
+    @override_settings(
+        SOPDS_SCAN_INSERT_RETRY_COUNT=2,
+        SOPDS_SCAN_INSERT_RETRY_BACKOFF=100,
+    )
+    def test_bulk_retries_on_operational_error(self) -> None:
+        """With retry_count=2, bulk retries twice then succeeds."""
+        from opds_catalog.sopdscan import _bulk_with_retry
+
+        logger = logging.getLogger("test")
+        call_count = 0
+
+        def flaky() -> None:
+            nonlocal call_count
+            call_count += 1
+            if call_count < 3:
+                raise django.db.utils.OperationalError("gone away")
+
+        with mock.patch("opds_catalog.sopdscan.time.sleep") as mock_sleep:
+            _bulk_with_retry(logger, "Author", "create", None, 1, flaky)
+            self.assertEqual(call_count, 3)
+            # backoff: 100ms * 2^0 = 100ms, 100ms * 2^1 = 200ms
+            mock_sleep.assert_any_call(0.1)
+            mock_sleep.assert_any_call(0.2)
+
+    @override_settings(
+        SOPDS_SCAN_INSERT_RETRY_COUNT=2,
+        SOPDS_SCAN_INSERT_RETRY_BACKOFF=100,
+    )
+    def test_bulk_exhausts_retries(self) -> None:
+        """With retry_count=2, all 3 attempts fail and last error is raised."""
+        from opds_catalog.sopdscan import _bulk_with_retry
+
+        logger = logging.getLogger("test")
+
+        def always_fail() -> None:
+            raise django.db.utils.OperationalError("gone away")
+
+        with mock.patch("opds_catalog.sopdscan.time.sleep") as mock_sleep:
+            with self.assertRaises(django.db.utils.OperationalError):
+                _bulk_with_retry(logger, "Author", "create", None, 1, always_fail)
+            # 2 retries = 2 sleeps
+            self.assertEqual(mock_sleep.call_count, 2)
