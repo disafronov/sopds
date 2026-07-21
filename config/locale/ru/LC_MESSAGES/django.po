@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-21 12:18+0000\n"
+"POT-Creation-Date: 2026-07-21 19:01+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -20,70 +20,70 @@ msgstr ""
 "n%10<=4 && (n%100<12 || n%100>14) ? 1 : n%10==0 || (n%10>=5 && n%10<=9) || "
 "(n%100>=11 && n%100<=14)? 2 : 3);\n"
 
-#: config/settings.py:251
+#: config/settings.py:252
 msgid "Select language"
 msgstr "Выбор языка"
 
-#: config/settings.py:254
+#: config/settings.py:255
 msgid "List of managed book files extensions"
 msgstr "Список расширений файлов, для включения в коллекцию книг"
 
-#: config/settings.py:261
+#: config/settings.py:262
 msgid "Turn once scanning directly"
 msgstr "Запустить внеочередное однократное сканирование коллекции книг"
 
-#: config/settings.py:264
+#: config/settings.py:265
 msgid "Pages cache time"
 msgstr "Время хранения страницы в кэше"
 
-#: config/settings.py:265
+#: config/settings.py:266
 msgid "Enable authentication"
 msgstr "Включить аутентификацию"
 
-#: config/settings.py:266
+#: config/settings.py:267
 msgid "Enable alphabet submenu"
 msgstr "Включить субменю выбора алфавита"
 
-#: config/settings.py:267
+#: config/settings.py:268
 msgid "This flag hides found doublicates"
 msgstr "Флаг прячет найденные дубликаты книг"
 
-#: config/settings.py:268
+#: config/settings.py:269
 msgid "This flag activate showing cover of books"
 msgstr "Флаг активирует показ обложек книг"
 
-#: config/settings.py:269
+#: config/settings.py:270
 msgid "Max subitems count in alphabet menuitem"
 msgstr "Максимальное число подэлементов в элементах алфавитных меню"
 
-#: config/settings.py:270
+#: config/settings.py:271
 msgid "Max items on page"
 msgstr "Максимальное число элементов на странице"
 
-#: config/settings.py:273
+#: config/settings.py:274
 msgid "Create downloaded filename from book title"
 msgstr "Имя загружаемого файла формировать из названия книги"
 
-#: config/settings.py:277
+#: config/settings.py:278
 msgid "This flag activate SAX Parser for FB2 instead of lxml.xpath"
 msgstr ""
 "Флаг активирует стандартный FB2sax парсер (быстрее, парсит даже невалидные "
 "fb2). При отключенной опции будет использован FB2xpath парсер (немного "
 "медленне, требователен к валидности fb2, появился в версии 0.42)"
 
-#: config/settings.py:284
+#: config/settings.py:285
 msgid "This flag activate zip files scanning"
 msgstr "Флаг разрешает сканированеи содержимого ZIP файлов"
 
-#: config/settings.py:291
+#: config/settings.py:292
 msgid "Skip unchanged ZIP archives on re-scan by comparing file size"
 msgstr "Пропускать неизменённые ZIP-архивы при повторном сканировании"
 
-#: config/settings.py:298
+#: config/settings.py:299
 msgid "Set codepage for filenames inside zipfile"
 msgstr "Codepage для имен файлов внутри ZIP"
 
-#: config/settings.py:307
+#: config/settings.py:308
 msgid ""
 "Enables read metadata from inpx-file (and stop scanning deeper from ipx-file "
 "place)"
@@ -91,47 +91,47 @@ msgstr ""
 "Считываем метаданные книг з INPX-файлов (при этом не сканируем файлы и "
 "каталоги, расположенные на уровне или ниже найденого INPX)"
 
-#: config/settings.py:317
+#: config/settings.py:318
 msgid "Skip scanning INPX with unchanged size after previous scan"
 msgstr ""
 "Не сканируем INPX, если его размер не изменился с предидущего сканирования"
 
-#: config/settings.py:326
+#: config/settings.py:327
 msgid "Test avialability zip files listed in INPX before add in collection"
 msgstr ""
 "Проверяем наличие zip файлов, перечисленных в INPX перед добавлением их "
 "содержимого в коллекцию"
 
-#: config/settings.py:337
+#: config/settings.py:338
 msgid "Test avialability book files listed in INPX before add in collection"
 msgstr ""
 "Тестируем наличие книг, перечисленных в INPX перед добавлением их "
 "содержимого в коллекцию"
 
-#: config/settings.py:347
+#: config/settings.py:348
 msgid "Logical deleting unavialable files"
 msgstr "Логическое удаление отсутствующих файлов"
 
-#: config/settings.py:352
+#: config/settings.py:353
 msgid "sheduled minutes for sopds_scanner (cron syntax)"
 msgstr "минуты для планировщика sopds_Scanner (как в cron)"
 
-#: config/settings.py:356
+#: config/settings.py:357
 msgid "sheduled hours for sopds_scanner (cron syntax)"
 msgstr "часы для планировщика sopds_Scanner (как в cron)"
 
-#: config/settings.py:360
+#: config/settings.py:361
 msgid "sheduled day for sopds_scanner (cron syntax)"
 msgstr "дни для планировщика sopds_Scanner (как в cron)"
 
-#: config/settings.py:364
+#: config/settings.py:365
 msgid "sheduled day of weeks for sopds_scanner (cron syntax)"
 msgstr "дни недели для планировщика sopds_Scanner (как в cron)"
 
-#: config/settings.py:366
+#: config/settings.py:367
 msgid "Path to FB2-EPUB converter program"
 msgstr "Путь к конвертеру FB2-EPUB"
 
-#: config/settings.py:367
+#: config/settings.py:368
 msgid "Path to FB2-MOBI converter program"
 msgstr "Путь к конвертеру FB2-MOBI"
