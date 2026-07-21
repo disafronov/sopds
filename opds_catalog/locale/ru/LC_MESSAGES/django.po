@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-21 09:30+0000\n"
+"POT-Creation-Date: 2026-07-21 09:36+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -237,6 +237,6 @@ msgstr "секция"
 msgid "subsection"
 msgstr "подсекция"
 
-#: opds_catalog/sopdscan.py:802
+#: opds_catalog/sopdscan.py:808
 msgid "Unknown author"
 msgstr "Неизвестный автор"
