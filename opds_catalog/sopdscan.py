@@ -102,7 +102,7 @@ def _log_bulk(
     batch_size: int | None,
     elapsed_ms: float,
 ) -> None:
-    """Log bulk operation timing and parameters."""
+    """Log bulk operation timing and parameters at INFO level."""
     if count == 0:
         return
     logger.info(
@@ -117,7 +117,13 @@ def _log_bulk(
 
 @transaction.atomic
 def _store_books_batch(books: list[BookMeta], scanner: opdsScanner) -> None:
-    """Store one bounded batch using bulk operations for rows and M2M links."""
+    """Store one bounded batch using bulk operations for rows and M2M links.
+
+    Each bulk_create / bulk_update is timed and logged at INFO level.
+    The ``batch_size`` parameter is read from
+    ``settings.SOPDS_SCAN_INSERT_BATCH_SIZE`` (0 means no batching,
+    which preserves the original single-INSERT behaviour).
+    """
     if not books:
         return
 
