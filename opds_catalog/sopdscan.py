@@ -94,6 +94,27 @@ def _book_key(meta: BookMeta) -> tuple[str, str]:
     )
 
 
+def _log_bulk(
+    logger: logging.Logger,
+    model_name: str,
+    operation: str,
+    count: int,
+    batch_size: int | None,
+    elapsed_ms: float,
+) -> None:
+    """Log bulk operation timing and parameters."""
+    if count == 0:
+        return
+    logger.info(
+        "DB bulk %s %s: %d rows, batch_size=%s, %.1fms",
+        operation,
+        model_name,
+        count,
+        batch_size if batch_size else "auto",
+        elapsed_ms,
+    )
+
+
 @transaction.atomic
 def _store_books_batch(books: list[BookMeta], scanner: opdsScanner) -> None:
     """Store one bounded batch using bulk operations for rows and M2M links."""
@@ -147,8 +168,17 @@ def _store_books_batch(books: list[BookMeta], scanner: opdsScanner) -> None:
         migrated_books.append(book)
 
     if migrated_books:
+        t_bulk = time.monotonic()
         Book.objects.bulk_update(
             migrated_books, ["path", "catalog", "cat_type", "avail"]
+        )
+        _log_bulk(
+            scanner.logger,
+            "Book",
+            "update",
+            len(migrated_books),
+            None,
+            (time.monotonic() - t_bulk) * 1000,
         )
 
     new_meta: list[BookMeta] = []
@@ -189,7 +219,16 @@ def _store_books_batch(books: list[BookMeta], scanner: opdsScanner) -> None:
         )
         for name in author_names - authors.keys()
     ]
+    t_bulk = time.monotonic()
     Author.objects.bulk_create(missing_authors, batch_size=batch_size)
+    _log_bulk(
+        scanner.logger,
+        "Author",
+        "create",
+        len(missing_authors),
+        batch_size,
+        (time.monotonic() - t_bulk) * 1000,
+    )
     authors.update({author.full_name: author for author in missing_authors})
     _author_cache.update(authors)
 
@@ -204,7 +243,16 @@ def _store_books_batch(books: list[BookMeta], scanner: opdsScanner) -> None:
         )
         for name in genre_names - genres.keys()
     ]
+    t_bulk = time.monotonic()
     Genre.objects.bulk_create(missing_genres, batch_size=batch_size)
+    _log_bulk(
+        scanner.logger,
+        "Genre",
+        "create",
+        len(missing_genres),
+        batch_size,
+        (time.monotonic() - t_bulk) * 1000,
+    )
     genres.update({genre.genre: genre for genre in missing_genres})
     _genre_cache.update(genres)
 
@@ -219,7 +267,16 @@ def _store_books_batch(books: list[BookMeta], scanner: opdsScanner) -> None:
         )
         for name in series_names - series_by_name.keys()
     ]
+    t_bulk = time.monotonic()
     Series.objects.bulk_create(missing_series, batch_size=batch_size)
+    _log_bulk(
+        scanner.logger,
+        "Series",
+        "create",
+        len(missing_series),
+        batch_size,
+        (time.monotonic() - t_bulk) * 1000,
+    )
     series_by_name.update({item.ser: item for item in missing_series})
     _series_cache.update(series_by_name)
 
@@ -241,7 +298,16 @@ def _store_books_batch(books: list[BookMeta], scanner: opdsScanner) -> None:
         )
         for meta in new_meta
     ]
+    t_bulk = time.monotonic()
     Book.objects.bulk_create(book_rows, batch_size=batch_size)
+    _log_bulk(
+        scanner.logger,
+        "Book",
+        "create",
+        len(book_rows),
+        batch_size,
+        (time.monotonic() - t_bulk) * 1000,
+    )
 
     author_links: list[bauthor] = []
     genre_links: list[bgenre] = []
@@ -263,9 +329,38 @@ def _store_books_batch(books: list[BookMeta], scanner: opdsScanner) -> None:
             for item in meta.series
         )
 
+    t_bulk = time.monotonic()
     bauthor.objects.bulk_create(author_links, batch_size=batch_size)
+    _log_bulk(
+        scanner.logger,
+        "bauthor",
+        "create",
+        len(author_links),
+        batch_size,
+        (time.monotonic() - t_bulk) * 1000,
+    )
+
+    t_bulk = time.monotonic()
     bgenre.objects.bulk_create(genre_links, batch_size=batch_size)
+    _log_bulk(
+        scanner.logger,
+        "bgenre",
+        "create",
+        len(genre_links),
+        batch_size,
+        (time.monotonic() - t_bulk) * 1000,
+    )
+
+    t_bulk = time.monotonic()
     bseries.objects.bulk_create(series_links, batch_size=batch_size)
+    _log_bulk(
+        scanner.logger,
+        "bseries",
+        "create",
+        len(series_links),
+        batch_size,
+        (time.monotonic() - t_bulk) * 1000,
+    )
     scanner.books_added += len(book_rows)
     scanner.books_in_archives += sum(meta.cat_type != 0 for meta in new_meta)
 
