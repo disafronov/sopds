@@ -65,6 +65,15 @@ _series_cache: dict[str, Series] = {}
 
 
 @dataclass(frozen=True)
+class _BulkMetric:
+    model_name: str
+    operation: str
+    count: int
+    batch_size: int | None
+    elapsed_ms: float
+
+
+@dataclass(frozen=True)
 class _BatchResult:
     books_added: int
     books_skipped: int
@@ -72,6 +81,7 @@ class _BatchResult:
     authors: dict[str, Author]
     genres: dict[str, Genre]
     series: dict[str, Series]
+    bulk_metrics: tuple[_BulkMetric, ...]
 
 
 def create_scan_executor(max_workers: int | None) -> ProcessPoolExecutor:
@@ -107,7 +117,7 @@ def _book_key(meta: BookMeta) -> tuple[str, str]:
 
 
 def _run_bulk(
-    logger: logging.Logger,
+    metrics: list[_BulkMetric],
     model_name: str,
     operation: str,
     batch_size: int | None,
@@ -118,7 +128,7 @@ def _run_bulk(
     t_bulk = time.monotonic()
     fn()
     elapsed_ms = (time.monotonic() - t_bulk) * 1000
-    _log_bulk(logger, model_name, operation, count, batch_size, elapsed_ms)
+    metrics.append(_BulkMetric(model_name, operation, count, batch_size, elapsed_ms))
 
 
 def _reset_connection() -> None:
@@ -195,6 +205,15 @@ def _store_books_batch(books: list[BookMeta], scanner: opdsScanner) -> None:
                 _author_cache.update(result.authors)
                 _genre_cache.update(result.genres)
                 _series_cache.update(result.series)
+                for metric in result.bulk_metrics:
+                    _log_bulk(
+                        scanner.logger,
+                        metric.model_name,
+                        metric.operation,
+                        metric.count,
+                        metric.batch_size,
+                        metric.elapsed_ms,
+                    )
             return
 
 
@@ -210,6 +229,7 @@ def _store_books_batch_atomic(
     which preserves the original single-INSERT behaviour).
     """
     batch_size = settings.SOPDS_SCAN_DB_BATCH_SIZE or None
+    bulk_metrics: list[_BulkMetric] = []
 
     requested_keys = {_book_key(meta) for meta in books}
     fallback_keys = {
@@ -257,7 +277,7 @@ def _store_books_batch_atomic(
 
     if migrated_books:
         _run_bulk(
-            scanner.logger,
+            bulk_metrics,
             "Book",
             "update",
             None,
@@ -279,7 +299,7 @@ def _store_books_batch_atomic(
         new_meta.append(meta)
 
     if not new_meta:
-        return _BatchResult(0, books_skipped, 0, {}, {}, {})
+        return _BatchResult(0, books_skipped, 0, {}, {}, {}, tuple(bulk_metrics))
 
     for meta in new_meta:
         catalog_key = (meta.rel_path, meta.cat_type)
@@ -307,7 +327,7 @@ def _store_books_batch_atomic(
         for name in author_names - authors.keys()
     ]
     _run_bulk(
-        scanner.logger,
+        bulk_metrics,
         "Author",
         "create",
         batch_size,
@@ -328,7 +348,7 @@ def _store_books_batch_atomic(
         for name in genre_names - genres.keys()
     ]
     _run_bulk(
-        scanner.logger,
+        bulk_metrics,
         "Genre",
         "create",
         batch_size,
@@ -349,7 +369,7 @@ def _store_books_batch_atomic(
         for name in series_names - series_by_name.keys()
     ]
     _run_bulk(
-        scanner.logger,
+        bulk_metrics,
         "Series",
         "create",
         batch_size,
@@ -377,7 +397,7 @@ def _store_books_batch_atomic(
         for meta in new_meta
     ]
     _run_bulk(
-        scanner.logger,
+        bulk_metrics,
         "Book",
         "create",
         batch_size,
@@ -406,7 +426,7 @@ def _store_books_batch_atomic(
         )
 
     _run_bulk(
-        scanner.logger,
+        bulk_metrics,
         "bauthor",
         "create",
         batch_size,
@@ -415,7 +435,7 @@ def _store_books_batch_atomic(
     )
 
     _run_bulk(
-        scanner.logger,
+        bulk_metrics,
         "bgenre",
         "create",
         batch_size,
@@ -424,7 +444,7 @@ def _store_books_batch_atomic(
     )
 
     _run_bulk(
-        scanner.logger,
+        bulk_metrics,
         "bseries",
         "create",
         batch_size,
@@ -438,6 +458,7 @@ def _store_books_batch_atomic(
         authors=authors,
         genres=genres,
         series=series_by_name,
+        bulk_metrics=tuple(bulk_metrics),
     )
 
 
