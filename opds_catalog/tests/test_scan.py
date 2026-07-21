@@ -978,3 +978,35 @@ class BulkRetryTestCase(TestCase):
                 _bulk_with_retry(logger, "Author", "create", None, 1, always_fail)
             # 2 retries = 2 sleeps
             self.assertEqual(mock_sleep.call_count, 2)
+
+    def test_log_bulk_emits_info_message(self) -> None:
+        """_log_bulk sends INFO message with correct parameters."""
+        from opds_catalog.sopdscan import _log_bulk
+
+        logger = logging.getLogger("test.log_bulk")
+        with self.assertLogs("test.log_bulk", level="INFO") as cm:
+            _log_bulk(logger, "Author", "create", 42, 100, 12.3)
+        self.assertEqual(len(cm.output), 1)
+        msg = cm.output[0]
+        self.assertIn("Author", msg)
+        self.assertIn("create", msg)
+        self.assertIn("42", msg)
+        self.assertIn("100", msg)
+        self.assertIn("12.3", msg)
+
+    def test_log_bulk_skips_zero_count(self) -> None:
+        """_log_bulk does nothing when count is 0."""
+        from opds_catalog.sopdscan import _log_bulk
+
+        logger = logging.getLogger("test.log_bulk_zero")
+        _log_bulk(logger, "Author", "create", 0, None, 0.0)
+
+    def test_log_bulk_shows_auto_for_none_batch_size(self) -> None:
+        """_log_bulk shows 'auto' when batch_size is None."""
+        from opds_catalog.sopdscan import _log_bulk
+
+        logger = logging.getLogger("test.log_bulk_auto")
+        with self.assertLogs("test.log_bulk_auto", level="INFO") as cm:
+            _log_bulk(logger, "Book", "update", 10, None, 5.0)
+        self.assertEqual(len(cm.output), 1)
+        self.assertIn("auto", cm.output[0])
