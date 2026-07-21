@@ -29,6 +29,19 @@ jobs:
           --health-timeout 5s
           --health-retries 30
 
+      mariadb:
+        image: mariadb:10
+        env:
+          MARIADB_DATABASE: database
+          MARIADB_ROOT_PASSWORD: password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "healthcheck.sh --connect --innodb_initialized"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 30
+
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -56,7 +69,8 @@ jobs:
         env:
           UV_PYTHON: ${{ steps.python_version.outputs.version }}
           DJANGO_DEBUG: "1"
-          DATABASE_URL: postgres://user:password@127.0.0.1:5432/database
+          DATABASE_URL_POSTGRESQL: postgres://user:password@127.0.0.1:5432/database
+          DATABASE_URL_MYSQL: "mysql://root:password@127.0.0.1:3306/database?charset=utf8mb4&collation=utf8mb4_unicode_ci"
 
       - name: Audit dependencies
         run: make audit

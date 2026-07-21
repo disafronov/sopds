@@ -17,9 +17,11 @@ ifeq ($(strip $(CI)),)
 endif
 
 TOOLING_SECRET_KEY = unsafe-secret-key-for-tooling
+TOOLING_DATABASE_URL = postgres://unused:unused@127.0.0.1:5432/unused
 
 UV = uv run
 PYTEST_CMD = DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python -m pytest -v -n auto
+TEST_ARGS = $(if $(filter all,$(MAKECMDGOALS)),,$(filter-out test all,$(MAKECMDGOALS)))
 
 DOCKER_IMAGE = sopds
 
@@ -33,7 +35,7 @@ DOCKER_RUN_OPTS = --rm \
 	$(if $(wildcard .env.docker),--env-file .env.docker,) \
 	-v "${PWD}/opds_catalog/tests/data":/books
 
-.PHONY: all audit clean dead-code dev docker docker-build docker-run format help install lint locale makemigrations migrate run scanner scan test
+.PHONY: all audit clean dead-code dev docker docker-build docker-run format help install lint locale makemigrations migrate migrate-mysql migrate-postgresql run scanner scan test test-mysql test-postgresql
 
 help: ## Show this help message
 	@echo "Available commands:"
@@ -56,7 +58,7 @@ lint: ## Run linting tools
 	$(UV) black --check . && \
 	$(UV) isort --check-only . && \
 	$(UV) flake8 . && \
-	DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) mypy . && \
+	DATABASE_URL=$(TOOLING_DATABASE_URL) DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) mypy . && \
 	$(UV) bandit -r -c pyproject.toml .
 
 audit: ## Check dependencies for known vulnerabilities
@@ -69,26 +71,40 @@ dead-code: ## Check for dead code using vulture
 
 locale: ## Make and compile locale messages
 	@echo "Making translation messages..."
-	DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py makemessages --no-obsolete --all --ignore=".venv/*" --ignore="staticfiles/*" --ignore="*/static/*" --ignore="*/tests/*" --ignore="conftest.py"
+	DATABASE_URL=$(TOOLING_DATABASE_URL) DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py makemessages --no-obsolete --all --ignore=".venv/*" --ignore="staticfiles/*" --ignore="*/static/*" --ignore="*/tests/*" --ignore="conftest.py"
 	@echo "Compiling translation messages..."
-	DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py compilemessages --ignore=".venv/*"
+	DATABASE_URL=$(TOOLING_DATABASE_URL) DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py compilemessages --ignore=".venv/*"
 
 makemigrations: ## Create new migrations
 	@echo "Creating migrations..."
 	DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py makemigrations
 
-migrate: ## Apply database migrations
-	@echo "Applying migrations..."
-	DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py migrate
+migrate-postgresql: ## Apply database migrations to PostgreSQL
+	@echo "Applying migrations to PostgreSQL..."
+	DATABASE_URL="$(DATABASE_URL_POSTGRESQL)" DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py migrate
 
-test: locale ## Run tests (extra args forwarded to pytest)
-	$(PYTEST_CMD) $(if $(filter all,$(MAKECMDGOALS)),,$(filter-out test all,$(MAKECMDGOALS)))
+migrate-mysql: ## Apply database migrations to MySQL/MariaDB
+	@echo "Applying migrations to MySQL/MariaDB..."
+	DATABASE_URL="$(DATABASE_URL_MYSQL)" DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py migrate
+
+migrate: migrate-postgresql migrate-mysql ## Apply migrations to both supported databases
+
+test-postgresql: ## Run tests on PostgreSQL
+	@echo "Running tests on PostgreSQL..."
+	DATABASE_URL="$(DATABASE_URL_POSTGRESQL)" $(PYTEST_CMD) $(TEST_ARGS)
+
+test-mysql: ## Run tests on MySQL/MariaDB
+	@echo "Running tests on MySQL/MariaDB..."
+	DATABASE_URL="$(DATABASE_URL_MYSQL)" $(PYTEST_CMD) $(TEST_ARGS)
+
+test: locale migrate test-postgresql test-mysql ## Run tests on both supported databases
 
 all: lint test dead-code ## Run all checks
 	@echo "All checks completed successfully!"
 
-run: locale migrate ## Build translations, apply migrations, create admin, start dev server + scanner
+run: locale ## Start the app on selected DATABASE_URL (with migrations)
 	@echo "Running Django dev server + scanner..."
+	DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py migrate
 	@if [ -n "$$DJANGO_SUPERUSER_USERNAME" ] && [ -n "$$DJANGO_SUPERUSER_PASSWORD" ] && [ -n "$$DJANGO_SUPERUSER_EMAIL" ]; then \
 		echo "Ensuring Django superuser exists..."; \
 		$(UV) python manage.py createsuperuser --noinput || true; \
