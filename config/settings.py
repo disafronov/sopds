@@ -402,14 +402,10 @@ SOPDS_NOCOVER_PATH = os.environ.get(
     os.path.join(BASE_DIR, "web_backend/static/images/nocover.jpg"),
 )
 SOPDS_SCAN_WORKERS = int(os.environ.get("SOPDS_SCAN_WORKERS", "0"))
-SOPDS_SCAN_INSERT_BATCH_SIZE = int(os.environ.get("SOPDS_SCAN_INSERT_BATCH_SIZE", "0"))
+SOPDS_SCAN_DB_BATCH_SIZE = int(os.environ.get("SOPDS_SCAN_DB_BATCH_SIZE", "0"))
 
-SOPDS_SCAN_INSERT_RETRY_COUNT = int(
-    os.environ.get("SOPDS_SCAN_INSERT_RETRY_COUNT", "0")
-)
-SOPDS_SCAN_INSERT_RETRY_BACKOFF = int(
-    os.environ.get("SOPDS_SCAN_INSERT_RETRY_BACKOFF", "0")
-)
+SOPDS_SCAN_DB_RETRY_COUNT = int(os.environ.get("SOPDS_SCAN_DB_RETRY_COUNT", "0"))
+SOPDS_SCAN_DB_RETRY_DELAY = int(os.environ.get("SOPDS_SCAN_DB_RETRY_DELAY", "0"))
 
 SECURE_REDIRECT_EXEMPT = [r"^health/"]
 SECURE_SSL_REDIRECT = os.getenv("DJANGO_SECURE_SSL_REDIRECT", "False").lower() in (

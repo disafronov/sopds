@@ -523,7 +523,7 @@ EPUB и помещает в БД)"""
         )
 
         expected = 100
-        with override_settings(SOPDS_SCAN_INSERT_BATCH_SIZE=expected):
+        with override_settings(SOPDS_SCAN_DB_BATCH_SIZE=expected):
             with (
                 patch.object(
                     catalog_models.Author.objects, "bulk_create"
@@ -914,8 +914,8 @@ class BulkRetryTestCase(TestCase):
     """Retry logic for bulk DB operations."""
 
     @override_settings(
-        SOPDS_SCAN_INSERT_RETRY_COUNT=0,
-        SOPDS_SCAN_INSERT_RETRY_BACKOFF=0,
+        SOPDS_SCAN_DB_RETRY_COUNT=0,
+        SOPDS_SCAN_DB_RETRY_DELAY=0,
     )
     def test_bulk_no_retry_on_operational_error(self) -> None:
         """With retry_count=0, OperationalError is raised immediately."""
@@ -937,8 +937,8 @@ class BulkRetryTestCase(TestCase):
             mock_sleep.assert_not_called()
 
     @override_settings(
-        SOPDS_SCAN_INSERT_RETRY_COUNT=2,
-        SOPDS_SCAN_INSERT_RETRY_BACKOFF=100,
+        SOPDS_SCAN_DB_RETRY_COUNT=2,
+        SOPDS_SCAN_DB_RETRY_DELAY=100,
     )
     def test_bulk_retries_on_operational_error(self) -> None:
         """With retry_count=2, bulk retries twice then succeeds."""
@@ -961,8 +961,8 @@ class BulkRetryTestCase(TestCase):
             mock_sleep.assert_any_call(0.2)
 
     @override_settings(
-        SOPDS_SCAN_INSERT_RETRY_COUNT=2,
-        SOPDS_SCAN_INSERT_RETRY_BACKOFF=100,
+        SOPDS_SCAN_DB_RETRY_COUNT=2,
+        SOPDS_SCAN_DB_RETRY_DELAY=100,
     )
     def test_bulk_exhausts_retries(self) -> None:
         """With retry_count=2, all 3 attempts fail and last error is raised."""
