@@ -33,7 +33,7 @@ def test_sqlite_database_url_is_rejected() -> None:
     result = _import_settings(DATABASE_URL="sqlite:////tmp/sopds.sqlite3")
 
     assert result.returncode != 0
-    assert "SQLite is unsupported" in result.stderr
+    assert "supported backends are PostgreSQL and MySQL/MariaDB" in result.stderr
 
 
 def test_postgresql_database_url_is_accepted() -> None:
