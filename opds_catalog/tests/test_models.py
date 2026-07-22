@@ -2,6 +2,7 @@ from datetime import datetime
 
 from django.conf import settings as main_settings
 from django.contrib.auth.models import User
+from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.utils import timezone
 
@@ -118,6 +119,21 @@ class modelsTestCase(TestCase):
         self.assertEqual(bookshelf.objects.all().count(), 1)
         self.assertEqual(bookshelf.objects.filter(user=user).count(), 1)
         self.assertEqual(bookshelf.objects.get(user=user).book.title, "Книга")
+
+    def test_book_relations_are_unique(self) -> None:
+        book = Book.objects.get(title="Книга")
+        duplicate_relations = (
+            lambda: bauthor.objects.create(book=book, author=book.authors.get()),
+            lambda: bgenre.objects.create(book=book, genre=book.genres.get()),
+            lambda: bseries.objects.create(book=book, ser=book.series.get(), ser_no=1),
+            lambda: bookshelf.objects.create(
+                user=User.objects.get(username="testuser"), book=book
+            ),
+        )
+
+        for create_duplicate in duplicate_relations:
+            with self.assertRaises(IntegrityError), transaction.atomic():
+                create_duplicate()
 
     def test_Counter(self) -> None:
         """Тестирование соответствия структуры модели Counter, менеджера \

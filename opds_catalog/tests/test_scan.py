@@ -557,6 +557,43 @@ EPUB и помещает в БД)"""
         self.assertEqual(sum(book.series.count() for book in Book.objects.all()), 2)
         self.assertEqual(scanner.books_added, 2)
 
+    def test_store_result_deduplicates_relations_within_book(self) -> None:
+        """Repeated metadata values create one relation of each kind."""
+        from opds_catalog.scan_types import (
+            AuthorMeta,
+            BookMeta,
+            ParseResult,
+            SeriesMeta,
+        )
+        from opds_catalog.sopdscan import store_result
+
+        opdsdb.clear_all()
+        scanner = opdsScanner()
+        meta = BookMeta(
+            filename="duplicate-relations.fb2",
+            rel_path=".",
+            ext="fb2",
+            title="Duplicate relations",
+            annotation="",
+            docdate="2024",
+            lang="en",
+            filesize=100,
+            cat_type=0,
+            authors=[AuthorMeta(name="Doe John"), AuthorMeta(name="Doe John")],
+            genres=["fiction", "fiction"],
+            series=[
+                SeriesMeta(title="Shared", index=1),
+                SeriesMeta(title="Shared", index=1),
+            ],
+        )
+
+        store_result(ParseResult(books=[meta]), scanner)
+
+        book = Book.objects.get(filename=meta.filename)
+        self.assertEqual(book.authors.count(), 1)
+        self.assertEqual(book.genres.count(), 1)
+        self.assertEqual(book.series.count(), 1)
+
     def test_store_books_batch_uses_batch_size_when_configured(self) -> None:
         """All bulk_create calls receive batch_size when the setting is > 0."""
         from unittest.mock import patch

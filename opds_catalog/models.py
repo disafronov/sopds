@@ -102,6 +102,13 @@ class bauthor(models.Model):
     book = models.ForeignKey("Book", db_index=True, on_delete=models.CASCADE)
     author = models.ForeignKey("Author", db_index=True, on_delete=models.CASCADE)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["book", "author"], name="bauthor_book_author_uniq"
+            )
+        ]
+
 
 #    class Meta:
 #        index_together = [
@@ -119,6 +126,13 @@ class bgenre(models.Model):
     book = models.ForeignKey("Book", db_index=True, on_delete=models.CASCADE)
     genre = models.ForeignKey("Genre", db_index=True, on_delete=models.CASCADE)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["book", "genre"], name="bgenre_book_genre_uniq"
+            )
+        ]
+
 
 class Series(models.Model):
     ser = models.CharField(max_length=SIZE_SERIES, db_index=True)
@@ -130,6 +144,13 @@ class bseries(models.Model):
     book = models.ForeignKey("Book", db_index=True, on_delete=models.CASCADE)
     ser = models.ForeignKey("Series", db_index=True, on_delete=models.CASCADE)
     ser_no = models.IntegerField(null=False, default=0)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["book", "ser"], name="bseries_book_series_uniq"
+            )
+        ]
 
 
 #    class Meta:
@@ -144,6 +165,11 @@ class bookshelf(models.Model):
     readtime = models.DateTimeField(null=False, default=timezone.now, db_index=True)
 
     class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "book"], name="bookshelf_user_book_uniq"
+            )
+        ]
         indexes = [
             models.Index(
                 fields=["user", "-readtime"], name="bookshelf_user_readtime_idx"
