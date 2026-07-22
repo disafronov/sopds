@@ -30,7 +30,7 @@ jobs:
           --health-retries 30
 
       mariadb:
-        image: mariadb:10
+        image: mariadb:lts
         env:
           MARIADB_DATABASE: database
           MARIADB_ROOT_PASSWORD: password
