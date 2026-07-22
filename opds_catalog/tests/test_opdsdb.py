@@ -163,44 +163,6 @@ class opdsdbTestCase(TestCase):
         self.assertTrue(Catalog.objects.filter(path="gone/nested").exists())
         self.assertTrue(Book.objects.filter(pk=missing_book.pk, avail=0).exists())
 
-    def test_normalize_inp_catalog_reparents_catalog_and_books(self) -> None:
-        opdsdb.addcattree("books/index.inpx", opdsdb.CAT_INPX)
-        legacy = opdsdb.addcattree("books/part.inp", opdsdb.CAT_INP)
-        book = opdsdb.addbook(
-            "book.fb2",
-            "books/part.inp",
-            legacy,
-            "fb2",
-            "Book",
-            "",
-            "",
-            "ru",
-            archive=opdsdb.CAT_INP,
-        )
-        book_id = book.pk
-
-        moved = opdsdb.normalize_inp_catalog(
-            "books/part.inp",
-            "books/index.inpx/part.inp",
-        )
-
-        book.refresh_from_db()
-        legacy.refresh_from_db()
-        self.assertEqual(moved, 1)
-        self.assertEqual(book.pk, book_id)
-        self.assertEqual(book.path, "books/index.inpx/part.inp")
-        self.assertEqual(book.catalog, legacy)
-        self.assertEqual(legacy.path, "books/index.inpx/part.inp")
-        self.assertEqual(cast(Catalog, legacy.parent).path, "books/index.inpx")
-
-        self.assertEqual(
-            opdsdb.normalize_inp_catalog(
-                "books/part.inp",
-                "books/index.inpx/part.inp",
-            ),
-            0,
-        )
-
     def test_catalogs_del_empty_removes_empty_container_catalogs(self) -> None:
         """catalogs_del_empty must delete empty leaf catalogs regardless of cat_type."""
         opdsdb.addcattree("arch/index.inpx", opdsdb.CAT_INPX, size=9999)

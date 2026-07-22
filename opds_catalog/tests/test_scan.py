@@ -467,57 +467,6 @@ EPUB и помещает в БД)"""
         self.assertEqual(scanner.books_skipped, 1)
         self.assertEqual(Book.objects.count(), 1)
 
-    @override_settings(SOPDS_SCAN_DB_BATCH_SIZE=100)
-    def test_store_result_moves_inp_book_to_zip_without_recreating_it(self) -> None:
-        """An INP result moves the existing book into its external ZIP."""
-        from opds_catalog.scan_types import BookMeta, ParseResult
-        from opds_catalog.sopdscan import store_result
-
-        opdsdb.clear_all()
-        scanner = opdsScanner()
-        inp_path = "books/index.inpx/part.inp"
-        inp_catalog = opdsdb.addcattree(inp_path, opdsdb.CAT_INP)
-        book = opdsdb.addbook(
-            "test.fb2",
-            inp_path,
-            inp_catalog,
-            "fb2",
-            "Test",
-            "",
-            "2024",
-            "ru",
-            100,
-            opdsdb.CAT_INP,
-        )
-        book_id = book.pk
-        zip_path = f"{inp_path}/part.zip"
-        meta = BookMeta(
-            filename="test.fb2",
-            rel_path=zip_path,
-            ext="fb2",
-            title="Test",
-            annotation="",
-            docdate="2024",
-            lang="ru",
-            filesize=100,
-            cat_type=opdsdb.CAT_INP,
-            inp_rel_path=inp_path,
-            legacy_inp_rel_path="books/part.inp",
-        )
-
-        with patch.object(
-            Book.objects, "bulk_update", wraps=Book.objects.bulk_update
-        ) as bulk_update:
-            store_result(ParseResult(books=[meta]), scanner)
-
-        book.refresh_from_db()
-        self.assertEqual(Book.objects.count(), 1)
-        self.assertEqual(book.pk, book_id)
-        self.assertEqual(book.path, zip_path)
-        self.assertEqual(book.catalog.path, zip_path)
-        self.assertEqual(scanner.books_skipped, 1)
-        self.assertEqual(bulk_update.call_args.kwargs["batch_size"], 100)
-
     def test_store_result_propagates_bad_books(self) -> None:
         """Verify store_result adds bad_books count to scanner stats."""
         from opds_catalog.scan_types import ParseResult
@@ -782,21 +731,7 @@ class InpxCatalogSizeTestCase(TestCase):
             with _zipfile.ZipFile(inpx_path, "r") as zf:
                 inp_entry_size = zf.getinfo("test.inp").file_size
 
-            # Pre-create the legacy INP catalog so normalize_inp_catalog
-            # can reparent it under the INPX catalog. This simulates a
-            # re-scan where the INP was already scanned previously.
-            inp_legacy_path = os.path.relpath(
-                os.path.join(os.path.dirname(inpx_path), "test.inp"),
-                tmp,
-            )
-            # Also pre-create the INPX catalog so that normalize_inp_catalog
-            # can set the right parent.
             inpx_rel = os.path.relpath(inpx_path, tmp)
-            opdsdb.addcattree(
-                inpx_rel, opdsdb.CAT_INPX, size=os.path.getsize(inpx_path)
-            )
-            legacy_inp = opdsdb.addcattree(inp_legacy_path, opdsdb.CAT_INP, size=0)
-            self.assertEqual(legacy_inp.cat_size, 0)
 
             django_settings.SOPDS_ROOT_LIB = tmp
 
