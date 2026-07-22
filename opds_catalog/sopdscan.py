@@ -393,20 +393,27 @@ def _store_books_batch_atomic(
     genre_links: list[bgenre] = []
     series_links: list[bseries] = []
     for meta, book in zip(new_meta, book_rows, strict=True):
+        author_names_for_book = dict.fromkeys(
+            item.name[:SIZE_AUTHOR_NAME] for item in meta.authors
+        )
+        genre_names_for_book = dict.fromkeys(name[:SIZE_GENRE] for name in meta.genres)
+        series_for_book: dict[str, int] = {}
+        for item in meta.series:
+            series_for_book.setdefault(item.title[:SIZE_SERIES], item.index)
+
         author_links.extend(
-            bauthor(book=book, author=authors[item.name[:SIZE_AUTHOR_NAME]])
-            for item in meta.authors
+            bauthor(book=book, author=authors[name]) for name in author_names_for_book
         )
         genre_links.extend(
-            bgenre(book=book, genre=genres[name[:SIZE_GENRE]]) for name in meta.genres
+            bgenre(book=book, genre=genres[name]) for name in genre_names_for_book
         )
         series_links.extend(
             bseries(
                 book=book,
-                ser=series_by_name[item.title[:SIZE_SERIES]],
-                ser_no=item.index,
+                ser=series_by_name[name],
+                ser_no=index,
             )
-            for item in meta.series
+            for name, index in series_for_book.items()
         )
 
     _run_bulk(
