@@ -140,6 +140,11 @@ def avail_check_prepare() -> None:
     Book.objects.filter(~Q(avail=0)).update(avail=1)
 
 
+def avail_check_abort() -> int:
+    """Restore books left unchecked by an incomplete scan."""
+    return Book.objects.filter(avail=1).update(avail=2)
+
+
 def books_del_logical() -> int:
     row_count = Book.objects.filter(avail=1).update(avail=0)
     return row_count
