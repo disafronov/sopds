@@ -14,6 +14,7 @@ from concurrent.futures import (
     wait,
 )
 from dataclasses import dataclass
+from functools import wraps
 from typing import Any, Callable
 
 from constance import config
@@ -62,6 +63,22 @@ logger = logging.getLogger(__name__)
 _author_cache: dict[str, Author] = {}
 _genre_cache: dict[str, Genre] = {}
 _series_cache: dict[str, Series] = {}
+
+
+def _restore_availability_on_error(method: Callable[..., None]) -> Callable[..., None]:
+    """Restore pre-scan availability if scan_all exits unexpectedly."""
+
+    @wraps(method)
+    def wrapped(scanner: opdsScanner, *args: Any, **kwargs: Any) -> None:
+        try:
+            method(scanner, *args, **kwargs)
+        except BaseException:
+            if scanner._availability_check_active:
+                opdsdb.avail_check_abort()
+                scanner._availability_check_active = False
+            raise
+
+    return wrapped
 
 
 @dataclass(frozen=True)
@@ -474,6 +491,7 @@ class opdsScanner:
         else:
             self.logger = logging.getLogger("")
             self.logger.setLevel(logging.CRITICAL)
+        self._availability_check_active = False
         self.init_stats()
 
     def init_stats(self) -> None:
@@ -539,6 +557,7 @@ class opdsScanner:
             + " seconds."
         )
 
+    @_restore_availability_on_error
     def scan_all(self) -> None:
         """Scan the book library using a process pool for file parsing.
 
@@ -564,6 +583,8 @@ class opdsScanner:
         self.rel_path = None
 
         opdsdb.avail_check_prepare()
+        self._availability_check_active = True
+        scan_complete = True
 
         max_workers = settings.SOPDS_SCAN_WORKERS or os.cpu_count()
         self.logger.info("Scanner worker processes: %s", max_workers)
@@ -588,6 +609,7 @@ class opdsScanner:
                     except Exception:
                         self.logger.exception("Worker process failed")
                         self.bad_archives += 1
+                        scan_complete = False
                         continue
 
                     if isinstance(result, DirectoryDiscovery):
@@ -602,6 +624,7 @@ class opdsScanner:
                         if result.error:
                             self.logger.error(result.error)
                             self.bad_archives += 1
+                            scan_complete = False
                             continue
                         for directory in result.directories:
                             all_futures.add(
@@ -718,12 +741,14 @@ class opdsScanner:
                                 "Container discovery failed: " + result.error
                             )
                             self.bad_archives += 1
+                            scan_complete = False
                             continue
                         if result.source_path is None:
                             self.logger.error(
                                 "Container discovery missing source path; skipping"
                             )
                             self.bad_archives += 1
+                            scan_complete = False
                             continue
                         is_inpx = (
                             result.source_path is not None
@@ -816,13 +841,23 @@ class opdsScanner:
                                     zip_cat.cat_size = zip_file_size
                                     zip_cat.save(update_fields=["cat_size"])
                     else:
+                        if parse_result.error or parse_result.bad_books:
+                            scan_complete = False
                         store_result(parse_result, self)
 
-        if config.SOPDS_DELETE_LOGICAL:
+        if not scan_complete:
+            restored = opdsdb.avail_check_abort()
+            self.logger.error(
+                "Scan incomplete; deletion skipped and %d unchecked books restored",
+                restored,
+            )
+        elif config.SOPDS_DELETE_LOGICAL:
             self.books_deleted = opdsdb.books_del_logical()
         else:
             self.books_deleted = opdsdb.books_del_phisical()
-        self.catalogs_deleted = opdsdb.catalogs_del_empty()
+        if scan_complete:
+            self.catalogs_deleted = opdsdb.catalogs_del_empty()
+        self._availability_check_active = False
 
         self.log_stats()
 

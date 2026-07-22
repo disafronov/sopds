@@ -103,6 +103,18 @@ class opdsdbTestCase(TestCase):
         self.assertEqual(same.format, ".fb2")
         self.assertEqual(same.filesize, 500)
 
+    def test_avail_check_abort_restores_unchecked_books(self) -> None:
+        book = cast(Book, opdsdb.findbook("testbook.fb2", "root/child"))
+        opdsdb.avail_check_prepare()
+        book.refresh_from_db()
+        self.assertEqual(book.avail, 1)
+
+        restored = opdsdb.avail_check_abort()
+
+        book.refresh_from_db()
+        self.assertEqual(restored, 1)
+        self.assertEqual(book.avail, 2)
+
     def test_addcattree_no_duplicates(self) -> None:
         """Repeated addcattree on the same path must not create duplicates."""
         opdsdb.clear_cat_cache()

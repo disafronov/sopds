@@ -282,7 +282,78 @@ EPUB и помещает в БД)"""
         self.assertEqual(Author.objects.all().count(), 6)
         self.assertEqual(Genre.objects.all().count(), 5)
         self.assertEqual(Series.objects.all().count(), 1)
-        self.assertEqual(Catalog.objects.all().count(), 2)
+        # The fixture contains a corrupt ZIP. An incomplete scan must retain
+        # its catalog instead of running destructive catalog cleanup.
+        self.assertEqual(Catalog.objects.all().count(), 3)
+
+    def test_incomplete_scan_restores_books_and_skips_cleanup(self) -> None:
+        from opds_catalog.scan_types import DirectoryDiscovery
+
+        def failed_discovery(*_args: Any, **_kwargs: Any) -> DirectoryDiscovery:
+            return DirectoryDiscovery(
+                source_path=self.test_ROOTLIB,
+                error="library unavailable",
+            )
+
+        opdsdb.clear_all()
+        catalog = opdsdb.addcattree("existing", opdsdb.CAT_NORMAL)
+        book = opdsdb.addbook(
+            "existing.fb2",
+            "existing",
+            catalog,
+            "fb2",
+            "Existing Book",
+            "",
+            "",
+            "en",
+        )
+        scanner = opdsScanner()
+        executor = ImmediateExecutor()
+
+        with (
+            patch(
+                "opds_catalog.sopdscan.create_scan_executor",
+                return_value=executor,
+            ),
+            patch(
+                "opds_catalog.scan_parser.discover_directory",
+                new=failed_discovery,
+            ),
+        ):
+            scanner.scan_all()
+
+        book.refresh_from_db()
+        self.assertEqual(book.avail, 2)
+        self.assertTrue(Catalog.objects.filter(pk=catalog.pk).exists())
+        self.assertEqual(scanner.books_deleted, 0)
+        self.assertEqual(scanner.catalogs_deleted, 0)
+
+    def test_unhandled_scan_error_restores_book_availability(self) -> None:
+        opdsdb.clear_all()
+        catalog = opdsdb.addcattree("existing", opdsdb.CAT_NORMAL)
+        book = opdsdb.addbook(
+            "existing.fb2",
+            "existing",
+            catalog,
+            "fb2",
+            "Existing Book",
+            "",
+            "",
+            "en",
+        )
+        scanner = opdsScanner()
+
+        with (
+            patch(
+                "opds_catalog.sopdscan.create_scan_executor",
+                side_effect=RuntimeError("executor unavailable"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "executor unavailable"),
+        ):
+            scanner.scan_all()
+
+        book.refresh_from_db()
+        self.assertEqual(book.avail, 2)
 
     def test_clear_scan_caches(self) -> None:
         """Verify clear_scan_caches resets memo caches."""
