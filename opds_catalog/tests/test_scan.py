@@ -282,9 +282,33 @@ EPUB и помещает в БД)"""
         self.assertEqual(Author.objects.all().count(), 6)
         self.assertEqual(Genre.objects.all().count(), 5)
         self.assertEqual(Series.objects.all().count(), 1)
-        # The fixture contains a corrupt ZIP. An incomplete scan must retain
-        # its catalog instead of running destructive catalog cleanup.
-        self.assertEqual(Catalog.objects.all().count(), 3)
+        self.assertEqual(Catalog.objects.all().count(), 2)
+
+    def test_corrupt_book_is_logically_deleted_after_complete_scan(self) -> None:
+        opdsdb.clear_all()
+        config.SOPDS_DELETE_LOGICAL = True
+        catalog = opdsdb.addcattree(".", opdsdb.CAT_NORMAL)
+        book = opdsdb.addbook(
+            "badfile.fb2",
+            ".",
+            catalog,
+            "fb2",
+            "Previously Valid Book",
+            "",
+            "",
+            "en",
+        )
+        scanner = opdsScanner()
+        executor = ImmediateExecutor()
+
+        with patch(
+            "opds_catalog.sopdscan.create_scan_executor",
+            return_value=executor,
+        ):
+            scanner.scan_all()
+
+        book.refresh_from_db()
+        self.assertEqual(book.avail, 0)
 
     def test_incomplete_scan_restores_books_and_skips_cleanup(self) -> None:
         from opds_catalog.scan_types import DirectoryDiscovery
