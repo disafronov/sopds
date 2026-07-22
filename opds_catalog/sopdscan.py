@@ -741,7 +741,6 @@ class opdsScanner:
                                 "Container discovery failed: " + result.error
                             )
                             self.bad_archives += 1
-                            scan_complete = False
                             continue
                         if result.source_path is None:
                             self.logger.error(
@@ -841,8 +840,6 @@ class opdsScanner:
                                     zip_cat.cat_size = zip_file_size
                                     zip_cat.save(update_fields=["cat_size"])
                     else:
-                        if parse_result.error or parse_result.bad_books:
-                            scan_complete = False
                         store_result(parse_result, self)
 
         if not scan_complete:
