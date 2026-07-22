@@ -63,6 +63,21 @@ class scanTestCase(TestCase):
     def setUp(self) -> None:
         django_settings.SOPDS_ROOT_LIB = self.test_ROOTLIB
 
+    def test_log_stats_reports_elapsed_time_longer_than_one_day(self) -> None:
+        logger = mock.Mock(spec=logging.Logger)
+        scanner = opdsScanner(logger)
+        scanner.t1 *= 0
+
+        with patch("opds_catalog.sopdscan.time.time", return_value=90061):
+            scanner.log_stats()
+
+        logger.info.assert_any_call(
+            "Time elapsed: %d hours, %d minutes, %d seconds.",
+            25,
+            1,
+            1,
+        )
+
     def test_processfile_fb2(self) -> None:
         """Тестирование процедуры processfile (извлекает метаданные из книги \
 FB2 и помещает в БД)"""
