@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import nullcontext
 from io import StringIO
 from typing import Any
 from unittest.mock import Mock, call, patch
@@ -37,15 +38,19 @@ class ScannerCommandTestCase(SimpleTestCase):
 
     @patch("opds_catalog.management.commands.sopds_scanner.Counter")
     @patch("opds_catalog.management.commands.sopds_scanner.opdsScanner")
+    @patch("opds_catalog.management.commands.sopds_scanner.scanner_lock")
     @patch("opds_catalog.management.commands.sopds_scanner.connections")
     @patch("opds_catalog.management.commands.sopds_scanner.close_old_connections")
     def test_scan_closes_connections_and_updates_counters(
         self,
         close_old_connections: Mock,
         connections: Mock,
+        lock: Mock,
         scanner_class: Mock,
         counter: Mock,
     ) -> None:
+        lock.return_value = nullcontext(True)
+
         self.command.scan()
 
         close_old_connections.assert_called_once_with()
@@ -53,6 +58,27 @@ class ScannerCommandTestCase(SimpleTestCase):
         counter.objects.update_known_counters.assert_called_once_with()
         connections.close_all.assert_called_once_with()
         self.assertFalse(self.command.scan_is_active)
+
+    @patch("opds_catalog.management.commands.sopds_scanner.opdsScanner")
+    @patch("opds_catalog.management.commands.sopds_scanner.scanner_lock")
+    @patch("opds_catalog.management.commands.sopds_scanner.connections")
+    @patch("opds_catalog.management.commands.sopds_scanner.close_old_connections")
+    def test_scan_skips_lock_held_by_another_process(
+        self,
+        close_old_connections: Mock,
+        connections: Mock,
+        lock: Mock,
+        scanner_class: Mock,
+    ) -> None:
+        lock.return_value = nullcontext(False)
+
+        self.command.scan()
+
+        close_old_connections.assert_called_once_with()
+        scanner_class.assert_not_called()
+        self.assertIn("another process", self.command.stdout.getvalue())
+        self.assertFalse(self.command.scan_is_active)
+        connections.close_all.assert_called_once_with()
 
     @patch("opds_catalog.management.commands.sopds_scanner.connections")
     @patch("opds_catalog.management.commands.sopds_scanner.close_old_connections")

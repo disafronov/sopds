@@ -11,6 +11,7 @@ from django.core.management.base import BaseCommand
 from django.db import close_old_connections, connections
 
 from opds_catalog.models import Counter
+from opds_catalog.scan_lock import scanner_lock
 from opds_catalog.sopdscan import opdsScanner
 
 
@@ -47,9 +48,14 @@ class Command(BaseCommand):
         try:
             close_old_connections()
 
-            scanner = opdsScanner(self.logger)
-            scanner.scan_all()
-            Counter.objects.update_known_counters()
+            with scanner_lock() as acquired:
+                if not acquired:
+                    self.stdout.write("Scan process already active in another process.")
+                    return
+
+                scanner = opdsScanner(self.logger)
+                scanner.scan_all()
+                Counter.objects.update_known_counters()
         except Exception:
             self.logger.exception("Scan failed with an unhandled exception")
             if not suppress_errors:
