@@ -188,6 +188,15 @@ if DATABASES["default"]["ENGINE"] not in {
         "PostgreSQL and MySQL/MariaDB"
     )
 
+# Advisory locks are connection-scoped. Keep the scanner lock on a dedicated
+# connection so retries may safely reset the default scanner connection.
+DATABASES["scanner_lock"] = {
+    **DATABASES["default"],
+    "CONN_MAX_AGE": 0,
+    "CONN_HEALTH_CHECKS": False,
+    "TEST": {"MIRROR": "default"},
+}
+
 # SOPDS DATABASE SETTINGS FINISH
 
 # Password validation
