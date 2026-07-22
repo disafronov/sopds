@@ -4,6 +4,7 @@ import logging
 import os
 import tempfile
 from concurrent.futures import Future
+from contextlib import nullcontext
 from types import TracebackType
 from typing import Any
 from unittest import mock
@@ -963,6 +964,12 @@ class ScanIsActiveResetTestCase(TestCase):
         self.cmd = Command()
         self.cmd.logger = logging.getLogger("test_scanner")
         self.cmd.logger.setLevel(logging.DEBUG)
+        lock_patcher = patch(
+            "opds_catalog.management.commands.sopds_scanner.scanner_lock",
+            return_value=nullcontext(True),
+        )
+        lock_patcher.start()
+        self.addCleanup(lock_patcher.stop)
 
     def test_command_accepts_only_foreground_actions(self) -> None:
         """Process supervision owns daemon stop/restart lifecycle operations."""
