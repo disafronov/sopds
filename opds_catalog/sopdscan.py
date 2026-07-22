@@ -508,18 +508,14 @@ class opdsScanner:
         self.logger.info("Archives skipped : " + str(self.arch_skipped))
         self.logger.info("Bad archives     : " + str(self.bad_archives))
 
-        t = self.t2 - self.t1
-        seconds = t.seconds % 60
-        minutes = ((t.seconds - seconds) // 60) % 60
-        hours = t.seconds // 3600
+        elapsed_seconds = int((self.t2 - self.t1).total_seconds())
+        hours, remainder = divmod(elapsed_seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
         self.logger.info(
-            "Time estimated:"
-            + str(hours)
-            + " hours, "
-            + str(minutes)
-            + " minutes, "
-            + str(seconds)
-            + " seconds."
+            "Time elapsed: %d hours, %d minutes, %d seconds.",
+            hours,
+            minutes,
+            seconds,
         )
 
     @_restore_availability_on_error
