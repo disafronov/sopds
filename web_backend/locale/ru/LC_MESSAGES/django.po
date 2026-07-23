@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-23 08:06+0000\n"
+"POT-Creation-Date: 2026-07-23 08:18+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -215,11 +215,11 @@ msgstr "Никогда"
 msgid "Hello"
 msgstr "Здравствуйте"
 
-#: web_backend/templates/sopds_hello.html:12
+#: web_backend/templates/sopds_hello.html:8
 msgid "Guest"
 msgstr "Гость"
 
-#: web_backend/templates/sopds_hello.html:16
+#: web_backend/templates/sopds_hello.html:11
 msgid ""
 "Simple OPDS Catalog is a free self-hosted application for creating an "
 "electronic OPDS book catalog."
@@ -227,7 +227,7 @@ msgstr ""
 "Simple OPDS Catalog — бесплатное self-hosted-приложение для создания "
 "электронного каталога книг OPDS."
 
-#: web_backend/templates/sopds_hello.html:21
+#: web_backend/templates/sopds_hello.html:16
 msgid ""
 "OPDS (Open Publication Distribution System) lets you access your library "
 "over the Internet from e-book readers, tablets, smartphones, and other "
@@ -237,11 +237,11 @@ msgstr ""
 "библиотеке через Интернет с электронных книг, планшетов, смартфонов и других "
 "устройств."
 
-#: web_backend/templates/sopds_hello.html:28
+#: web_backend/templates/sopds_hello.html:23
 msgid "OPDS catalog address to add to your reading app:"
 msgstr "Адрес OPDS-каталога для добавления в приложение для чтения:"
 
-#: web_backend/templates/sopds_hello.html:33
+#: web_backend/templates/sopds_hello.html:28
 msgid "Report bugs and request features on GitHub Issues."
 msgstr "Сообщайте об ошибках и предлагайте новые функции в GitHub Issues."
 
@@ -312,15 +312,15 @@ msgstr "Всего: %(chars_cnt)s серий."
 msgid "Total: %(s_book_count)s books."
 msgstr "Всего: %(s_book_count)s книг."
 
-#: web_backend/templates/sopds_top.html:19 web_backend/views.py:836
+#: web_backend/templates/sopds_top.html:21 web_backend/views.py:836
 msgid "Logout"
 msgstr "Выход"
 
-#: web_backend/templates/sopds_top.html:21
+#: web_backend/templates/sopds_top.html:23
 msgid "Settings"
 msgstr "Настройки"
 
-#: web_backend/templates/sopds_top.html:24 web_backend/views.py:791
+#: web_backend/templates/sopds_top.html:26 web_backend/views.py:791
 msgid "Login"
 msgstr "Вход"
 

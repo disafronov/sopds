@@ -258,13 +258,19 @@ class TestLogoutView:
 class TestHello:
     """Tests for hello()."""
 
-    def test_hello_returns_200(self, db: Any, client: Client) -> None:
+    def test_hello_returns_200(self, db: Any, client: Client, user: User) -> None:
         response = client.get("/web/")
         content = response.content.decode()
 
         assert response.status_code == 200
+        assert "Hello Guest!" in content
+        assert content.count('href="/"') >= 2
         assert 'href="/opds/"' in content
         assert "https://github.com/disafronov/sopds/issues" in content
+
+        client.force_login(user)
+        auth_content = client.get("/web/").content.decode()
+        assert "Hello testuser!" in auth_content
 
 
 class TestHandler403:
