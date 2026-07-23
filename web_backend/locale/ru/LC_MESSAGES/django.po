@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-23 07:17+0000\n"
+"POT-Creation-Date: 2026-07-23 08:06+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -287,12 +287,12 @@ msgstr "Автор"
 msgid "Catalogs"
 msgstr "Каталоги"
 
-#: web_backend/templates/sopds_selectauthor.html:16
+#: web_backend/templates/sopds_selectauthor.html:17
 #, python-format
 msgid "Total: %(chars_cnt)s authors."
 msgstr "Всего: %(chars_cnt)s авторов."
 
-#: web_backend/templates/sopds_selectbook.html:16
+#: web_backend/templates/sopds_selectbook.html:17
 #, python-format
 msgid "Total: %(chars_cnt)s books."
 msgstr "Всего: %(chars_cnt)s книг."
@@ -302,7 +302,7 @@ msgstr "Всего: %(chars_cnt)s книг."
 msgid "Total: %(g_num_book)s books."
 msgstr "Всего: %(g_num_book)s книг."
 
-#: web_backend/templates/sopds_selectseries.html:16
+#: web_backend/templates/sopds_selectseries.html:17
 #, python-format
 msgid "Total: %(chars_cnt)s series."
 msgstr "Всего: %(chars_cnt)s серий."

@@ -6,6 +6,30 @@
   display: block;
 }
 
+.selector-table tbody td {
+  padding: 0;
+}
+
+.selector-link {
+  display: block;
+  padding: 0.5rem 0.625rem 0.625rem;
+}
+
+.selector-link__count {
+  color: #0a0a0a;
+  font-size: 80%;
+}
+
+.clickable-rows tbody tr {
+  position: relative;
+}
+
+.clickable-rows tbody tr a::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+}
+
 .book-list-card {
   margin-top: 1rem;
 }
