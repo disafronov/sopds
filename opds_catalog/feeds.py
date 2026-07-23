@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any, Generic, TypeVar, cast
+from urllib.parse import urlsplit
 
 from constance import config
 from django.contrib.auth.models import User
@@ -72,6 +73,33 @@ class AuthFeed(_SyndicationFeedBase[ItemDict, FeedObject]):
             if result is not None:
                 return result
         return super().__call__(request, *args, **kwargs)
+
+    def get_feed(self, obj: Any, request: HttpRequest) -> Any:
+        feed = super().get_feed(obj, request)
+
+        # Django's syndication view makes all local feed and item links absolute.
+        # OPDS clients can resolve root-relative references, which avoids leaking
+        # an internal proxy scheme or host into the catalog.
+        feed.feed["link"] = self._local_reference(feed.feed["link"], request)
+        feed.feed["feed_url"] = self._local_reference(feed.feed["feed_url"], request)
+        feed.feed["id"] = "urn:sopds:feed:" + request.path
+        for item in feed.items:
+            item["link"] = self._local_reference(item["link"], request)
+        return feed
+
+    @staticmethod
+    def _local_reference(url: str | None, request: HttpRequest) -> str | None:
+        if not url:
+            return url
+        parsed = urlsplit(url)
+        if parsed.netloc and parsed.netloc != request.get_host():
+            return url
+        reference = parsed.path
+        if parsed.query:
+            reference += "?" + parsed.query
+        if parsed.fragment:
+            reference += "#" + parsed.fragment
+        return reference
 
 
 class opdsEnclosure(Enclosure):
@@ -271,7 +299,6 @@ class MainFeed(AuthFeed):
         return {
             "searchTerm_url": "%s%s"
             % (reverse("opds_catalog:opensearch"), "{searchTerms}/"),
-            # "searchTerm_url":reverse("opds_catalog:searchtypes",kwargs={"searchterms":"{searchTerms}"}),
             "start_url": reverse("opds_catalog:main"),
             "description_mime_type": "text",
         }
@@ -373,16 +400,18 @@ class MainFeed(AuthFeed):
         return timezone.now()
 
     def item_enclosures(self, item: ItemDict) -> list[Any]:
+        is_bookshelf = item["id"] == 6
         return [
             opdsEnclosure(
                 reverse(item["link"]),
-                "application/atom+xml;profile=opds-catalog;kind=navigation",
-                "subsection",
+                "application/atom+xml;profile=opds-catalog;kind="
+                + ("acquisition" if is_bookshelf else "navigation"),
+                "http://opds-spec.org/shelf" if is_bookshelf else "subsection",
             )
         ]
 
     def item_extra_kwargs(self, item: ItemDict) -> dict[str, Any]:
-        disable_item_links = list(item["counters"].values())[0] == 0
+        disable_item_links = item["id"] != 6 and list(item["counters"].values())[0] == 0
         return {"disable_item_links": disable_item_links}
 
 
@@ -631,7 +660,7 @@ class SearchTypesFeed(AuthFeed):
         return searchterms.replace("+", " ")
 
     def link(self, obj: Any) -> str:
-        return "%s%s" % (reverse("opds_catalog:opensearch"), "{searchTerms}/")
+        return reverse("opds_catalog:searchtypes", kwargs={"searchterms": obj})
 
     def feed_extra_kwargs(self, obj: Any) -> dict[str, Any]:
         return {
