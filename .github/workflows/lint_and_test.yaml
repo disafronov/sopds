@@ -68,7 +68,7 @@ jobs:
         run: >-
           docker exec "${{ job.services.mariadb.id }}"
           mariadb -uroot -ppassword
-          -e "ALTER DATABASE database CHARACTER SET utf8mb4 COLLATE utf8mb4_uca1400_nopad_as_cs"
+          -e "ALTER DATABASE database CHARACTER SET utf8mb4 COLLATE utf8mb4_nopad_bin"
 
       - name: Run all checks
         run: make all
@@ -76,7 +76,7 @@ jobs:
           UV_PYTHON: ${{ steps.python_version.outputs.version }}
           DJANGO_DEBUG: "1"
           DATABASE_URL_POSTGRESQL: postgres://user:password@127.0.0.1:5432/database
-          DATABASE_URL_MYSQL: "mysql://root:password@127.0.0.1:3306/database?charset=utf8mb4&collation=utf8mb4_uca1400_nopad_as_cs"
+          DATABASE_URL_MYSQL: "mysql://root:password@127.0.0.1:3306/database?charset=utf8mb4&collation=utf8mb4_nopad_bin"
 
       - name: Audit dependencies
         run: make audit

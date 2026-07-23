@@ -30,28 +30,23 @@ class modelsTestCase(TestCase):
         opdsdb.clear_all()
         book = Book.objects.create(
             filename="testbook.fb2",
-            path=".",
             filesize=500,
             format="fb2",
-            cat_type=0,
             registerdate=self.testdatetime,
             docdate="01.01.2016",
             lang="ru",
             title="Книга",
-            search_title="КНИГА",
             annotation="Аннотация",
             avail=2,
             catalog=Catalog.objects.create(
                 parent=None, cat_name=".", path=".", cat_type=0
             ),
         )
-        author = Author.objects.create(
-            full_name="Шелепнев Дмитрий", search_full_name="ШЕЛЕПНЕВ ДМИТРИЙ"
-        )
+        author = Author.objects.create(full_name="Шелепнев Дмитрий")
         genre = Genre.objects.create(
             genre="fantastic0", section="fantastic1", subsection="fantastic2"
         )
-        series = Series.objects.create(ser="mywork", search_ser="MYWORK")
+        series = Series.objects.create(ser="mywork")
         bauthor.objects.create(book=book, author=author)
         bgenre.objects.create(book=book, genre=genre)
         bseries.objects.create(book=book, ser=series, ser_no=1)
@@ -69,15 +64,14 @@ class modelsTestCase(TestCase):
         """Тестирование соответствия структуры модели Book и работоспособности БД"""
         book = Book.objects.get(title="Книга")
         self.assertEqual(book.filename, "testbook.fb2")
-        self.assertEqual(book.path, ".")
+        self.assertEqual(book.catalog.path, ".")
         self.assertEqual(book.filesize, 500)
         self.assertEqual(book.format, "fb2")
-        self.assertEqual(book.cat_type, 0)
+        self.assertEqual(book.catalog.cat_type, 0)
         self.assertEqual(book.registerdate, self.testdatetime)
         self.assertEqual(book.docdate, "01.01.2016")
         self.assertEqual(book.lang, "ru")
         self.assertEqual(book.title, "Книга")
-        self.assertEqual(book.search_title, "КНИГА")
         self.assertEqual(book.annotation, "Аннотация")
         self.assertEqual(book.avail, 2)
         self.assertEqual(book.catalog.path, ".")
@@ -90,8 +84,8 @@ class modelsTestCase(TestCase):
         book = Book.objects.get(title="Книга")
         self.assertEqual(book.authors.count(), 1)
         self.assertEqual(
-            book.authors.get(full_name="Шелепнев Дмитрий").search_full_name,
-            "ШЕЛЕПНЕВ ДМИТРИЙ",
+            book.authors.get(full_name="Шелепнев Дмитрий").full_name,
+            "Шелепнев Дмитрий",
         )
 
     def test_Genre(self) -> None:
@@ -109,7 +103,6 @@ class modelsTestCase(TestCase):
         self.assertEqual(book.series.count(), 1)
         ser = book.series.all()[0]
         self.assertEqual(ser.ser, "mywork")
-        self.assertEqual(ser.search_ser, "MYWORK")
         self.assertEqual(bseries.objects.get(ser=ser).ser_no, 1)
 
     def test_bookshelf(self) -> None:
@@ -134,6 +127,43 @@ class modelsTestCase(TestCase):
         for create_duplicate in duplicate_relations:
             with self.assertRaises(IntegrityError), transaction.atomic():
                 create_duplicate()
+
+    def test_entities_are_unique(self) -> None:
+        book = Book.objects.get(title="Книга")
+        catalog = book.catalog
+        duplicate_entities = (
+            lambda: Book.objects.create(
+                filename=book.filename,
+                filesize=book.filesize,
+                format=book.format,
+                catalog=catalog,
+                docdate=book.docdate,
+                lang=book.lang,
+                title="Другая книга",
+                annotation="",
+            ),
+            lambda: Catalog.objects.create(
+                parent=None, cat_name="duplicate", path=catalog.path, cat_type=1
+            ),
+            lambda: Author.objects.create(full_name="Шелепнев Дмитрий"),
+            lambda: Genre.objects.create(
+                genre="fantastic0", section="other", subsection="other"
+            ),
+            lambda: Series.objects.create(ser="mywork"),
+        )
+
+        for create_duplicate in duplicate_entities:
+            with self.assertRaises(IntegrityError), transaction.atomic():
+                create_duplicate()
+
+    def test_entity_keys_are_case_sensitive(self) -> None:
+        Author.objects.create(full_name="шелепнев дмитрий")
+        Genre.objects.create(genre="Fantastic0", section="other", subsection="other")
+        Series.objects.create(ser="MyWork")
+
+    def test_entity_keys_preserve_ignorable_unicode_characters(self) -> None:
+        Series.objects.create(ser="Цветы любви")
+        Series.objects.create(ser="Цветы люб\u00adви")
 
     def test_Counter(self) -> None:
         """Тестирование соответствия структуры модели Counter, менеджера \

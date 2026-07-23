@@ -6,8 +6,11 @@ from typing import Optional
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
+from django.db.models.functions import Upper
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _lazy
+
+models.CharField.register_lookup(Upper)
 
 counter_allbooks = "allbooks"
 counter_allcatalogs = "allcatalogs"
@@ -51,19 +54,14 @@ lang_menu = {
 
 class Book(models.Model):
     filename = models.CharField(max_length=SIZE_BOOK_FILENAME, db_index=True)
-    path = models.CharField(max_length=SIZE_BOOK_PATH, db_index=True)
     filesize = models.IntegerField(null=False, default=0)
     format = models.CharField(max_length=SIZE_BOOK_FORMAT)
     catalog = models.ForeignKey("Catalog", db_index=True, on_delete=models.CASCADE)
-    cat_type = models.IntegerField(null=False, default=0)
     registerdate = models.DateTimeField(null=False, default=timezone.now)
     docdate = models.CharField(max_length=SIZE_BOOK_DOCDATE, db_index=True)
     # favorite = models.IntegerField(null=False, default=0)
     lang = models.CharField(max_length=SIZE_BOOK_LANG)
     title = models.CharField(max_length=SIZE_BOOK_TITLE, db_index=True)
-    search_title = models.CharField(
-        max_length=SIZE_BOOK_TITLE, default=None, db_index=True
-    )
     annotation = models.CharField(max_length=SIZE_BOOK_ANNOTATION)
     lang_code = models.IntegerField(null=False, default=9, db_index=True)
     avail = models.IntegerField(null=False, default=0, db_index=True)
@@ -77,6 +75,13 @@ class Book(models.Model):
         "Series", through="bseries"
     )
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["catalog", "filename"], name="book_catalog_filename_uniq"
+            )
+        ]
+
 
 class Catalog(models.Model):
     parent = models.ForeignKey(
@@ -87,15 +92,22 @@ class Catalog(models.Model):
     cat_type = models.IntegerField(null=False, default=0)
     cat_size = models.BigIntegerField(null=True, default=0)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["path"], name="catalog_path_uniq")
+        ]
+
 
 class Author(models.Model):
     full_name = models.CharField(
         max_length=SIZE_AUTHOR_NAME, default=None, db_index=True
     )
-    search_full_name = models.CharField(
-        max_length=SIZE_AUTHOR_NAME, default=None, db_index=True
-    )
     lang_code = models.IntegerField(null=False, default=9, db_index=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["full_name"], name="author_full_name_uniq")
+        ]
 
 
 class bauthor(models.Model):
@@ -121,6 +133,11 @@ class Genre(models.Model):
     section = models.CharField(max_length=SIZE_GENRE_SECTION, db_index=True)
     subsection = models.CharField(max_length=SIZE_GENRE_SUBSECTION, db_index=True)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["genre"], name="genre_genre_uniq")
+        ]
+
 
 class bgenre(models.Model):
     book = models.ForeignKey("Book", db_index=True, on_delete=models.CASCADE)
@@ -136,8 +153,10 @@ class bgenre(models.Model):
 
 class Series(models.Model):
     ser = models.CharField(max_length=SIZE_SERIES, db_index=True)
-    search_ser = models.CharField(max_length=SIZE_SERIES, default=None, db_index=True)
     lang_code = models.IntegerField(null=False, default=9, db_index=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["ser"], name="series_ser_uniq")]
 
 
 class bseries(models.Model):

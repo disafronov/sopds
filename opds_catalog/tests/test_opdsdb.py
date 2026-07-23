@@ -55,7 +55,7 @@ class opdsdbTestCase(TestCase):
         book = cast(Book, opdsdb.findbook("testbook.fb2", "root/child"))
         self.assertIsNotNone(book)
         self.assertEqual(book.filename, "testbook.fb2")
-        self.assertEqual(book.path, "root/child")
+        self.assertEqual(book.catalog.path, "root/child")
         self.assertEqual(book.catalog.cat_name, "child")
         self.assertEqual(book.catalog.cat_type, 0)
         self.assertEqual(book.format, ".fb2")
@@ -64,14 +64,14 @@ class opdsdbTestCase(TestCase):
         self.assertEqual(book.docdate, "01.01.2016")
         self.assertEqual(book.lang, "ru")
         self.assertEqual(book.filesize, 500)
-        self.assertEqual(book.cat_type, 0)
+        self.assertEqual(book.catalog.cat_type, 0)
 
     def test_author_fn(self) -> None:
         """Тестирование функций addauthor, addbauthor"""
         book = cast(Book, opdsdb.findbook("testbook.fb2", "root/child"))
         self.assertEqual(book.authors.count(), 1)
         self.assertEqual(
-            book.authors.get(full_name="Test Author").search_full_name, "TEST AUTHOR"
+            book.authors.get(full_name="Test Author").full_name, "Test Author"
         )
 
     def test_genre_fn(self) -> None:

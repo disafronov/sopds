@@ -6,6 +6,7 @@ from constance import config
 from django.contrib.auth.models import User
 from django.contrib.syndication.views import Feed
 from django.db.models import Count, Min
+from django.db.models.functions import Upper
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.urls import reverse
@@ -415,7 +416,7 @@ class CatalogsFeed(AuthFeed):
         catalogs_count = catalogs_list.count()
         # books_list = Book.objects.filter(catalog=cat).prefetch_related(
         #     'authors','genres','series').order_by("title")
-        books_list = Book.objects.filter(catalog=cat).order_by("search_title")
+        books_list = Book.objects.filter(catalog=cat).order_by(Upper("title"))
         books_count = books_list.count()
 
         # Получаем результирующий список
@@ -439,7 +440,7 @@ class CatalogsFeed(AuthFeed):
                 "is_catalog": 0,
                 "lang_code": book_row.lang_code,
                 "filename": book_row.filename,
-                "path": book_row.path,
+                "path": book_row.catalog.path,
                 "registerdate": book_row.registerdate,
                 "id": book_row.id,
                 "annotation": strip_tags(book_row.annotation),
@@ -729,22 +730,22 @@ class SearchBooksFeed(AuthFeed):
             # books = Book.objects.extra(where=["upper(title) like %s"],
             #     params=["%%%s%%"%searchterms.upper()]).order_by('title','-docdate')
             books = Book.objects.filter(
-                search_title__contains=(searchterms or "").upper()
-            ).order_by("search_title", "-docdate")
+                title__upper__contains=(searchterms or "").upper()
+            ).order_by(Upper("title"), "-docdate")
         # Поиск книг по начальной подстроке
         elif searchtype == "b":
             # books = Book.objects.extra(where=["upper(title) like %s"],
             #     params=["%s%%"%searchterms.upper()]).order_by('title','-docdate')
             books = Book.objects.filter(
-                search_title__startswith=(searchterms or "").upper()
-            ).order_by("search_title", "-docdate")
+                title__upper__startswith=(searchterms or "").upper()
+            ).order_by(Upper("title"), "-docdate")
         # Поиск книг по точному совпадению наименования
         elif searchtype == "e":
             # books = Book.objects.extra(where=["upper(title)=%s"],
             #     params=["%s"%searchterms.upper()]).order_by('title','-docdate')
             books = Book.objects.filter(
-                search_title=(searchterms or "").upper()
-            ).order_by("search_title", "-docdate")
+                title__upper=(searchterms or "").upper()
+            ).order_by(Upper("title"), "-docdate")
         # Поиск книг по автору
         elif searchtype == "a":
             try:
@@ -752,7 +753,7 @@ class SearchBooksFeed(AuthFeed):
             except Exception:
                 author_id = 0
             books = Book.objects.filter(authors=author_id).order_by(
-                "search_title", "-docdate"
+                Upper("title"), "-docdate"
             )
         # Поиск книг по серии
         elif searchtype == "s":
@@ -760,10 +761,8 @@ class SearchBooksFeed(AuthFeed):
                 ser_id = int(searchterms or "")
             except Exception:
                 ser_id = 0
-            # books = Book.objects.filter(series=ser_id).order_by(
-            #     'search_title','-docdate')
             books = Book.objects.filter(series=ser_id).order_by(
-                "bseries__ser_no", "search_title", "-docdate"
+                "bseries__ser_no", Upper("title"), "-docdate"
             )
         # Поиск книг по автору и серии
         elif searchtype == "as":
@@ -775,7 +774,7 @@ class SearchBooksFeed(AuthFeed):
                 author_id = 0
             books = Book.objects.filter(
                 authors=author_id, series=ser_id if ser_id else None
-            ).order_by("bseries__ser_no", "search_title", "-docdate")
+            ).order_by("bseries__ser_no", Upper("title"), "-docdate")
         # Поиск книг по жанру
         elif searchtype == "g":
             try:
@@ -783,7 +782,7 @@ class SearchBooksFeed(AuthFeed):
             except Exception:
                 genre_id = 0
             books = Book.objects.filter(genres=genre_id).order_by(
-                "search_title", "-docdate"
+                Upper("title"), "-docdate"
             )
         # Поиск книг на книжной полке
         elif searchtype == "u":
@@ -802,7 +801,7 @@ class SearchBooksFeed(AuthFeed):
                     title__iexact=mbook.title, authors__in=mbook.authors.all()
                 )
                 .exclude(id=book_id)
-                .order_by("search_title", "-docdate")
+                .order_by(Upper("title"), "-docdate")
             )
 
         # if len(books)>0:
@@ -833,7 +832,7 @@ class SearchBooksFeed(AuthFeed):
                 "doubles": 0,
                 "lang_code": row.lang_code,
                 "filename": row.filename,
-                "path": row.path,
+                "path": row.catalog.path,
                 "registerdate": row.registerdate,
                 "id": row.id,
                 "annotation": strip_tags(row.annotation),
@@ -1148,16 +1147,16 @@ class SearchAuthorsFeed(AuthFeed):
 
         if searchtype == "m":
             authors = Author.objects.filter(
-                search_full_name__contains=searchterms.upper()
-            ).order_by("search_full_name")
+                full_name__upper__contains=searchterms.upper()
+            ).order_by(Upper("full_name"))
         elif searchtype == "b":
             authors = Author.objects.filter(
-                search_full_name__startswith=searchterms.upper()
-            ).order_by("search_full_name")
+                full_name__upper__startswith=searchterms.upper()
+            ).order_by(Upper("full_name"))
         elif searchtype == "e":
             authors = Author.objects.filter(
-                search_full_name=searchterms.upper()
-            ).order_by("search_full_name")
+                full_name__upper=searchterms.upper()
+            ).order_by(Upper("full_name"))
 
         # Создаем результирующее множество
         authors_count = authors.count()
@@ -1266,11 +1265,11 @@ class SearchSeriesFeed(AuthFeed):
         page_num = page if page > 0 else 1
 
         if searchtype == "m":
-            series = Series.objects.filter(search_ser__contains=searchterms.upper())
+            series = Series.objects.filter(ser__upper__contains=searchterms.upper())
         elif searchtype == "b":
-            series = Series.objects.filter(search_ser__startswith=searchterms.upper())
+            series = Series.objects.filter(ser__upper__startswith=searchterms.upper())
         elif searchtype == "e":
-            series = Series.objects.filter(search_ser=searchterms.upper())
+            series = Series.objects.filter(ser__upper=searchterms.upper())
         elif searchtype == "a":
             try:
                 self.author_id = int(searchterms or "")
@@ -1279,7 +1278,7 @@ class SearchSeriesFeed(AuthFeed):
             series = Series.objects.filter(book__authors=self.author_id)
 
         series = (
-            series.annotate(count_book=Count("book")).distinct().order_by("search_ser")
+            series.annotate(count_book=Count("book")).distinct().order_by(Upper("ser"))
         )
 
         # Создаем результирующее множество
@@ -1453,10 +1452,10 @@ class BooksFeed(AuthFeed):
         length, chars = obj
         if self.lang_code:
             sql = """select %(length)s as l,
-                   substring(search_title,1,%(length)s) as id, count(*) as cnt
+                   substring(upper(title),1,%(length)s) as id, count(*) as cnt
                    from opds_catalog_book
-                   where lang_code=%(lang_code)s and search_title like '%(chars)s%%%%'
-                   group by substring(search_title,1,%(length)s)
+                   where lang_code=%(lang_code)s and upper(title) like '%(chars)s%%%%'
+                   group by substring(upper(title),1,%(length)s)
                    order by id""" % {
                 "length": length,
                 "lang_code": self.lang_code,
@@ -1464,10 +1463,10 @@ class BooksFeed(AuthFeed):
             }
         else:
             sql = """select %(length)s as l,
-                   substring(search_title,1,%(length)s) as id, count(*) as cnt
+                   substring(upper(title),1,%(length)s) as id, count(*) as cnt
                    from opds_catalog_book
-                   where search_title like '%(chars)s%%%%'
-                   group by substring(search_title,1,%(length)s)
+                   where upper(title) like '%(chars)s%%%%'
+                   group by substring(upper(title),1,%(length)s)
                    order by id""" % {
                 "length": length,
                 "chars": chars,
@@ -1537,12 +1536,12 @@ class AuthorsFeed(AuthFeed):
         length, chars = obj
         if self.lang_code:
             sql = """select %(length)s as l,
-                   substring(search_full_name,1,%(length)s) as id,
+                   substring(upper(full_name),1,%(length)s) as id,
                    count(*) as cnt
                    from opds_catalog_author
                    where lang_code=%(lang_code)s
-                   and search_full_name like '%(chars)s%%%%'
-                   group by substring(search_full_name,1,%(length)s)
+                   and upper(full_name) like '%(chars)s%%%%'
+                   group by substring(upper(full_name),1,%(length)s)
                    order by id""" % {
                 "length": length,
                 "lang_code": self.lang_code,
@@ -1550,11 +1549,11 @@ class AuthorsFeed(AuthFeed):
             }
         else:
             sql = """select %(length)s as l,
-                   substring(search_full_name,1,%(length)s) as id,
+                   substring(upper(full_name),1,%(length)s) as id,
                    count(*) as cnt
                    from opds_catalog_author
-                   where search_full_name like '%(chars)s%%%%'
-                   group by substring(search_full_name,1,%(length)s)
+                   where upper(full_name) like '%(chars)s%%%%'
+                   group by substring(upper(full_name),1,%(length)s)
                    order by id""" % {
                 "length": length,
                 "chars": chars,
@@ -1624,10 +1623,10 @@ class SeriesFeed(AuthFeed):
         length, chars = obj
         if self.lang_code:
             sql = """select %(length)s as l,
-                   substring(search_ser,1,%(length)s) as id, count(*) as cnt
+                   substring(upper(ser),1,%(length)s) as id, count(*) as cnt
                    from opds_catalog_series
-                   where lang_code=%(lang_code)s and search_ser like '%(chars)s%%%%'
-                   group by substring(search_ser,1,%(length)s)
+                   where lang_code=%(lang_code)s and upper(ser) like '%(chars)s%%%%'
+                   group by substring(upper(ser),1,%(length)s)
                    order by id""" % {
                 "length": length,
                 "lang_code": self.lang_code,
@@ -1635,10 +1634,10 @@ class SeriesFeed(AuthFeed):
             }
         else:
             sql = """select %(length)s as l,
-                   substring(search_ser,1,%(length)s) as id, count(*) as cnt
+                   substring(upper(ser),1,%(length)s) as id, count(*) as cnt
                    from opds_catalog_series
-                   where search_ser like '%(chars)s%%%%'
-                   group by substring(search_ser,1,%(length)s)
+                   where upper(ser) like '%(chars)s%%%%'
+                   group by substring(upper(ser),1,%(length)s)
                    order by id""" % {
                 "length": length,
                 "chars": chars,
