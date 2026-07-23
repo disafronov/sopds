@@ -171,8 +171,7 @@ class TestGetFileData:
 
     def test_cat_normal(self, mocker: MockerFixture) -> None:
         book = mocker.MagicMock(spec=Book)
-        book.cat_type = opdsdb.CAT_NORMAL
-        book.path = "."
+        book.catalog = mocker.MagicMock(cat_type=opdsdb.CAT_NORMAL, path=".")
         book.filename = "test.fb2"
         with mocker.patch.object(dl, "django_settings", _cfg(SOPDS_ROOT_LIB="/lib")):
             m = mocker.mock_open(read_data=b"bookdata")
@@ -181,8 +180,7 @@ class TestGetFileData:
 
     def test_cat_zip(self, mocker: MockerFixture) -> None:
         book = mocker.MagicMock(spec=Book)
-        book.cat_type = opdsdb.CAT_ZIP
-        book.path = "lib.zip"
+        book.catalog = mocker.MagicMock(cat_type=opdsdb.CAT_ZIP, path="lib.zip")
         book.filename = "inner.fb2"
         mocker.patch("builtins.open", mocker.mock_open(read_data=b"dummy"))
         mocker.patch(
@@ -196,8 +194,7 @@ class TestGetFileData:
 
     def test_cat_normal_not_found(self, mocker: MockerFixture) -> None:
         book = mocker.MagicMock(spec=Book)
-        book.cat_type = opdsdb.CAT_NORMAL
-        book.path = "."
+        book.catalog = mocker.MagicMock(cat_type=opdsdb.CAT_NORMAL, path=".")
         book.filename = "missing.fb2"
         with mocker.patch.object(dl, "django_settings", _cfg(SOPDS_ROOT_LIB="/lib")):
             mocker.patch("builtins.open", side_effect=FileNotFoundError)
@@ -213,8 +210,7 @@ class TestGetFileDataZip:
         book.title = "Test"
         book.format = "fb2"
         book.filename = "orig.fb2"
-        book.cat_type = opdsdb.CAT_NORMAL
-        book.path = "."
+        book.catalog = mocker.MagicMock(cat_type=opdsdb.CAT_NORMAL, path=".")
         with mocker.patch.object(
             dl,
             "config",
@@ -263,8 +259,7 @@ class TestCoverView(_ViewTestBase):
     ) -> Book:
         book = mocker.MagicMock(spec=Book)
         book.id = 1
-        book.cat_type = opdsdb.CAT_NORMAL
-        book.path = "."
+        book.catalog = mocker.MagicMock(cat_type=opdsdb.CAT_NORMAL, path=".")
         book.filename = filename
         book.format = format_
         mocker.patch("opds_catalog.models.Book.objects.get", return_value=book)
@@ -341,8 +336,7 @@ class TestDownloadView(_ViewTestBase):
     def _do(self, mocker: MockerFixture, zip_flag: str) -> HttpResponse:
         book = mocker.MagicMock(spec=Book)
         book.id = 1
-        book.cat_type = opdsdb.CAT_NORMAL
-        book.path = "."
+        book.catalog = mocker.MagicMock(cat_type=opdsdb.CAT_NORMAL, path=".")
         book.filename = "book.fb2"
         book.format = "fb2"
         book.filesize = 100
@@ -376,8 +370,7 @@ class TestDownloadView(_ViewTestBase):
     def test_download_not_found(self, mocker: MockerFixture) -> None:
         book = mocker.MagicMock(spec=Book)
         book.id = 1
-        book.cat_type = opdsdb.CAT_NORMAL
-        book.path = "."
+        book.catalog = mocker.MagicMock(cat_type=opdsdb.CAT_NORMAL, path=".")
         book.filename = "missing.fb2"
         book.format = "fb2"
         book.filesize = 100
@@ -403,8 +396,7 @@ class TestDownloadView(_ViewTestBase):
     ) -> None:
         book = mocker.MagicMock(spec=Book)
         book.id = 1
-        book.cat_type = opdsdb.CAT_NORMAL
-        book.path = "."
+        book.catalog = mocker.MagicMock(cat_type=opdsdb.CAT_NORMAL, path=".")
         book.filename = "missing.fb2"
         book.format = "fb2"
         book.filesize = 100
@@ -446,8 +438,7 @@ class TestConvertFB2(_ViewTestBase):
     ) -> Book:
         book = mocker.MagicMock(spec=Book)
         book.id = 1
-        book.cat_type = cat_type
-        book.path = path
+        book.catalog = mocker.MagicMock(cat_type=cat_type, path=path)
         book.filename = filename
         book.format = "fb2"
         book.title = "Book"
@@ -680,7 +671,6 @@ class TestGetFileDataConv:
         book = mocker.MagicMock()
         book.title = "testbook"
         book.format = "epub"
-        book.path = "/tmp/book.epub"
         book.filename = "book.epub"
 
         result = dl.getFileDataConv(book, "epub")
@@ -693,7 +683,6 @@ class TestGetFileDataConv:
         book = mocker.MagicMock()
         book.title = "testbook"
         book.format = "fb2"
-        book.path = "/tmp/book.fb2"
         book.filename = "book.fb2"
 
         mocker.patch.object(dl, "getFileData", return_value=mocker.MagicMock())
@@ -707,7 +696,6 @@ class TestGetFileDataConv:
         book = mocker.MagicMock()
         book.title = "testbook"
         book.format = "fb2"
-        book.path = "/tmp/book.fb2"
         book.filename = "book.fb2"
 
         mock_fo = mocker.MagicMock()
@@ -726,7 +714,6 @@ class TestGetFileDataConv:
         book = mocker.MagicMock()
         book.title = "testbook"
         book.format = "fb2"
-        book.path = "/tmp/book.fb2"
         book.filename = "book.fb2"
 
         mock_fo = mocker.MagicMock()
@@ -761,9 +748,9 @@ class TestCover0:
         dl_fb2parse = dl.fb2parse  # type: ignore[attr-defined]
         dl_base64 = dl.base64  # type: ignore[attr-defined]
         mock_book = mocker.MagicMock()
-        mock_book.cat_type = "fb2"
+        mock_book.catalog.cat_type = "fb2"
         mock_book.format = "fb2"
-        mock_book.path = "/tmp/book.fb2"
+        mock_book.catalog.path = "/tmp/book.fb2"
 
         mocker.patch("opds_catalog.dl.Book.objects.get", return_value=mock_book)
         mocker.patch("builtins.open", mocker.mock_open(read_data=b"FB2"))
@@ -787,9 +774,9 @@ class TestCover0:
 
         dl_fb2parse = dl.fb2parse  # type: ignore[attr-defined]
         mock_book = mocker.MagicMock()
-        mock_book.cat_type = "fb2"
+        mock_book.catalog.cat_type = "fb2"
         mock_book.format = "fb2"
-        mock_book.path = "/tmp/book.fb2"
+        mock_book.catalog.path = "/tmp/book.fb2"
 
         mocker.patch("opds_catalog.dl.Book.objects.get", return_value=mock_book)
         mock_cover = mocker.MagicMock()
@@ -844,9 +831,9 @@ class TestCoverEdgeCases:
         from opds_catalog import dl
 
         mock_book = mocker.MagicMock()
-        mock_book.cat_type = "fb2"
+        mock_book.catalog.cat_type = "fb2"
         mock_book.format = "fb2"
-        mock_book.path = "/tmp/book.fb2"
+        mock_book.catalog.path = "/tmp/book.fb2"
 
         mocker.patch("opds_catalog.dl.Book.objects.get", return_value=mock_book)
         mock_book_data = mocker.MagicMock()

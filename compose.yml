@@ -28,7 +28,7 @@ services:
     image: 'mariadb:lts'
     command:
       - --character-set-server=utf8mb4
-      - --collation-server=utf8mb4_uca1400_nopad_as_cs
+      - --collation-server=utf8mb4_nopad_bin
     ports:
       - "3306:3306"
     environment:
@@ -39,7 +39,7 @@ services:
     volumes:
       - mariadb_data:/var/lib/mysql/
     healthcheck:
-      test: [ "CMD-SHELL", "mysqladmin ping -h localhost -u $${MARIADB_USER} -p$${MARIADB_PASSWORD}" ]
+      test: [ "CMD", "healthcheck.sh", "--connect", "--innodb_initialized" ]
       interval: 30s
       timeout: 60s
       retries: 5

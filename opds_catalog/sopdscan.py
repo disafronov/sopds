@@ -253,8 +253,10 @@ def _store_books_batch_atomic(
     paths = {path for _filename, path in requested_keys}
     existing_books = [
         book
-        for book in Book.objects.filter(filename__in=filenames, path__in=paths)
-        if (book.filename, book.path) in requested_keys
+        for book in Book.objects.filter(
+            filename__in=filenames, catalog__path__in=paths
+        ).select_related("catalog")
+        if (book.filename, book.catalog.path) in requested_keys
     ]
 
     existing_ids = [book.pk for book in existing_books]
@@ -269,7 +271,7 @@ def _store_books_batch_atomic(
         )
 
     catalogs: dict[tuple[str, int], Catalog] = {}
-    existing_keys = {(book.filename, book.path) for book in existing_books}
+    existing_keys = {(book.filename, book.catalog.path) for book in existing_books}
 
     new_meta: list[BookMeta] = []
     seen_keys = set(existing_keys)
@@ -305,7 +307,6 @@ def _store_books_batch_atomic(
     missing_authors = [
         Author(
             full_name=name,
-            search_full_name=name.upper()[:SIZE_AUTHOR_NAME],
             lang_code=opdsdb.getlangcode(name),
         )
         for name in author_names - authors.keys()
@@ -347,7 +348,6 @@ def _store_books_batch_atomic(
     missing_series = [
         Series(
             ser=name,
-            search_ser=name.upper()[:SIZE_SERIES],
             lang_code=opdsdb.getlangcode(name),
         )
         for name in series_names - series_by_name.keys()
@@ -365,16 +365,13 @@ def _store_books_batch_atomic(
     book_rows = [
         Book(
             filename=meta.filename[:SIZE_BOOK_FILENAME],
-            path=meta.rel_path[:SIZE_BOOK_PATH],
             catalog=catalogs[(meta.rel_path, meta.cat_type)],
             filesize=meta.filesize,
             format=meta.ext.lower()[:SIZE_BOOK_FORMAT],
             title=meta.title[:SIZE_BOOK_TITLE],
-            search_title=meta.title.upper()[:SIZE_BOOK_TITLE],
             annotation=opdsdb.p(meta.annotation, SIZE_BOOK_ANNOTATION),
             docdate=meta.docdate[:SIZE_BOOK_DOCDATE],
             lang=meta.lang[:SIZE_BOOK_LANG],
-            cat_type=meta.cat_type,
             avail=2,
             lang_code=opdsdb.getlangcode(meta.title),
         )

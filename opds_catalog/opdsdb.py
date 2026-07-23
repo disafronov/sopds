@@ -274,7 +274,8 @@ def findbook(name: str, path: str, setavail: int = 0) -> Book | None:
     # то произойдет восстановление записи об этой книги а не добавится новая
     try:
         book = Book.objects.get(
-            filename=name[:SIZE_BOOK_FILENAME], path=path[:SIZE_BOOK_PATH]
+            filename=name[:SIZE_BOOK_FILENAME],
+            catalog__path=path[:SIZE_BOOK_PATH],
         )
     except Book.DoesNotExist:
         book = None
@@ -301,16 +302,13 @@ def addbook(
 ) -> Book:
     book = Book.objects.create(
         filename=name[:SIZE_BOOK_FILENAME],
-        path=path[:SIZE_BOOK_PATH],
         catalog=cat,
         filesize=size,
         format=exten.lower()[:SIZE_BOOK_FORMAT],
         title=title[:SIZE_BOOK_TITLE],
-        search_title=title.upper()[:SIZE_BOOK_TITLE],
         annotation=p(annotation, SIZE_BOOK_ANNOTATION),
         docdate=docdate[:SIZE_BOOK_DOCDATE],
         lang=lang[:SIZE_BOOK_LANG],
-        cat_type=archive,
         avail=2,
         lang_code=getlangcode(title),
     )
@@ -329,10 +327,7 @@ def findauthor(full_name: str) -> Any:
 def addauthor(full_name: str) -> Author:
     author, created = Author.objects.get_or_create(
         full_name=full_name[:SIZE_AUTHOR_NAME],
-        defaults={
-            "search_full_name": full_name.upper()[:SIZE_AUTHOR_NAME],
-            "lang_code": getlangcode(full_name),
-        },
+        defaults={"lang_code": getlangcode(full_name)},
     )
     return author
 
@@ -361,10 +356,7 @@ def addbgenre(book: Book, genre: Genre) -> None:
 def addseries(ser: str) -> Series:
     series, created = Series.objects.get_or_create(
         ser=ser[:SIZE_SERIES],
-        defaults={
-            "search_ser": ser.upper()[:SIZE_SERIES],
-            "lang_code": getlangcode(ser),
-        },
+        defaults={"lang_code": getlangcode(ser)},
     )
     return series
 

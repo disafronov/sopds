@@ -95,14 +95,13 @@ FB2 и помещает в БД)"""
         self.assertIsNotNone(book)
         self.assertEqual(scanner.books_added, 1)
         self.assertEqual(book.filename, self.test_fb2)
-        self.assertEqual(book.path, ".")
+        self.assertEqual(book.catalog.path, ".")
         self.assertEqual(book.format, "fb2")
-        self.assertEqual(book.cat_type, 0)
+        self.assertEqual(book.catalog.cat_type, 0)
         # self.assertGreaterEqual(book.registerdate, )
         self.assertEqual(book.docdate, "30.1.2011")
         self.assertEqual(book.lang, "en")
         self.assertEqual(book.title, "The Sanctuary Sparrow")
-        self.assertEqual(book.search_title, "The Sanctuary Sparrow".upper())
         self.assertEqual(book.annotation, "")
         self.assertEqual(book.avail, 2)
         self.assertEqual(book.catalog.path, ".")
@@ -112,7 +111,7 @@ FB2 и помещает в БД)"""
 
         self.assertEqual(book.authors.count(), 1)
         self.assertEqual(
-            book.authors.get(full_name="Peters Ellis").search_full_name, "PETERS ELLIS"
+            book.authors.get(full_name="Peters Ellis").full_name, "Peters Ellis"
         )
 
         self.assertEqual(book.genres.count(), 1)
@@ -144,16 +143,13 @@ EPUB и помещает в БД)"""
         self.assertIsNotNone(book)
         self.assertEqual(scanner.books_added, 1)
         self.assertEqual(book.filename, self.test_epub)
-        self.assertEqual(book.path, ".")
+        self.assertEqual(book.catalog.path, ".")
         self.assertEqual(book.format, "epub")
-        self.assertEqual(book.cat_type, 0)
+        self.assertEqual(book.catalog.cat_type, 0)
         # self.assertGreaterEqual(book.registerdate, )
         self.assertEqual(book.docdate, "2015")
         self.assertEqual(book.lang, "ru")
         self.assertEqual(book.title, "У меня девять жизней (шф (продолжатели))")
-        self.assertEqual(
-            book.search_title, "У меня девять жизней (шф (продолжатели))".upper()
-        )
         self.assertEqual(book.annotation, "Собрание произведений. Том 2")
         self.assertEqual(book.avail, 2)
         self.assertEqual(book.catalog.path, ".")
@@ -163,8 +159,8 @@ EPUB и помещает в БД)"""
 
         self.assertEqual(book.authors.count(), 1)
         self.assertEqual(
-            book.authors.get(full_name="Мирер Александр").search_full_name,
-            "МИРЕР АЛЕКСАНДР",
+            book.authors.get(full_name="Мирер Александр").full_name,
+            "Мирер Александр",
         )
 
         self.assertEqual(book.genres.count(), 1)
@@ -188,14 +184,13 @@ EPUB и помещает в БД)"""
         self.assertIsNotNone(book)
         self.assertEqual(scanner.books_added, 1)
         self.assertEqual(book.filename, self.test_mobi)
-        self.assertEqual(book.path, ".")
+        self.assertEqual(book.catalog.path, ".")
         self.assertEqual(book.format, "mobi")
-        self.assertEqual(book.cat_type, 0)
+        self.assertEqual(book.catalog.cat_type, 0)
         # self.assertGreaterEqual(book.registerdate, )
         self.assertEqual(book.docdate, "2011-11-20")
         self.assertEqual(book.lang, "")
         self.assertEqual(book.title, "Vector")
-        self.assertEqual(book.search_title, "Vector".upper())
         self.assertEqual(book.annotation, "")
         self.assertEqual(book.avail, 2)
         self.assertEqual(book.catalog.path, ".")
@@ -205,7 +200,7 @@ EPUB и помещает в БД)"""
 
         self.assertEqual(book.authors.count(), 1)
         self.assertEqual(
-            book.authors.get(full_name="Cook Robin").search_full_name, "COOK ROBIN"
+            book.authors.get(full_name="Cook Robin").full_name, "Cook Robin"
         )
 
     def test_discover_zip_entries_lists_members(self) -> None:
