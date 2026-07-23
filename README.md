@@ -12,7 +12,7 @@
 - **Scheduled scanning** via APScheduler with cron-like scheduling
 - **INPX archive support** for batch metadata import
 - **ZIP archive scanning** with configurable codepage
-- **PostgreSQL or MySQL/MariaDB** database backend
+- **PostgreSQL or MariaDB** database backend
 - **Parallel scanning** with a configurable process pool
 - **Docker image** with multi-stage build (Ubuntu Noble + uv)
 - **Health checks** (liveness and readiness probes)
@@ -23,7 +23,7 @@
 
 - Python >= 3.12
 - Django 5.2
-- PostgreSQL 17 or MySQL/MariaDB
+- PostgreSQL 17 or MariaDB LTS
 - Docker (optional)
 - [uv](https://docs.astral.sh/uv/) package manager
 
@@ -50,20 +50,26 @@ The dev server starts at `http://0.0.0.0:8000/`. If `DJANGO_SUPERUSER_*`
 variables are set in `.env`, an admin user is created automatically.
 
 `DATABASE_URL` is required. For local development, use Docker Compose
-to spin up a PostgreSQL instance (see below).
+to spin up the database services (see below).
 
 ### Docker Compose
 
-For local development with PostgreSQL and an SMTP sink (Mailpit):
+For local development with PostgreSQL, MariaDB, and an SMTP sink (Mailpit):
 
 ```bash
 docker compose up -d
 
-# Then run locally against the Postgres container
+# Then run locally against either database container
 cp env.example .env
-# Set DATABASE_URL=postgres://sopds:sopds@127.0.0.1:5432/sopds
+# Set DATABASE_URL to one of the examples in .env
 make run
 ```
+
+The MariaDB application database must be created with `utf8mb4` and
+`utf8mb4_nopad_bin` before migrations are applied. The development Compose
+service sets these as server defaults so application and test databases inherit
+them. Setting a collation only in `DATABASE_URL` configures the connection, not
+the database schema.
 
 ### Docker Image
 
@@ -108,7 +114,7 @@ Settings are read from environment variables. See `env.example` for all options.
 
 | Variable | Description | Default |
 | --- | --- | --- |
-| `DATABASE_URL` | PostgreSQL or MySQL/MariaDB connection URL. | **required** |
+| `DATABASE_URL` | PostgreSQL or MariaDB connection URL. | **required** |
 
 ### Server
 
