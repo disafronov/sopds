@@ -70,8 +70,8 @@ def _resolve_converter(converter_path: str) -> str | None:
 
 
 def getFileData(book: Book) -> io.BytesIO:
-    full_path = os.path.join(django_settings.SOPDS_ROOT_LIB, book.path)
-    if book.cat_type == opdsdb.CAT_INP:
+    full_path = os.path.join(django_settings.SOPDS_ROOT_LIB, book.catalog.path)
+    if book.catalog.cat_type == opdsdb.CAT_INP:
         inp_path, zip_name = os.path.split(full_path)
         inpx_path, inp_name = os.path.split(inp_path)
         path, inpx_name = os.path.split(inpx_path)
@@ -81,14 +81,14 @@ def getFileData(book: Book) -> io.BytesIO:
     fz = None
     fo: BinaryIO | None = None
 
-    if book.cat_type == opdsdb.CAT_NORMAL:
+    if book.catalog.cat_type == opdsdb.CAT_NORMAL:
         file_path = os.path.join(full_path, book.filename)
         try:
             fo = open(file_path, "rb")
         except FileNotFoundError:
             fo = None
 
-    elif book.cat_type in [opdsdb.CAT_ZIP, opdsdb.CAT_INP]:
+    elif book.catalog.cat_type in [opdsdb.CAT_ZIP, opdsdb.CAT_INP]:
         try:
             fz = open(full_path, "rb")
             z = zipfile.ZipFile(fz, "r", allowZip64=True)
@@ -197,9 +197,9 @@ def Download(request: HttpRequest, book_id: int, zip_flag: str) -> HttpResponse:
     """Загрузка файла книги"""
     book = Book.objects.get(id=book_id)
 
-    full_path = os.path.join(django_settings.SOPDS_ROOT_LIB, book.path)
+    full_path = os.path.join(django_settings.SOPDS_ROOT_LIB, book.catalog.path)
 
-    if book.cat_type == opdsdb.CAT_INP:
+    if book.catalog.cat_type == opdsdb.CAT_INP:
         inp_path, zip_name = os.path.split(full_path)
         inpx_path, inp_name = os.path.split(inp_path)
         path, inpx_name = os.path.split(inpx_path)
@@ -228,7 +228,7 @@ def Download(request: HttpRequest, book_id: int, zip_flag: str) -> HttpResponse:
     fz = None
     fo: BinaryIO
     book_size = book.filesize
-    if book.cat_type == opdsdb.CAT_NORMAL:
+    if book.catalog.cat_type == opdsdb.CAT_NORMAL:
         file_path = os.path.join(full_path, book.filename)
         book_size = os.path.getsize(file_path)
         try:
@@ -236,7 +236,7 @@ def Download(request: HttpRequest, book_id: int, zip_flag: str) -> HttpResponse:
         except FileNotFoundError:
             raise Http404
         s: bytes = fo.read()
-    elif book.cat_type in [opdsdb.CAT_ZIP, opdsdb.CAT_INP]:
+    elif book.catalog.cat_type in [opdsdb.CAT_ZIP, opdsdb.CAT_INP]:
         try:
             fz = open(full_path, "rb")
         except FileNotFoundError:
@@ -290,8 +290,8 @@ def Cover(request: HttpRequest, book_id: int, thumbnail: bool = False) -> HttpRe
     """Загрузка обложки"""
     book = Book.objects.get(id=book_id)
     response = HttpResponse()
-    full_path = os.path.join(django_settings.SOPDS_ROOT_LIB, book.path)
-    if book.cat_type == opdsdb.CAT_INP:
+    full_path = os.path.join(django_settings.SOPDS_ROOT_LIB, book.catalog.path)
+    if book.catalog.cat_type == opdsdb.CAT_INP:
         inp_path, zip_name = os.path.split(full_path)
         inpx_path, inp_name = os.path.split(inp_path)
         path, inpx_name = os.path.split(inpx_path)
@@ -301,13 +301,13 @@ def Cover(request: HttpRequest, book_id: int, thumbnail: bool = False) -> HttpRe
     image: bytes | None = None
     fo: BinaryIO
     try:
-        if book.cat_type == opdsdb.CAT_NORMAL:
+        if book.catalog.cat_type == opdsdb.CAT_NORMAL:
             file_path = os.path.join(full_path, book.filename)
             fo = open(file_path, "rb")
             book_data = create_bookfile(fo, book.filename)
             image = book_data.extract_cover_memory()
             fo.close()
-        elif book.cat_type in [opdsdb.CAT_ZIP, opdsdb.CAT_INP]:
+        elif book.catalog.cat_type in [opdsdb.CAT_ZIP, opdsdb.CAT_INP]:
             fz = open(full_path, "rb")
             z = zipfile.ZipFile(fz, "r", allowZip64=True)
             fo = cast(BinaryIO, z.open(book.filename))
@@ -350,8 +350,8 @@ def Cover0(request: HttpRequest, book_id: int, thumbnail: bool = False) -> HttpR
     book = Book.objects.get(id=book_id)
     response = HttpResponse()
     c0 = 0
-    full_path = os.path.join(django_settings.SOPDS_ROOT_LIB, book.path)
-    if book.cat_type == opdsdb.CAT_INP:
+    full_path = os.path.join(django_settings.SOPDS_ROOT_LIB, book.catalog.path)
+    if book.catalog.cat_type == opdsdb.CAT_INP:
         inp_path, zip_name = os.path.split(full_path)
         inpx_path, inp_name = os.path.split(inp_path)
         path, inpx_name = os.path.split(inpx_path)
@@ -360,12 +360,12 @@ def Cover0(request: HttpRequest, book_id: int, thumbnail: bool = False) -> HttpR
     if book.format == "fb2":
         fb2 = fb2parse.fb2parser(1)
         fo: BinaryIO
-        if book.cat_type == opdsdb.CAT_NORMAL:
+        if book.catalog.cat_type == opdsdb.CAT_NORMAL:
             file_path = os.path.join(full_path, book.filename)
             fo = open(file_path, "rb")
             fb2.parse(fo, 0)
             fo.close()
-        elif book.cat_type in [opdsdb.CAT_ZIP, opdsdb.CAT_INP]:
+        elif book.catalog.cat_type in [opdsdb.CAT_ZIP, opdsdb.CAT_INP]:
             fz = open(full_path, "rb")
             z = zipfile.ZipFile(fz, "r", allowZip64=True)
             fo = cast(BinaryIO, z.open(book.filename))
@@ -420,8 +420,8 @@ def ConvertFB2(request: HttpRequest, book_id: int, convert_type: str) -> HttpRes
     if book.format != "fb2":
         raise Http404
 
-    full_path = os.path.join(django_settings.SOPDS_ROOT_LIB, book.path)
-    if book.cat_type == opdsdb.CAT_INP:
+    full_path = os.path.join(django_settings.SOPDS_ROOT_LIB, book.catalog.path)
+    if book.catalog.cat_type == opdsdb.CAT_INP:
         inp_path, zip_name = os.path.split(full_path)
         inpx_path, inp_name = os.path.split(inp_path)
         path, inpx_name = os.path.split(inpx_path)
@@ -449,7 +449,7 @@ def ConvertFB2(request: HttpRequest, book_id: int, convert_type: str) -> HttpRes
     if not converter_path:
         raise Http404
 
-    if book.cat_type == opdsdb.CAT_NORMAL:
+    if book.catalog.cat_type == opdsdb.CAT_NORMAL:
         safe_filename = _safe_basename(book.filename)
         src_path = os.path.join(full_path, safe_filename)
         tmp_fb2_path = os.path.join(
@@ -462,7 +462,7 @@ def ConvertFB2(request: HttpRequest, book_id: int, convert_type: str) -> HttpRes
         except FileNotFoundError:
             raise Http404
         file_path = tmp_fb2_path
-    elif book.cat_type in [opdsdb.CAT_ZIP, opdsdb.CAT_INP]:
+    elif book.catalog.cat_type in [opdsdb.CAT_ZIP, opdsdb.CAT_INP]:
         try:
             fz = open(full_path, "rb")
         except FileNotFoundError:

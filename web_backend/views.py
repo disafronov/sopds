@@ -7,6 +7,7 @@ from django.contrib.auth import REDIRECT_FIELD_NAME, authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from django.db.models import Count, Min
+from django.db.models.functions import Upper
 from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import redirect, render
 from django.template.context_processors import csrf
@@ -143,8 +144,8 @@ def SearchBooksView(request: HttpRequest) -> HttpResponse:
             # books = Book.objects.extra(where=["upper(title) like %s"],
             #     params=["%%%s%%"%searchterms.upper()]).order_by('title','-docdate')
             books = Book.objects.filter(
-                search_title__contains=searchterms.upper()
-            ).order_by("search_title", "-docdate")
+                title__upper__contains=searchterms.upper()
+            ).order_by(Upper("title"), "-docdate")
             args["breadcrumbs"] = [_("Books"), _("Search by title"), searchterms]
             args["searchobject"] = "title"
 
@@ -153,8 +154,8 @@ def SearchBooksView(request: HttpRequest) -> HttpResponse:
             #     where=["upper(title) like %s"],
             #     params=["%s%%"%searchterms.upper()]).order_by('title','-docdate')
             books = Book.objects.filter(
-                search_title__startswith=searchterms.upper()
-            ).order_by("search_title", "-docdate")
+                title__upper__startswith=searchterms.upper()
+            ).order_by(Upper("title"), "-docdate")
             args["breadcrumbs"] = [_("Books"), _("Search by title"), searchterms]
             args["searchobject"] = "title"
 
@@ -168,7 +169,7 @@ def SearchBooksView(request: HttpRequest) -> HttpResponse:
                 author_id = 0
                 aname = ""
             books = Book.objects.filter(authors=author_id).order_by(
-                "search_title", "-docdate"
+                Upper("title"), "-docdate"
             )
             args["breadcrumbs"] = [_("Books"), _("Search by author"), aname]
             args["searchobject"] = "author"
@@ -181,10 +182,8 @@ def SearchBooksView(request: HttpRequest) -> HttpResponse:
             except Exception:
                 ser_id = 0
                 ser = ""
-            # books = Book.objects.filter(series=ser_id)
-            #     .order_by('search_title','-docdate')
             books = Book.objects.filter(series=ser_id).order_by(
-                "bseries__ser_no", "search_title", "-docdate"
+                "bseries__ser_no", Upper("title"), "-docdate"
             )
             args["breadcrumbs"] = [_("Books"), _("Search by series"), ser]
             args["searchobject"] = "series"
@@ -206,7 +205,7 @@ def SearchBooksView(request: HttpRequest) -> HttpResponse:
                 args["breadcrumbs"] = [_("Books"), _("Search by genre")]
 
             books = Book.objects.filter(genres=genre_id).order_by(
-                "search_title", "-docdate"
+                Upper("title"), "-docdate"
             )
             args["searchobject"] = "genre"
 
@@ -299,7 +298,7 @@ def SearchBooksView(request: HttpRequest) -> HttpResponse:
                 "doubles": 0,
                 "lang_code": row.lang_code,
                 "filename": row.filename,
-                "path": row.path,
+                "path": row.catalog.path,
                 "registerdate": row.registerdate,
                 "id": row.id,
                 "annotation": strip_tags(row.annotation),
@@ -385,16 +384,16 @@ def SearchSeriesView(request: HttpRequest) -> HttpResponse:
         series = Series.objects.none()
 
         if searchtype == "m":
-            series = Series.objects.filter(search_ser__contains=searchterms.upper())
+            series = Series.objects.filter(ser__upper__contains=searchterms.upper())
         elif searchtype == "b":
-            series = Series.objects.filter(search_ser__startswith=searchterms.upper())
+            series = Series.objects.filter(ser__upper__startswith=searchterms.upper())
         elif searchtype == "e":
-            series = Series.objects.filter(search_ser=searchterms.upper())
+            series = Series.objects.filter(ser__upper=searchterms.upper())
 
         # if len(series)>0:
         #    series = series.order_by('ser')
         series = (
-            series.annotate(count_book=Count("book")).distinct().order_by("search_ser")
+            series.annotate(count_book=Count("book")).distinct().order_by(Upper("ser"))
         )
 
         # Создаем результирующее множество
@@ -445,16 +444,16 @@ def SearchAuthorsView(request: HttpRequest) -> HttpResponse:
 
         if searchtype == "m":
             authors = Author.objects.filter(
-                search_full_name__contains=searchterms.upper()
-            ).order_by("search_full_name")
+                full_name__upper__contains=searchterms.upper()
+            ).order_by(Upper("full_name"))
         elif searchtype == "b":
             authors = Author.objects.filter(
-                search_full_name__startswith=searchterms.upper()
-            ).order_by("search_full_name")
+                full_name__upper__startswith=searchterms.upper()
+            ).order_by(Upper("full_name"))
         elif searchtype == "e":
             authors = Author.objects.filter(
-                search_full_name=searchterms.upper()
-            ).order_by("search_full_name")
+                full_name__upper=searchterms.upper()
+            ).order_by(Upper("full_name"))
 
         # Создаем результирующее множество
         authors_count = authors.count()
@@ -509,7 +508,7 @@ def CatalogsView(request: HttpRequest) -> HttpResponse:
     catalogs_count = catalogs_list.count()
     # books_list = Book.objects.filter(catalog=cat)
     #     .prefetch_related('authors','genres','series').order_by("title")
-    books_list = Book.objects.filter(catalog=cat).order_by("search_title")
+    books_list = Book.objects.filter(catalog=cat).order_by(Upper("title"))
     books_count = books_list.count()
 
     # Получаем результирующий список
@@ -533,7 +532,7 @@ def CatalogsView(request: HttpRequest) -> HttpResponse:
             "is_catalog": 0,
             "lang_code": book_row.lang_code,
             "filename": book_row.filename,
-            "path": book_row.path,
+            "path": book_row.catalog.path,
             "registerdate": book_row.registerdate,
             "id": book_row.id,
             "annotation": strip_tags(book_row.annotation),
@@ -582,29 +581,29 @@ def BooksView(request: HttpRequest) -> HttpResponse:
 
     if request.GET:
         lang_code = int(request.GET.get("lang", "0"))
-        chars = request.GET.get("chars", "")
+        chars = request.GET.get("chars", "").upper()
     else:
         lang_code = 0
         chars = ""
 
     length = len(chars) + 1
     if lang_code:
-        sql = """select %(length)s as l, substring(search_title,1,%(length)s) as id,
+        sql = """select %(length)s as l, substring(upper(title),1,%(length)s) as id,
                count(*) as cnt
                from opds_catalog_book
-               where lang_code=%(lang_code)s and search_title like '%(chars)s%%%%'
-               group by substring(search_title,1,%(length)s)
+               where lang_code=%(lang_code)s and upper(title) like '%(chars)s%%%%'
+               group by substring(upper(title),1,%(length)s)
                order by id""" % {
             "length": length,
             "lang_code": lang_code,
             "chars": chars,
         }
     else:
-        sql = """select %(length)s as l, substring(search_title,1,%(length)s) as id,
+        sql = """select %(length)s as l, substring(upper(title),1,%(length)s) as id,
                count(*) as cnt
                from opds_catalog_book
-               where search_title like '%(chars)s%%%%'
-               group by substring(search_title,1,%(length)s)
+               where upper(title) like '%(chars)s%%%%'
+               group by substring(upper(title),1,%(length)s)
                order by id""" % {
             "length": length,
             "chars": chars,
@@ -629,29 +628,29 @@ def AuthorsView(request: HttpRequest) -> HttpResponse:
 
     if request.GET:
         lang_code = int(request.GET.get("lang", "0"))
-        chars = request.GET.get("chars", "")
+        chars = request.GET.get("chars", "").upper()
     else:
         lang_code = 0
         chars = ""
 
     length = len(chars) + 1
     if lang_code:
-        sql = """select %(length)s as l, substring(search_full_name,1,%(length)s) as id,
+        sql = """select %(length)s as l, substring(upper(full_name),1,%(length)s) as id,
                count(*) as cnt
                from opds_catalog_author
-               where lang_code=%(lang_code)s and search_full_name like '%(chars)s%%%%'
-               group by substring(search_full_name,1,%(length)s)
+               where lang_code=%(lang_code)s and upper(full_name) like '%(chars)s%%%%'
+               group by substring(upper(full_name),1,%(length)s)
                order by id""" % {
             "length": length,
             "lang_code": lang_code,
             "chars": chars,
         }
     else:
-        sql = """select %(length)s as l, substring(search_full_name,1,%(length)s) as id,
+        sql = """select %(length)s as l, substring(upper(full_name),1,%(length)s) as id,
                count(*) as cnt
                from opds_catalog_author
-               where search_full_name like '%(chars)s%%%%'
-               group by substring(search_full_name,1,%(length)s)
+               where upper(full_name) like '%(chars)s%%%%'
+               group by substring(upper(full_name),1,%(length)s)
                order by id""" % {
             "length": length,
             "chars": chars,
@@ -676,29 +675,29 @@ def SeriesView(request: HttpRequest) -> HttpResponse:
 
     if request.GET:
         lang_code = int(request.GET.get("lang", "0"))
-        chars = request.GET.get("chars", "")
+        chars = request.GET.get("chars", "").upper()
     else:
         lang_code = 0
         chars = ""
 
     length = len(chars) + 1
     if lang_code:
-        sql = """select %(length)s as l, substring(search_ser,1,%(length)s) as id,
+        sql = """select %(length)s as l, substring(upper(ser),1,%(length)s) as id,
                count(*) as cnt
                from opds_catalog_series
-               where lang_code=%(lang_code)s and search_ser like '%(chars)s%%%%'
-               group by substring(search_ser,1,%(length)s)
+               where lang_code=%(lang_code)s and upper(ser) like '%(chars)s%%%%'
+               group by substring(upper(ser),1,%(length)s)
                order by id""" % {
             "length": length,
             "lang_code": lang_code,
             "chars": chars,
         }
     else:
-        sql = """select %(length)s as l, substring(search_ser,1,%(length)s) as id,
+        sql = """select %(length)s as l, substring(upper(ser),1,%(length)s) as id,
                count(*) as cnt
                from opds_catalog_series
-               where search_ser like '%(chars)s%%%%'
-               group by substring(search_ser,1,%(length)s)
+               where upper(ser) like '%(chars)s%%%%'
+               group by substring(upper(ser),1,%(length)s)
                order by id""" % {
             "length": length,
             "chars": chars,
