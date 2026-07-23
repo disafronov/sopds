@@ -3,6 +3,7 @@
 from unittest.mock import patch
 
 from constance import config
+from django.contrib.auth.models import User
 from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils.translation import gettext as _
@@ -35,6 +36,31 @@ class feedsTestCase(TestCase):
             _("Genres: %(genres)s.") % {"genres": 4}, response.content.decode()
         )
 
+    def test_MainFeed_uses_relative_internal_links(self) -> None:
+        response = Client().get(
+            reverse("opds:main"),
+            HTTP_X_FORWARDED_PROTO="https",
+            HTTP_X_FORWARDED_HOST="library.example",
+        )
+
+        content = response.content.decode()
+        self.assertIn("<id>urn:sopds:feed:/opds/</id>", content)
+        self.assertIn('href="/opds/"', content)
+        self.assertIn('href="/opds/catalogs/"', content)
+        self.assertNotIn("library.example", content)
+
+    def test_MainFeed_empty_bookshelf_remains_linked(self) -> None:
+        config.SOPDS_AUTH = True
+        user = User.objects.create_user(username="reader", password="password")
+        client = Client()
+        client.force_login(user)
+
+        content = client.get(reverse("opds:main")).content.decode()
+
+        self.assertIn("reader Book shelf", content)
+        self.assertIn('rel="http://opds-spec.org/shelf"', content)
+        self.assertIn('href="/opds/search/books/u/0/"', content)
+
     def test_CatalogsFeed(self) -> None:
         c = Client()
         response = c.get("/opds/catalogs/")
@@ -64,6 +90,17 @@ class feedsTestCase(TestCase):
         response = c.get("/opds/search/")
         self.assertEqual(response.status_code, 200)
         self.assertIn("/static/images/favicon.ico", response.content.decode())
+        self.assertIn(
+            'template="/opds/search/{searchTerms}/"',
+            response.content.decode(),
+        )
+
+    def test_MainFeed_uses_legacy_search_template(self) -> None:
+        content = Client().get(reverse("opds:main")).content.decode()
+
+        self.assertIn('href="/opds/search/{searchTerms}/"', content)
+        self.assertIn('rel="search"', content)
+        self.assertIn('type="application/atom+xml"', content)
 
     def test_SearchTypes(self) -> None:
         c = Client()
@@ -71,6 +108,14 @@ class feedsTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         response = c.get(reverse("opds:searchtypes", kwargs={"searchterms": "Драк"}))
         self.assertEqual(response.status_code, 200)
+        self.assertIn(
+            'href="/opds/search/%D0%94%D1%80%D0%B0%D0%BA/" rel="self"',
+            response.content.decode(),
+        )
+        self.assertIn(
+            'href="/opds/search/{searchTerms}/" rel="search"',
+            response.content.decode(),
+        )
         self.assertIn(_("Search by titles"), response.content.decode())
 
     def test_SearchBooks(self) -> None:
