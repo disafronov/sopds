@@ -4,16 +4,18 @@
 
 {% block body %}
 {% autoescape on %}
-<table>
+<table class="selector-table clickable-rows">
 {%  for chars in items %}
 <tr>
 	<td>
 	{% if chars.cnt >= splititems %}
-	   <a href="{% url "web:author" %}?lang={{lang_code}}&chars={{chars.id|urlencode|iriencode}}">{{ chars.id }}</a>
+	   <a class="selector-link" href="{% url "web:author" %}?lang={{lang_code}}&chars={{chars.id|urlencode|iriencode}}">
 	{% else %}
-	   <a href="{% url "web:searchauthors" %}?searchtype=b&searchterms={{chars.id|urlencode|iriencode}}">{{ chars.id }}</a>
+	   <a class="selector-link" href="{% url "web:searchauthors" %}?searchtype=b&searchterms={{chars.id|urlencode|iriencode}}">
 	{% endif %}
-	<span style="font-size:80%">{% blocktrans with chars_cnt=chars.cnt %}Total: {{ chars_cnt }} authors.{% endblocktrans %}</span>
+	{{ chars.id }}
+	<span class="selector-link__count">{% blocktrans with chars_cnt=chars.cnt %}Total: {{ chars_cnt }} authors.{% endblocktrans %}</span>
+	</a>
 	</td>
 </tr>
 {% endfor %}
