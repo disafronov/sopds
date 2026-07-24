@@ -26,6 +26,7 @@
 - PostgreSQL 17 or MariaDB LTS
 - Docker (optional)
 - [uv](https://docs.astral.sh/uv/) package manager
+- Node.js 24 (for local frontend development)
 
 ## Quick Start
 
@@ -91,6 +92,9 @@ make docker-run     # migrate + createsuperuser + start on :8000
 make docker         # docker-build + docker-run
 ```
 
+The Docker build compiles and collects static assets. The runtime image serves
+them through WhiteNoise and does not run `collectstatic` on startup.
+
 ## Configuration
 
 Settings are read from environment variables. See `env.example` for all options.
@@ -116,15 +120,7 @@ Settings are read from environment variables. See `env.example` for all options.
 | --- | --- | --- |
 | `DATABASE_URL` | PostgreSQL or MariaDB connection URL. | **required** |
 
-### Server
-
-| Variable | Description | Default |
-| --- | --- | --- |
-| `HOST` | Bind address for dev server. | `0.0.0.0` |
-| `PORT` | Bind port for dev server. | `8000` |
-| `GUNICORN_WORKERS` | Gunicorn web worker processes. | `2` |
-
-### Superuser (used by `make run` and Docker entrypoint)
+### Superuser (used by `make run` and `make docker-run`)
 
 | Variable | Description |
 | --- | --- |
@@ -179,12 +175,16 @@ Run `python manage.py <command> --help` for full usage details.
 
 | Target | Description |
 | --- | --- |
-| `make install` | Install Python + dependencies + pre-commit hooks |
+| `make install` | Install Python, backend/frontend dependencies, and hooks |
 | `make format` | Auto-format with black + isort |
 | `make lint` | Check with black, isort, flake8, mypy (strict), bandit |
+| `make frontend-build` | Build minified CSS and browser libraries |
+| `make frontend-dev` | Build browser libraries and watch Sass changes |
+| `make frontend-test` | Test frontend library initialization |
+| `make frontend-audit` | Audit frontend dependencies |
 | `make test` | Run pytest with coverage |
-| `make all` | lint + test + dead-code (vulture) |
-| `make audit` | Check dependencies for known vulnerabilities |
+| `make all` | lint + frontend build/test + backend tests + dead-code |
+| `make audit` | Audit frontend and Python dependencies |
 | `make dead-code` | Detect unused code with vulture |
 | `make locale` | Update and compile translation catalogs |
 | `make migrate` | Apply database migrations |
@@ -209,7 +209,8 @@ Pre-commit hooks are installed by `make install`.
 ### CI/CD
 
 - **lint_and_test** -- runs `make all` + `make audit` on PRs
-- **docker** -- builds and pushes Docker image to `ghcr.io` on tags
+- **docker** -- builds and pushes PR and release images to `ghcr.io`
+- **CodeQL Default setup** -- scans Actions, Python, and JavaScript/TypeScript
 - **semantic-release** -- automated versioning on `main`/`release` branches
 
 ## Project Structure
@@ -219,7 +220,7 @@ config/                 Django project configuration (settings, urls, wsgi)
 opds_catalog/           Core app: models, scanner, OPDS feeds, middleware
 web_backend/            Web UI app: views, templates, static assets
 ops/                    Operations: dev/start launchers, health checks, supervisor
-book_tools/             SOPDS book-format adapters and vendored parser forks
+book_tools/             SOPDS book-format adapters
 convert/                Bundled FB2 to EPUB/MOBI converter
 assets/                 Front-end assets
 books/                  Book storage directory (mounted as Docker volume)
