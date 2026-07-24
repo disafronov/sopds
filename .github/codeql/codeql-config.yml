@@ -1,4 +1,0 @@
-paths-ignore:
-  # Checked-in upstream distributions. Application-owned JavaScript remains
-  # covered by CodeQL.
-  - web_backend/static/js/vendor/**
