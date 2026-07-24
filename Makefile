@@ -24,6 +24,7 @@ PYTEST_CMD = DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python -m pytest -v -
 TEST_ARGS = $(if $(filter all,$(MAKECMDGOALS)),,$(filter-out test all,$(MAKECMDGOALS)))
 
 DOCKER_IMAGE = sopds
+FRONTEND_DIR = assets/sopds-sass
 
 DOCKER_RUN_OPTS = --rm \
 	--read-only \
@@ -35,7 +36,7 @@ DOCKER_RUN_OPTS = --rm \
 	$(if $(wildcard .env.docker),--env-file .env.docker,) \
 	-v "${PWD}/opds_catalog/tests/data":/books
 
-.PHONY: all audit clean dead-code dev docker docker-build docker-run format help install lint locale makemigrations migrate migrate-mysql migrate-postgresql run scanner scan test test-mysql test-postgresql
+.PHONY: all audit clean dead-code dev docker docker-build docker-run format frontend frontend-audit frontend-build frontend-dev frontend-test help install lint locale makemigrations migrate migrate-mysql migrate-postgresql run scanner scan test test-mysql test-postgresql
 
 help: ## Show this help message
 	@echo "Available commands:"
@@ -45,6 +46,8 @@ install: ## Install dependencies
 	@echo "Installing dependencies..."
 	uv python install $(PYTHON_VERSION)
 	uv sync --python $(PYTHON_VERSION)
+	cd $(FRONTEND_DIR) && npm ci
+	$(MAKE) frontend-build
 	@echo "Installing pre-commit hooks..."
 	uv run pre-commit install
 
@@ -61,7 +64,21 @@ lint: ## Run linting tools
 	DATABASE_URL=$(TOOLING_DATABASE_URL) DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) mypy . && \
 	$(UV) bandit -r -c pyproject.toml .
 
-audit: ## Check dependencies for known vulnerabilities
+frontend-build: ## Build frontend assets
+	cd $(FRONTEND_DIR) && npm run build
+
+frontend-dev: ## Watch and rebuild frontend assets
+	cd $(FRONTEND_DIR) && npm run dev
+
+frontend-test: ## Test frontend libraries
+	cd $(FRONTEND_DIR) && npm test
+
+frontend: frontend-build frontend-test ## Build and test frontend assets
+
+frontend-audit: ## Check frontend dependencies for known vulnerabilities
+	cd $(FRONTEND_DIR) && npm audit
+
+audit: frontend-audit ## Check dependencies for known vulnerabilities
 	@echo "Auditing dependencies..."
 	uv run pip-audit
 
@@ -99,10 +116,10 @@ test-mysql: ## Run tests on MySQL/MariaDB
 
 test: locale migrate test-postgresql test-mysql ## Run tests on both supported databases
 
-all: lint test dead-code ## Run all checks
+all: lint frontend test dead-code ## Run all checks
 	@echo "All checks completed successfully!"
 
-run: locale ## Start the app on selected DATABASE_URL (with migrations)
+run: frontend-build locale ## Start the app on selected DATABASE_URL (with migrations)
 	@echo "Running Django dev server + scanner..."
 	DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py migrate
 	@if [ -n "$$DJANGO_SUPERUSER_USERNAME" ] && [ -n "$$DJANGO_SUPERUSER_PASSWORD" ] && [ -n "$$DJANGO_SUPERUSER_EMAIL" ]; then \
@@ -124,6 +141,7 @@ scan: ## Run the sopds scanner oneshot scan
 clean: ## Clean caches and coverage outputs
 	@echo "Cleaning cache and temporary files..."
 	rm -rf .mypy_cache/ .pytest_cache/ .venv/ build/ dist/ htmlcov/ .coverage
+	rm -rf web_backend/static/js/vendor/ web_backend/static/css/sopds.css
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	find . -type f -name "*.pyc" -delete 2>/dev/null || true
 
