@@ -1,18 +1,33 @@
 import os
+from io import BytesIO
+from types import SimpleNamespace
+from unittest.mock import patch
+from zipfile import ZIP_STORED
+from zipfile import ZipFile as StandardZipFile
+from zipfile import ZipInfo
 
-from django.test import TestCase
+from django.test import SimpleTestCase
 
 from opds_catalog import zipf as zipfile
 
 
-class zipTestCase(TestCase):
+class LegacyZipInfo(ZipInfo):
+    def _encodeFilenameFlags(self) -> tuple[bytes, int]:
+        return self.filename.encode("cp866"), self.flag_bits & ~0x800
+
+
+class ZipTestCase(SimpleTestCase):
     test_module_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     test_ROOTLIB = os.path.join(test_module_path, "tests/data")
     test_zip = "books.zip"
     test_bad_zip = "badfile.zip"
 
     def setUp(self) -> None:
-        pass
+        self.config_patch = patch.object(
+            zipfile, "config", SimpleNamespace(SOPDS_ZIPCODEPAGE="cp866")
+        )
+        self.config_patch.start()
+        self.addCleanup(self.config_patch.stop)
 
     def test_zip_valid(self) -> None:
         z = zipfile.ZipFile(
@@ -36,3 +51,17 @@ class zipTestCase(TestCase):
             bad_file_count = 1
 
         self.assertEqual(bad_file_count, 1)
+
+    def test_configured_metadata_encoding(self) -> None:
+        archive = BytesIO()
+        with StandardZipFile(archive, "w") as zf:
+            info = LegacyZipInfo("книга.fb2")
+            info.compress_type = ZIP_STORED
+            zf.writestr(info, b"book")
+        archive.seek(0)
+
+        with patch.object(
+            zipfile, "config", SimpleNamespace(SOPDS_ZIPCODEPAGE="cp866")
+        ):
+            with zipfile.ZipFile(archive) as zf:
+                self.assertEqual(zf.namelist(), ["книга.fb2"])
