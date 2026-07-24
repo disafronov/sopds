@@ -33,6 +33,7 @@ def request_no_auth() -> HttpRequest:
     request = HttpRequest()
     request.META = {}
     request.user = type("U", (), {"is_authenticated": False})()
+    request.session = cast(Any, {})
     return request
 
 
@@ -121,7 +122,12 @@ class TestBasicAuthMiddleware:
             middleware, "authenticate", return_value=HttpResponse(status=401)
         )
 
-        response = middleware.process_view(request_no_auth, object(), (), {})
+        response = middleware.process_view(
+            request_no_auth,
+            request_no_auth.resolver_match.func,
+            (),
+            {},
+        )
 
         assert response is not None
         assert response.status_code == 401
@@ -144,7 +150,8 @@ class TestBasicAuthMiddleware:
 
         assert response is not None
         assert response.status_code == 302
-        assert response["Location"].startswith("/web/login/?next=")
+        assert response["Location"] == "/web/login/"
+        assert request_no_auth.session["sopds_login_next"] == "/web/"
 
     @pytest.mark.parametrize(
         "path",
@@ -162,7 +169,15 @@ class TestBasicAuthMiddleware:
         )
         request_no_auth.resolver_match = resolve(path)
 
-        assert middleware.process_view(request_no_auth, object(), (), {}) is None
+        assert (
+            middleware.process_view(
+                request_no_auth,
+                request_no_auth.resolver_match.func,
+                (),
+                {},
+            )
+            is None
+        )
 
     def test_unauthed_response(self, middleware: BasicAuthMiddleware) -> None:
         response = middleware.unauthed()
