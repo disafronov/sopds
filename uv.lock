@@ -4410,7 +4410,7 @@ version = "15.0.0"
 
 [[package]]
 name = "sopds"
-version = "4.0.0rc1"
+version = "4.0.0"
 
   [package.source]
   virtual = "."
