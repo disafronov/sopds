@@ -56,6 +56,13 @@ jobs:
       - name: Install gettext
         run: sudo apt-get update -y && sudo apt-get install -y gettext
 
+      - name: Install Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: assets/sopds-sass/package-lock.json
+
       - name: Install uv
         uses: astral-sh/setup-uv@v7
         with:
@@ -63,7 +70,9 @@ jobs:
           cache-suffix: ${{ steps.python_version.outputs.version }}
 
       - name: Install dependencies
-        run: uv sync --frozen --python ${{ steps.python_version.outputs.version }}
+        run: |
+          uv sync --frozen --python ${{ steps.python_version.outputs.version }}
+          npm ci --prefix assets/sopds-sass
         env:
           UV_PYTHON: ${{ steps.python_version.outputs.version }}
 

@@ -9,7 +9,6 @@ htmlcov/
 *.sqlite3
 
 # Dev/CI files not needed in runtime
-assets/
 Makefile
 README.md
 CHANGELOG.md
@@ -39,7 +38,12 @@ __pycache__/
 # Build artifacts
 build/
 dist/
+staticfiles/
 *.egg
+
+# Generated frontend assets (rebuilt in the frontend stage)
+web_backend/static/css/sopds.css
+web_backend/static/js/vendor/
 
 # Test files (not needed in production)
 opds_catalog/tests/data/
@@ -51,6 +55,7 @@ opds_catalog/log/
 
 # Virtual environment
 .venv/
+**/node_modules/
 
 # CI/CD & editor configs
 .github/
