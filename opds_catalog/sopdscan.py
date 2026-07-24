@@ -23,7 +23,7 @@ from django.db import connection, transaction
 from django.db.utils import InterfaceError, OperationalError
 from django.utils.translation import gettext as _
 
-from book_tools.format import create_bookfile
+from book_tools.format import create_bookfile, supported_book_extensions
 from book_tools.format.util import strip_symbols
 from opds_catalog import fb2parse, opdsdb
 from opds_catalog.models import (
@@ -553,7 +553,7 @@ class opdsScanner:
 
         max_workers = settings.SOPDS_SCAN_WORKERS or os.cpu_count()
         self.logger.info("Scanner worker processes: %s", max_workers)
-        book_extensions = tuple(config.SOPDS_BOOK_EXTENSIONS.lower().split())
+        book_extensions = supported_book_extensions(config.SOPDS_BOOK_EXTENSIONS)
 
         with create_scan_executor(max_workers) as executor:
             all_futures: set[Future[Any]] = {
@@ -823,7 +823,7 @@ class opdsScanner:
         file_size: int = 0,
     ) -> None:
         n, e = os.path.splitext(name)
-        if e.lower() in config.SOPDS_BOOK_EXTENSIONS.split():
+        if e.lower() in supported_book_extensions(config.SOPDS_BOOK_EXTENSIONS):
             rel_path = os.path.relpath(full_path, settings.SOPDS_ROOT_LIB)
             self.logger.debug("Attempt to add book " + rel_path + "/" + name)
             try:
