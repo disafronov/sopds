@@ -17,11 +17,11 @@ if TYPE_CHECKING:
 SUPPORTED_BOOK_EXTENSIONS = frozenset({".fb2", ".epub", ".mobi"})
 
 
-def supported_book_extensions(extensions: str) -> tuple[str, ...]:
+def supported_book_extensions(extensions: list[str]) -> tuple[str, ...]:
     return tuple(
-        extension
-        for extension in extensions.lower().split()
-        if extension in SUPPORTED_BOOK_EXTENSIONS
+        normalized
+        for extension in extensions
+        if (normalized := extension.lower()) in SUPPORTED_BOOK_EXTENSIONS
     )
 
 

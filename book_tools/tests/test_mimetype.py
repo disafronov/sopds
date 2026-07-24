@@ -45,7 +45,9 @@ def test_file(filename: str, expected: str) -> None:
 
 
 def test_supported_book_extensions_filters_unparsed_formats() -> None:
-    assert supported_book_extensions(".FB2 .pdf .epub .djvu .mobi .txt") == (
+    assert supported_book_extensions(
+        [".FB2", ".pdf", ".epub", ".djvu", ".mobi", ".txt"]
+    ) == (
         ".fb2",
         ".epub",
         ".mobi",

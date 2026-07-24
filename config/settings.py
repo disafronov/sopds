@@ -248,6 +248,13 @@ STORAGES = {
 CONSTANCE_BACKEND = "constance.backends.database.DatabaseBackend"
 
 CONSTANCE_ADDITIONAL_FIELDS = {
+    "book_extensions": [
+        "django.forms.MultipleChoiceField",
+        {
+            "widget": "django.forms.CheckboxSelectMultiple",
+            "choices": ((".fb2", "FB2"), (".epub", "EPUB"), (".mobi", "MOBI")),
+        },
+    ],
     "language_select": [
         "django.forms.fields.ChoiceField",
         {
@@ -262,7 +269,11 @@ CONSTANCE_CONFIG = OrderedDict(
         ("SOPDS_LANGUAGE", ("en-US", _("Select language"), "language_select")),
         (
             "SOPDS_BOOK_EXTENSIONS",
-            (".fb2 .epub .mobi", _("List of managed book files extensions")),
+            (
+                [".fb2", ".epub", ".mobi"],
+                _("List of managed book files extensions"),
+                "book_extensions",
+            ),
         ),
         (
             "SOPDS_SCAN_START_DIRECTLY",
@@ -379,9 +390,7 @@ CONSTANCE_CONFIG = OrderedDict(
 CONSTANCE_CONFIG_FIELDSETS = {
     "1. General Options": (
         "SOPDS_LANGUAGE",
-        "SOPDS_BOOK_EXTENSIONS",
         "SOPDS_CACHE_TIME",
-        "SOPDS_SCAN_START_DIRECTLY",
     ),
     "2. Server Options": (
         "SOPDS_AUTH",
@@ -393,6 +402,7 @@ CONSTANCE_CONFIG_FIELDSETS = {
         "SOPDS_TITLE_AS_FILENAME",
     ),
     "3. Scanner Options": (
+        "SOPDS_BOOK_EXTENSIONS",
         "SOPDS_ZIP_ENABLE",
         "SOPDS_ZIP_SKIP_UNCHANGED",
         "SOPDS_ZIP_CODEPAGE",
@@ -407,6 +417,7 @@ CONSTANCE_CONFIG_FIELDSETS = {
         "SOPDS_SCAN_SHED_HOUR",
         "SOPDS_SCAN_SHED_DAY",
         "SOPDS_SCAN_SHED_DOW",
+        "SOPDS_SCAN_START_DIRECTLY",
     ),
     "5. Converters Options": ("SOPDS_FB2TOEPUB", "SOPDS_FB2TOMOBI"),
 }
