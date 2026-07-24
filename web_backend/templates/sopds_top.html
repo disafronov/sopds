@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load i18n static %}
 
 <div class="top-bar">
 
@@ -18,12 +18,12 @@
         {% if sopds_auth %}
         <ul class="menu" style="font-size:90%;">
             {% if user.is_authenticated %}
-                <li><a href="{% url "web:logout" %}"><i class="fi-torsos"></i>{% trans "Logout" %} ({{ user.username }})</a></li>
+                <li><a href="{% url "web:logout" %}"><img class="nav-icon" src="{% static "images/fi-torsos.svg" %}" alt="">{% trans "Logout" %} ({{ user.username }})</a></li>
             {% if user.is_superuser %}
-            	<li><a href="{% url "admin:index" %}"><i class="fi-widget"></i>{% trans "Settings" %}</a></li>
+                <li><a href="{% url "admin:index" %}"><img class="nav-icon" src="{% static "images/fi-widget.svg" %}" alt="">{% trans "Settings" %}</a></li>
             {% endif %}
             {% else %}
-                <li><a href="{% url "web:login" %}"><i class="fi-torsos"></i>{% trans "Login" %}</a></li>
+                <li><a href="{% url "web:login" %}"><img class="nav-icon" src="{% static "images/fi-torsos.svg" %}" alt="">{% trans "Login" %}</a></li>
             {% endif %}
         </ul>
         {% endif %}
