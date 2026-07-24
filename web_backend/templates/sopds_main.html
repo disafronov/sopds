@@ -72,6 +72,19 @@
   <script>
     $(document).foundation();
 
+    document.querySelectorAll('.clickable-rows tbody tr').forEach(function(row) {
+        row.addEventListener('click', function(event) {
+            if (event.target.closest('a, button, input, select, textarea')) {
+                return;
+            }
+
+            const link = row.querySelector('a[href]');
+            if (link) {
+                window.location.assign(link.href);
+            }
+        });
+    });
+
     SetSearch();
 	Foundation.Abide.defaults.validators['check_search'] =
 		function($el,required,parent) {

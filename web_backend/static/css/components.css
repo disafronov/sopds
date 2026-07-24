@@ -21,13 +21,7 @@
 }
 
 .clickable-rows tbody tr {
-  position: relative;
-}
-
-.clickable-rows tbody tr a::after {
-  position: absolute;
-  inset: 0;
-  content: "";
+  cursor: pointer;
 }
 
 .book-list-card {
