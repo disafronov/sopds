@@ -561,7 +561,7 @@ class opdsScanner:
                     discover_directory,
                     settings.SOPDS_ROOT_LIB,
                     book_extensions,
-                    config.SOPDS_ZIPSCAN,
+                    config.SOPDS_ZIP_ENABLE,
                     config.SOPDS_INPX_ENABLE,
                 )
             }
@@ -597,7 +597,7 @@ class opdsScanner:
                                     discover_directory,
                                     directory,
                                     book_extensions,
-                                    config.SOPDS_ZIPSCAN,
+                                    config.SOPDS_ZIP_ENABLE,
                                     config.SOPDS_INPX_ENABLE,
                                 )
                             )

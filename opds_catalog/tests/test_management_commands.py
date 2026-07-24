@@ -181,12 +181,12 @@ class UtilCommandTestCase(SimpleTestCase):
     @patch("opds_catalog.management.commands.sopds_util.call_command")
     def test_configuration_commands(self, call_command: Mock) -> None:
         self.command.handle(
-            command=["setconf", "SOPDS_ZIPSCAN", "True"],
+            command=["setconf", "SOPDS_ZIP_ENABLE", "True"],
             verbose=False,
             nogenres=False,
         )
         call_command.assert_called_once_with(
-            "constance", "set", "SOPDS_ZIPSCAN", "True"
+            "constance", "set", "SOPDS_ZIP_ENABLE", "True"
         )
 
         call_command.reset_mock()
@@ -195,9 +195,9 @@ class UtilCommandTestCase(SimpleTestCase):
 
         call_command.reset_mock()
         self.command.handle(
-            command=["getconf", "SOPDS_ZIPSCAN"], verbose=False, nogenres=False
+            command=["getconf", "SOPDS_ZIP_ENABLE"], verbose=False, nogenres=False
         )
-        call_command.assert_called_once_with("constance", "get", "SOPDS_ZIPSCAN")
+        call_command.assert_called_once_with("constance", "get", "SOPDS_ZIP_ENABLE")
 
     @patch("opds_catalog.management.commands.sopds_util.opdsdb")
     def test_pg_optimize_dispatch(self, opdsdb: Any) -> None:

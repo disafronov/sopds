@@ -24,7 +24,7 @@ class ZipTestCase(SimpleTestCase):
 
     def setUp(self) -> None:
         self.config_patch = patch.object(
-            zipfile, "config", SimpleNamespace(SOPDS_ZIPCODEPAGE="cp866")
+            zipfile, "config", SimpleNamespace(SOPDS_ZIP_CODEPAGE="cp866")
         )
         self.config_patch.start()
         self.addCleanup(self.config_patch.stop)
@@ -61,7 +61,7 @@ class ZipTestCase(SimpleTestCase):
         archive.seek(0)
 
         with patch.object(
-            zipfile, "config", SimpleNamespace(SOPDS_ZIPCODEPAGE="cp866")
+            zipfile, "config", SimpleNamespace(SOPDS_ZIP_CODEPAGE="cp866")
         ):
             with zipfile.ZipFile(archive) as zf:
                 self.assertEqual(zf.namelist(), ["книга.fb2"])
