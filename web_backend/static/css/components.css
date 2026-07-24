@@ -66,6 +66,59 @@
   border-top: 1px solid #cacaca;
 }
 
+@media screen and (max-width: 39.9375em) {
+  .top-bar-title .menu-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .top-bar-title .menu-icon::after {
+    top: 14px;
+    left: 10px;
+    width: 24px;
+  }
+
+  #main_menu .sopdsmenu a,
+  .top-bar-right .menu a {
+    display: flex;
+    min-height: 44px;
+    align-items: center;
+    padding: 0.75rem 1rem;
+  }
+
+  .clickable-rows tbody td {
+    height: 56px;
+  }
+
+  .breadcrumbs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .breadcrumbs li {
+    display: flex;
+    min-height: 44px;
+    align-items: center;
+    font-size: 0.875rem;
+  }
+
+  .breadcrumbs a {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+  }
+
+  .pagination a,
+  .pagination .current {
+    display: inline-flex;
+    min-width: 44px;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
 @media screen and (min-width: 64em) {
   .footer-book-column--random {
     padding-top: 0;
