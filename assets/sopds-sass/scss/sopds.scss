@@ -61,13 +61,22 @@
 .sopdsbg {
   background-color: $sopds-bg-color;
   a { color : $sopds-title-color; }
-  a:hover { color: $sopds-hover-color; } 
+  a:hover { color: $sopds-hover-color; }
   color : $sopds-title-color;
 }
 
 .sopdsmenu {
   background-color: $sopds-menu-bg-color;
   a { color : $sopds-menu-color; }
-  a:hover { background-color: $sopds-menu-bg-hover-color; } 
+  a:hover { background-color: $sopds-menu-bg-hover-color; }
   color : $sopds-menu-color;
+}
+
+.nav-icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-right: 0.25em;
+  flex: 0 0 1em;
+  vertical-align: -0.125em;
 }
