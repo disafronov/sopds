@@ -5,10 +5,11 @@ from typing import Any
 import pytest
 from django.contrib.auth.models import User
 from django.http import HttpRequest, HttpResponse, QueryDict
+from django.template.loader import render_to_string
 from django.test import Client
 from pytest_mock import MockerFixture
 
-from opds_catalog.models import Genre
+from opds_catalog.models import Genre, lang_menu
 
 
 @pytest.fixture
@@ -76,6 +77,21 @@ class TestSopdsProcessor:
         request.user = user
         ctx = views.sopds_processor(request)
         assert ctx["sopds_auth"] is True
+
+
+@pytest.mark.parametrize("current", ["book", "author", "series"])
+def test_menu_marks_selected_alphabet_group_as_active(current: str) -> None:
+    html = render_to_string(
+        "sopds_menu.html",
+        {
+            "alphabet": True,
+            "current": current,
+            "lang_code": 1,
+            "lang_menu": lang_menu,
+        },
+    )
+
+    assert html.count('class="active"') == 2
 
 
 class TestSearchBooksView:

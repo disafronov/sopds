@@ -67,9 +67,21 @@
 
 .sopdsmenu {
   background-color: $sopds-menu-bg-color;
+  border: 1px solid $sopds-menu-bg-active-color;
   a { color : $sopds-menu-color; }
-  a:hover { background-color: $sopds-menu-bg-hover-color; }
+  li:not(.active):hover > a {
+    background-color: $sopds-menu-bg-hover-color;
+  }
   color : $sopds-menu-color;
+}
+
+#main_menu > .sopdsmenu {
+  display: flex;
+  flex-direction: column;
+}
+
+.sopdsmenu li + li {
+  border-top: 1px solid $sopds-menu-bg-active-color;
 }
 
 .nav-icon {
@@ -163,7 +175,6 @@
     display: flex;
     min-height: 44px;
     align-items: center;
-    padding: 0.75rem 1rem;
   }
 
   .clickable-rows tbody td {
@@ -204,5 +215,16 @@
     padding-top: 0;
     border-top: 0;
     border-left: 1px solid #cacaca;
+  }
+}
+
+@media screen and (min-width: 40em) {
+  #main_menu > .sopdsmenu {
+    flex-direction: row;
+  }
+
+  #main_menu > .sopdsmenu > li + li {
+    border-top: 0;
+    border-left: 1px solid $sopds-menu-bg-active-color;
   }
 }

@@ -21,6 +21,18 @@ test("Foundation initializes with the pinned jQuery", async () => {
           <button data-toggle="dropdown">Toggle</button>
           <div id="dropdown" data-dropdown></div>
           <div id="modal" data-reveal></div>
+          <ul data-responsive-menu="accordion medium-dropdown" data-multi-open="false">
+            <li>
+              <a href="#">Books</a>
+              <ul><li><a href="#">All books</a></li></ul>
+            </li>
+          </ul>
+          <ul data-accordion-menu data-multi-open="false">
+            <li>
+              <a href="#">Authors</a>
+              <ul><li><a href="#">All authors</a></li></ul>
+            </li>
+          </ul>
         </body>
       </html>`,
     {
@@ -57,6 +69,14 @@ test("Foundation initializes with the pinned jQuery", async () => {
   assert.equal(
     window.jQuery("[data-reveal]").data("zfPlugin").className,
     "Reveal",
+  );
+  assert.equal(
+    window.jQuery("[data-responsive-menu]").data("zfPlugin").className,
+    "ResponsiveMenu",
+  );
+  assert.equal(
+    window.jQuery("[data-accordion-menu]").data("zfPlugin").options.multiOpen,
+    false,
   );
 
   dom.window.close();
