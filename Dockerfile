@@ -1,4 +1,21 @@
 # syntax = docker/dockerfile:1.7
+ARG NODE_VERSION=24
+
+FROM node:${NODE_VERSION}-bookworm-slim AS frontend
+
+WORKDIR /home/node/app/assets/sopds-sass
+
+RUN --mount=type=cache,target=/home/node/.npm,uid=1000,gid=1000 \
+    --mount=type=bind,source=assets/sopds-sass/package.json,target=package.json \
+    --mount=type=bind,source=assets/sopds-sass/package-lock.json,target=package-lock.json \
+    npm ci
+
+RUN --mount=type=bind,source=assets/sopds-sass/package.json,target=package.json \
+    --mount=type=bind,source=assets/sopds-sass/scss,target=scss \
+    --mount=type=bind,source=assets/sopds-sass/scripts,target=scripts \
+    mkdir -p /home/node/app/web_backend/static/css && \
+    npm run build
+
 FROM ghcr.io/astral-sh/uv:0.11.32 AS uv
 
 FROM ubuntu:noble-20260610 AS base
@@ -53,6 +70,14 @@ RUN --mount=from=uv,source=/uv,target=/bin/uv \
 COPY --chown=ubuntu:ubuntu \
     ./ /home/ubuntu/app/
 
+# Use assets rebuilt from the pinned frontend dependencies.
+COPY --chown=ubuntu:ubuntu --from=frontend \
+    /home/node/app/web_backend/static/css/sopds.css \
+    /home/ubuntu/app/web_backend/static/css/sopds.css
+COPY --chown=ubuntu:ubuntu --from=frontend \
+    /home/node/app/web_backend/static/js/vendor/ \
+    /home/ubuntu/app/web_backend/static/js/vendor/
+
 # Sync the project now that sources exist.
 RUN --mount=from=uv,source=/uv,target=/bin/uv \
     --mount=type=cache,target=/home/ubuntu/.cache/uv,uid=1000,gid=1000 \
@@ -67,7 +92,8 @@ RUN export DJANGO_SECRET_KEY=unsafe-secret-key-for-tooling \
         DATABASE_URL=postgresql://unused:unused@localhost/unused \
         DJANGO_DEBUG=False && \
     python3 manage.py compilemessages && \
-    python3 manage.py collectstatic --noinput
+    python3 manage.py collectstatic --noinput && \
+    rm -rf assets
 
 ##########################
 
