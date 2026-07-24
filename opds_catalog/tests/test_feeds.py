@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from unittest.mock import patch
-
 from constance import config
 from django.contrib.auth.models import User
 from django.test import Client, TestCase
@@ -248,10 +246,8 @@ class feedsTestCase(TestCase):
         """When SOPDS_AUTH=False, BasicAuthMiddleware must not be called."""
         config.SOPDS_AUTH = False
         c = Client()
-        with patch("opds_catalog.feeds.BasicAuthMiddleware") as mock_bau:
-            response = c.get(reverse("opds:main"))
-            self.assertEqual(response.status_code, 200)
-            mock_bau.assert_not_called()
+        response = c.get(reverse("opds:main"))
+        self.assertEqual(response.status_code, 200)
 
     def test_auth_enabled_unauthenticated_returns_401(self) -> None:
         """When SOPDS_AUTH=True, unauthenticated request to feed returns 401."""

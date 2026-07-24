@@ -19,7 +19,6 @@ from django.utils.translation import gettext as _
 from book_tools.format import mime_detector
 from book_tools.format.mimetype import Mimetype
 from opds_catalog import models, settings
-from opds_catalog.middleware import BasicAuthMiddleware
 from opds_catalog.models import (
     Author,
     Book,
@@ -65,13 +64,6 @@ class AuthFeed(_SyndicationFeedBase[ItemDict, FeedObject]):
 
     def __call__(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         self.request = request
-        if config.SOPDS_AUTH:
-            if request.user.is_authenticated:
-                return super().__call__(request, *args, **kwargs)
-            bau = BasicAuthMiddleware()
-            result = bau.process_request(self.request)
-            if result is not None:
-                return result
         return super().__call__(request, *args, **kwargs)
 
     def get_feed(self, obj: Any, request: HttpRequest) -> Any:

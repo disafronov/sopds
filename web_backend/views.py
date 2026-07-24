@@ -1,10 +1,9 @@
-from collections.abc import Callable
 from random import randint
 from typing import Any, cast
 
 from constance import config
-from django.contrib.auth import REDIRECT_FIELD_NAME, authenticate, login, logout
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.db.models import Count, Min
 from django.db.models.functions import Upper
@@ -31,24 +30,6 @@ from opds_catalog.models import (
 )
 from opds_catalog.opds_paginator import Paginator as OPDS_Paginator
 from web_backend.settings import HALF_PAGES_LINKS
-
-
-def sopds_login(
-    function: Callable[..., HttpResponse] | None = None,
-    redirect_field_name: str = REDIRECT_FIELD_NAME,
-    url: str | None = None,
-) -> Callable[[Callable[..., HttpResponse]], Callable[..., HttpResponse]]:
-    actual_decorator = user_passes_test(
-        lambda u: (u.is_authenticated if config.SOPDS_AUTH else True),
-        login_url=reverse_lazy(url),
-        redirect_field_name=redirect_field_name,
-    )
-    if function is not None:
-        return cast(
-            Callable[[Callable[..., HttpResponse]], Callable[..., HttpResponse]],
-            actual_decorator(function),
-        )
-    return actual_decorator
 
 
 def sopds_processor(request: HttpRequest) -> dict[str, Any]:
@@ -119,7 +100,6 @@ def _footer_book_data(book: Book) -> dict[str, Any]:
 
 # Create your views here.
 @vary_on_headers("HTTP_ACCEPT_LANGUAGE")
-@sopds_login(url="web:login")
 def SearchBooksView(request: HttpRequest) -> HttpResponse:
     # Read searchtype, searchterms, searchterms0, page from form
     args: dict[str, Any] = {}
@@ -368,7 +348,6 @@ def SearchBooksView(request: HttpRequest) -> HttpResponse:
 
 
 @vary_on_headers("HTTP_ACCEPT_LANGUAGE")
-@sopds_login(url="web:login")
 def SearchSeriesView(request: HttpRequest) -> HttpResponse:
     # Read searchtype, searchterms, searchterms0, page from form
     args: dict[str, Any] = {}
@@ -427,7 +406,6 @@ def SearchSeriesView(request: HttpRequest) -> HttpResponse:
 
 
 @vary_on_headers("HTTP_ACCEPT_LANGUAGE")
-@sopds_login(url="web:login")
 def SearchAuthorsView(request: HttpRequest) -> HttpResponse:
     # Read searchtype, searchterms, searchterms0, page from form
     args: dict[str, Any] = {}
@@ -485,7 +463,6 @@ def SearchAuthorsView(request: HttpRequest) -> HttpResponse:
 
 
 @vary_on_headers("HTTP_ACCEPT_LANGUAGE")
-@sopds_login(url="web:login")
 def CatalogsView(request: HttpRequest) -> HttpResponse:
     args: dict[str, Any] = {}
 
@@ -575,7 +552,6 @@ def CatalogsView(request: HttpRequest) -> HttpResponse:
 
 
 @vary_on_headers("HTTP_ACCEPT_LANGUAGE")
-@sopds_login(url="web:login")
 def BooksView(request: HttpRequest) -> HttpResponse:
     args: dict[str, Any] = {}
 
@@ -622,7 +598,6 @@ def BooksView(request: HttpRequest) -> HttpResponse:
 
 
 @vary_on_headers("HTTP_ACCEPT_LANGUAGE")
-@sopds_login(url="web:login")
 def AuthorsView(request: HttpRequest) -> HttpResponse:
     args: dict[str, Any] = {}
 
@@ -669,7 +644,6 @@ def AuthorsView(request: HttpRequest) -> HttpResponse:
 
 
 @vary_on_headers("HTTP_ACCEPT_LANGUAGE")
-@sopds_login(url="web:login")
 def SeriesView(request: HttpRequest) -> HttpResponse:
     args: dict[str, Any] = {}
 
@@ -716,7 +690,6 @@ def SeriesView(request: HttpRequest) -> HttpResponse:
 
 
 @vary_on_headers("HTTP_ACCEPT_LANGUAGE")
-@sopds_login(url="web:login")
 def GenresView(request: HttpRequest) -> HttpResponse:
     args: dict[str, Any] = {}
 
@@ -829,7 +802,6 @@ def LoginView(request: HttpRequest) -> HttpResponse:
 
 
 @vary_on_headers("HTTP_ACCEPT_LANGUAGE")
-@sopds_login(url="web:login")
 def LogoutView(request: HttpRequest) -> HttpResponse:
     logout(request)
     args: dict[str, Any] = {}
