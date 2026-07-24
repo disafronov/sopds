@@ -298,7 +298,8 @@ CONSTANCE_CONFIG = OrderedDict(
         (
             "SOPDS_ZIP_SKIP_UNCHANGED",
             (
-                True,
+                os.getenv("SOPDS_ZIP_SKIP_UNCHANGED", "True").lower()
+                in ("1", "true", "yes", "on"),
                 _("Skip unchanged ZIP archives on re-scan by comparing file size"),
             ),
         ),
@@ -312,7 +313,7 @@ CONSTANCE_CONFIG = OrderedDict(
         (
             "SOPDS_INPX_ENABLE",
             (
-                os.getenv("SOPDS_INPX_ENABLE", "False").lower()
+                os.getenv("SOPDS_INPX_ENABLE", "True").lower()
                 in ("1", "true", "yes", "on"),
                 _(
                     "Enables read metadata from inpx-file (and stop"
@@ -353,7 +354,7 @@ CONSTANCE_CONFIG = OrderedDict(
         (
             "SOPDS_DELETE_LOGICAL",
             (
-                os.getenv("SOPDS_DELETE_LOGICAL", "False").lower()
+                os.getenv("SOPDS_DELETE_LOGICAL", "True").lower()
                 in ("1", "true", "yes", "on"),
                 _("Logical deleting unavialable files"),
             ),

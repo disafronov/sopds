@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-24 03:55+0000\n"
+"POT-Creation-Date: 2026-07-24 09:58+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -75,15 +75,15 @@ msgstr ""
 msgid "This flag activate zip files scanning"
 msgstr "Флаг разрешает сканированеи содержимого ZIP файлов"
 
-#: config/settings.py:302
+#: config/settings.py:303
 msgid "Skip unchanged ZIP archives on re-scan by comparing file size"
 msgstr "Пропускать неизменённые ZIP-архивы при повторном сканировании"
 
-#: config/settings.py:309
+#: config/settings.py:310
 msgid "Set codepage for filenames inside zipfile"
 msgstr "Codepage для имен файлов внутри ZIP"
 
-#: config/settings.py:318
+#: config/settings.py:319
 msgid ""
 "Enables read metadata from inpx-file (and stop scanning deeper from ipx-file "
 "place)"
@@ -91,47 +91,47 @@ msgstr ""
 "Считываем метаданные книг з INPX-файлов (при этом не сканируем файлы и "
 "каталоги, расположенные на уровне или ниже найденого INPX)"
 
-#: config/settings.py:328
+#: config/settings.py:329
 msgid "Skip scanning INPX with unchanged size after previous scan"
 msgstr ""
 "Не сканируем INPX, если его размер не изменился с предидущего сканирования"
 
-#: config/settings.py:337
+#: config/settings.py:338
 msgid "Test avialability zip files listed in INPX before add in collection"
 msgstr ""
 "Проверяем наличие zip файлов, перечисленных в INPX перед добавлением их "
 "содержимого в коллекцию"
 
-#: config/settings.py:348
+#: config/settings.py:349
 msgid "Test avialability book files listed in INPX before add in collection"
 msgstr ""
 "Тестируем наличие книг, перечисленных в INPX перед добавлением их "
 "содержимого в коллекцию"
 
-#: config/settings.py:358
+#: config/settings.py:359
 msgid "Logical deleting unavialable files"
 msgstr "Логическое удаление отсутствующих файлов"
 
-#: config/settings.py:363
+#: config/settings.py:364
 msgid "sheduled minutes for sopds_scanner (cron syntax)"
 msgstr "минуты для планировщика sopds_Scanner (как в cron)"
 
-#: config/settings.py:367
+#: config/settings.py:368
 msgid "sheduled hours for sopds_scanner (cron syntax)"
 msgstr "часы для планировщика sopds_Scanner (как в cron)"
 
-#: config/settings.py:371
+#: config/settings.py:372
 msgid "sheduled day for sopds_scanner (cron syntax)"
 msgstr "дни для планировщика sopds_Scanner (как в cron)"
 
-#: config/settings.py:375
+#: config/settings.py:376
 msgid "sheduled day of weeks for sopds_scanner (cron syntax)"
 msgstr "дни недели для планировщика sopds_Scanner (как в cron)"
 
-#: config/settings.py:377
+#: config/settings.py:378
 msgid "Path to FB2-EPUB converter program"
 msgstr "Путь к конвертеру FB2-EPUB"
 
-#: config/settings.py:378
+#: config/settings.py:379
 msgid "Path to FB2-MOBI converter program"
 msgstr "Путь к конвертеру FB2-MOBI"
