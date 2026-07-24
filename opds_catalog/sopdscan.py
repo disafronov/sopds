@@ -24,7 +24,7 @@ from django.db.utils import InterfaceError, OperationalError
 from django.utils.translation import gettext as _
 
 from book_tools.format import create_bookfile, supported_book_extensions
-from book_tools.format.util import strip_symbols
+from book_tools.format.bookfile import STRIP_SYMBOLS
 from opds_catalog import fb2parse, opdsdb
 from opds_catalog.models import (
     SIZE_AUTHOR_NAME,
@@ -488,14 +488,8 @@ class opdsScanner:
         self.logger.debug("OPTIONS SET")
         if settings.SOPDS_ROOT_LIB is not None:
             self.logger.debug("root_lib = %s" % settings.SOPDS_ROOT_LIB)
-        if config.SOPDS_FB2TOEPUB is not None:
-            self.logger.debug("fb2toepub = %s" % config.SOPDS_FB2TOEPUB)
-        if config.SOPDS_FB2TOMOBI is not None:
-            self.logger.debug("fb2tomobi = %s" % config.SOPDS_FB2TOMOBI)
         if settings.SOPDS_TEMP_DIR is not None:
             self.logger.debug("temp_dir = %s" % settings.SOPDS_TEMP_DIR)
-        if config.SOPDS_FB2SAX is not None:
-            self.logger.info("FB2SAX = %s" % config.SOPDS_FB2SAX)
 
     def log_stats(self) -> None:
         self.t2 = datetime.timedelta(seconds=time.time())
@@ -845,12 +839,12 @@ class opdsScanner:
 
                     if book_data:
                         lang = (
-                            book_data.language_code.strip(strip_symbols)
+                            book_data.language_code.strip(STRIP_SYMBOLS)
                             if book_data.language_code
                             else ""
                         )
                         title = (
-                            book_data.title.strip(strip_symbols)
+                            book_data.title.strip(STRIP_SYMBOLS)
                             if book_data.title
                             else n
                         )
@@ -858,9 +852,9 @@ class opdsScanner:
                             book_data.description if book_data.description else ""
                         )
                         annotation = (
-                            annotation.strip(strip_symbols)
+                            annotation.strip(STRIP_SYMBOLS)
                             if isinstance(annotation, str)
-                            else annotation.decode("utf8").strip(strip_symbols)
+                            else annotation.decode("utf8").strip(STRIP_SYMBOLS)
                         )
                         docdate = book_data.docdate if book_data.docdate else ""
 
@@ -886,7 +880,7 @@ class opdsScanner:
 
                         for a in book_data.authors:
                             author_name = a.get("name", _("Unknown author")).strip(
-                                strip_symbols
+                                STRIP_SYMBOLS
                             )
                             # Если в имени автора нет запятой, то фамилию
                             # переносим из конца в начало
@@ -901,7 +895,7 @@ class opdsScanner:
                         for genre in book_data.tags:
                             opdsdb.addbgenre(
                                 book,
-                                opdsdb.addgenre(genre.lower().strip(strip_symbols)),
+                                opdsdb.addgenre(genre.lower().strip(STRIP_SYMBOLS)),
                             )
 
                         if book_data.series_info:
