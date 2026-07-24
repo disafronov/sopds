@@ -284,10 +284,6 @@ CONSTANCE_CONFIG = OrderedDict(
             (True, _("Create downloaded filename from book title")),
         ),
         (
-            "SOPDS_FB2SAX",
-            (True, _("This flag activate SAX Parser for FB2 instead of lxml.xpath")),
-        ),
-        (
             "SOPDS_ZIP_ENABLE",
             (
                 os.getenv("SOPDS_ZIP_ENABLE", "True").lower()
@@ -397,7 +393,6 @@ CONSTANCE_CONFIG_FIELDSETS = {
         "SOPDS_TITLE_AS_FILENAME",
     ),
     "3. Scanner Options": (
-        "SOPDS_FB2SAX",
         "SOPDS_ZIP_ENABLE",
         "SOPDS_ZIP_SKIP_UNCHANGED",
         "SOPDS_ZIP_CODEPAGE",

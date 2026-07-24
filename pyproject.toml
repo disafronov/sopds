@@ -8,6 +8,8 @@ dependencies = [
   "Django>=5.2,<5.3",
   "dj-database-url>=3.1.2,<4",
   "django-constance>=4.2,<5",
+  "ebookmeta==1.2.11",
+  "mobi>=0.4.1,<0.5",
   "Pillow>=12.0.0,<13",
   "apscheduler>=3.11.2,<4",
   "lxml>=5.0.0,<7",
@@ -53,7 +55,11 @@ plugins = [ "mypy_django_plugin.main" ]
   "psycopg2",
   "psycopg2.*",
   "constance",
-  "constance.*"
+  "constance.*",
+  "ebookmeta",
+  "ebookmeta.*",
+  "mobi",
+  "mobi.*"
 ]
   ignore_missing_imports = true
 
@@ -83,8 +89,6 @@ omit = [
   "tests/*",
   "*/tests/*",
   "*/migrations/*",
-  "book_tools/_vendor/*",
-  "book_tools/pymobi/*",
   "manage.py",
   "sopds/settings.py",
   "config/wsgi.py"
