@@ -849,7 +849,7 @@ class ZipCatalogSizeTestCase(TestCase):
         """ZIP catalog must get cat_size from the actual file on disk,
         even if the catalog already exists with a stale size."""
         opdsdb.clear_all()
-        config.SOPDS_ZIPSCAN = True
+        config.SOPDS_ZIP_ENABLE = True
         config.SOPDS_INPX_ENABLE = True
         config.SOPDS_INPX_SKIP_UNCHANGED = False
         scanner = opdsScanner()
@@ -882,7 +882,7 @@ class ZipCatalogSizeTestCase(TestCase):
     def test_zip_unchanged_skip(self) -> None:
         """Second scan must skip ZIP when size unchanged and mark books avail=2."""
         opdsdb.clear_all()
-        config.SOPDS_ZIPSCAN = True
+        config.SOPDS_ZIP_ENABLE = True
         config.SOPDS_INPX_ENABLE = False
         config.SOPDS_ZIP_SKIP_UNCHANGED = True
         scanner = opdsScanner()

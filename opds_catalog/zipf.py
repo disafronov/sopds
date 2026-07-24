@@ -33,7 +33,7 @@ class ZipFile(StandardZipFile):
         metadata_encoding: str | None = None,
     ) -> None:
         if mode == "r" and metadata_encoding is None:
-            metadata_encoding = config.SOPDS_ZIPCODEPAGE
+            metadata_encoding = config.SOPDS_ZIP_CODEPAGE
         super().__init__(
             file,
             mode,

@@ -288,9 +288,9 @@ CONSTANCE_CONFIG = OrderedDict(
             (True, _("This flag activate SAX Parser for FB2 instead of lxml.xpath")),
         ),
         (
-            "SOPDS_ZIPSCAN",
+            "SOPDS_ZIP_ENABLE",
             (
-                os.getenv("SOPDS_ZIPSCAN", "True").lower()
+                os.getenv("SOPDS_ZIP_ENABLE", "True").lower()
                 in ("1", "true", "yes", "on"),
                 _("This flag activate zip files scanning"),
             ),
@@ -303,9 +303,9 @@ CONSTANCE_CONFIG = OrderedDict(
             ),
         ),
         (
-            "SOPDS_ZIPCODEPAGE",
+            "SOPDS_ZIP_CODEPAGE",
             (
-                os.getenv("SOPDS_ZIPCODEPAGE", "cp866"),
+                os.getenv("SOPDS_ZIP_CODEPAGE", "cp866"),
                 _("Set codepage for filenames inside zipfile"),
             ),
         ),
@@ -397,9 +397,9 @@ CONSTANCE_CONFIG_FIELDSETS = {
     ),
     "3. Scanner Options": (
         "SOPDS_FB2SAX",
-        "SOPDS_ZIPSCAN",
+        "SOPDS_ZIP_ENABLE",
         "SOPDS_ZIP_SKIP_UNCHANGED",
-        "SOPDS_ZIPCODEPAGE",
+        "SOPDS_ZIP_CODEPAGE",
         "SOPDS_INPX_ENABLE",
         "SOPDS_INPX_SKIP_UNCHANGED",
         "SOPDS_INPX_TEST_ZIP",
