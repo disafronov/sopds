@@ -8,7 +8,6 @@
 - **OPDS 1.2 feed** at `/opds/` for OPDS-compatible reading apps (KOReader, FBReader, etc.)
 - **Web UI** at `/web/` for browsing the catalog in a browser
 - **Book formats**: FB2, EPUB, MOBI
-- **FB2 conversion** to EPUB/MOBI on download
 - **Scheduled scanning** via APScheduler with cron-like scheduling
 - **INPX archive support** for batch metadata import
 - **ZIP archive scanning** with configurable codepage
@@ -227,7 +226,6 @@ opds_catalog/           Core app: models, scanner, OPDS feeds, middleware
 web_backend/            Web UI app: views, templates, static assets
 ops/                    Operations: dev/start launchers, health checks, supervisor
 book_tools/             SOPDS book-format adapters
-convert/                Bundled FB2 to EPUB/MOBI converter
 assets/                 Front-end assets
 books/                  Book storage directory (mounted as Docker volume)
 ```

@@ -382,8 +382,6 @@ CONSTANCE_CONFIG = OrderedDict(
             "SOPDS_SCAN_SHED_DOW",
             ("*", _("sheduled day of weeks for sopds_scanner (cron syntax)")),
         ),
-        ("SOPDS_FB2TOEPUB", ("", _("Path to FB2-EPUB converter program"))),
-        ("SOPDS_FB2TOMOBI", ("", _("Path to FB2-MOBI converter program"))),
     ]
 )
 
@@ -419,10 +417,8 @@ CONSTANCE_CONFIG_FIELDSETS = {
         "SOPDS_SCAN_SHED_DOW",
         "SOPDS_SCAN_START_DIRECTLY",
     ),
-    "5. Converters Options": ("SOPDS_FB2TOEPUB", "SOPDS_FB2TOMOBI"),
 }
 
-SOPDS_TEMP_DIR = os.environ.get("SOPDS_TEMP_DIR", os.path.join(BASE_DIR, "tmp"))
 SOPDS_ROOT_LIB = os.environ.get("SOPDS_ROOT_LIB", "books/")
 SOPDS_NOCOVER_PATH = os.environ.get(
     "SOPDS_NOCOVER_PATH",

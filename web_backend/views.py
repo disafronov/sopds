@@ -37,8 +37,6 @@ def sopds_processor(request: HttpRequest) -> dict[str, Any]:
     args["sopds_auth"] = config.SOPDS_AUTH
     args["alphabet"] = config.SOPDS_ALPHABET_MENU
     args["splititems"] = config.SOPDS_SPLITITEMS
-    args["fb2tomobi"] = config.SOPDS_FB2TOMOBI != ""
-    args["fb2toepub"] = config.SOPDS_FB2TOEPUB != ""
     args["nozip"] = settings.NOZIP_FORMATS
     args["cache_t"] = 0
 
