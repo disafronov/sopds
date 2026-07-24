@@ -175,38 +175,31 @@ class TestLoginView:
         response = client.post(
             "/web/login/", {"username": "testuser", "password": "testpass"}
         )
-        assert response.status_code in (200, 302, 301)
 
-    def test_redirects_to_internal_next_url(
-        self, db: Any, client: Client, user: User
+        assert response.status_code == 302
+        assert response.headers["Location"] == "/web/"
+
+    def test_redirects_to_session_page_after_login(
+        self,
+        db: Any,
+        client: Client,
+        user: User,
+        mocker: MockerFixture,
     ) -> None:
+        _set_auth(mocker, True)
+
+        response = client.get("/web/search/books/?searchtype=u")
+
+        assert response.status_code == 302
+        assert response.headers["Location"] == "/web/login/"
+
         response = client.post(
             "/web/login/",
             {"username": "testuser", "password": "testpass"},
-            query_params={"next": "/web/search/books/?searchtype=u"},
         )
 
         assert response.status_code == 302
         assert response.headers["Location"] == "/web/search/books/?searchtype=u"
-
-    @pytest.mark.parametrize(
-        "next_url",
-        [
-            "https://attacker.example/steal",
-            "//attacker.example/steal",
-        ],
-    )
-    def test_rejects_external_next_url(
-        self, db: Any, client: Client, user: User, next_url: str
-    ) -> None:
-        response = client.post(
-            "/web/login/",
-            {"username": "testuser", "password": "testpass"},
-            query_params={"next": next_url},
-        )
-
-        assert response.status_code == 302
-        assert response.headers["Location"] == "/web/"
 
 
 class TestLogoutView:
@@ -252,7 +245,7 @@ class TestHello:
         response = client.get("/web/")
 
         assert response.status_code == 302
-        assert response["Location"].startswith("/web/login/?next=")
+        assert response["Location"] == "/web/login/"
 
 
 class TestHandler403:

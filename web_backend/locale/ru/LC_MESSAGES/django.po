@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-24 04:37+0000\n"
+"POT-Creation-Date: 2026-07-24 12:01+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -173,33 +173,33 @@ msgstr "СЛУЧАЙНАЯ КНИГА"
 
 #: web_backend/templates/sopds_footer.html:24
 #: web_backend/templates/sopds_menu.html:7
-#: web_backend/templates/sopds_menu.html:17 web_backend/views.py:129
-#: web_backend/views.py:139 web_backend/views.py:154 web_backend/views.py:168
-#: web_backend/views.py:178 web_backend/views.py:185 web_backend/views.py:202
-#: web_backend/views.py:210 web_backend/views.py:225 web_backend/views.py:238
-#: web_backend/views.py:593
+#: web_backend/templates/sopds_menu.html:17 web_backend/views.py:128
+#: web_backend/views.py:138 web_backend/views.py:153 web_backend/views.py:167
+#: web_backend/views.py:177 web_backend/views.py:184 web_backend/views.py:201
+#: web_backend/views.py:209 web_backend/views.py:224 web_backend/views.py:237
+#: web_backend/views.py:592
 msgid "Books"
 msgstr "Книги"
 
 #: web_backend/templates/sopds_footer.html:25
 #: web_backend/templates/sopds_menu.html:8
-#: web_backend/templates/sopds_menu.html:24 web_backend/views.py:458
-#: web_backend/views.py:639
+#: web_backend/templates/sopds_menu.html:24 web_backend/views.py:457
+#: web_backend/views.py:638
 msgid "Authors"
 msgstr "Авторы"
 
 #: web_backend/templates/sopds_footer.html:26
 #: web_backend/templates/sopds_logo.html:29
 #: web_backend/templates/sopds_menu.html:9
-#: web_backend/templates/sopds_menu.html:31 web_backend/views.py:401
-#: web_backend/views.py:685
+#: web_backend/templates/sopds_menu.html:31 web_backend/views.py:400
+#: web_backend/views.py:684
 msgid "Series"
 msgstr "Серии"
 
 #: web_backend/templates/sopds_footer.html:27
 #: web_backend/templates/sopds_menu.html:10
-#: web_backend/templates/sopds_menu.html:38 web_backend/views.py:709
-#: web_backend/views.py:719
+#: web_backend/templates/sopds_menu.html:38 web_backend/views.py:708
+#: web_backend/views.py:718
 msgid "Genres"
 msgstr "Жанры"
 
@@ -265,8 +265,8 @@ msgstr "Введите пароль"
 msgid "Log in"
 msgstr "Вход"
 
-#: web_backend/templates/sopds_logo.html:14 web_backend/views.py:401
-#: web_backend/views.py:458
+#: web_backend/templates/sopds_logo.html:14 web_backend/views.py:400
+#: web_backend/views.py:457
 msgid "Search"
 msgstr "Найти"
 
@@ -283,7 +283,7 @@ msgid "Author"
 msgstr "Автор"
 
 #: web_backend/templates/sopds_menu.html:6
-#: web_backend/templates/sopds_menu.html:16 web_backend/views.py:547
+#: web_backend/templates/sopds_menu.html:16 web_backend/views.py:546
 msgid "Catalogs"
 msgstr "Каталоги"
 
@@ -312,7 +312,7 @@ msgstr "Всего: %(chars_cnt)s серий."
 msgid "Total: %(s_book_count)s books."
 msgstr "Всего: %(s_book_count)s книг."
 
-#: web_backend/templates/sopds_top.html:21 web_backend/views.py:808
+#: web_backend/templates/sopds_top.html:21 web_backend/views.py:799
 msgid "Logout"
 msgstr "Выход"
 
@@ -320,51 +320,51 @@ msgstr "Выход"
 msgid "Settings"
 msgstr "Настройки"
 
-#: web_backend/templates/sopds_top.html:26 web_backend/views.py:764
+#: web_backend/templates/sopds_top.html:26 web_backend/views.py:763
 msgid "Login"
 msgstr "Вход"
 
-#: web_backend/views.py:129 web_backend/views.py:139
+#: web_backend/views.py:128 web_backend/views.py:138
 msgid "Search by title"
 msgstr "Поиск по наименованию"
 
-#: web_backend/views.py:154
+#: web_backend/views.py:153
 msgid "Search by author"
 msgstr "Поиск по автору"
 
-#: web_backend/views.py:168
+#: web_backend/views.py:167
 msgid "Search by series"
 msgstr "Поиск по серии"
 
-#: web_backend/views.py:179 web_backend/views.py:185
+#: web_backend/views.py:178 web_backend/views.py:184
 msgid "Search by genre"
 msgstr "Поиск по жанру"
 
-#: web_backend/views.py:203 web_backend/views.py:210
+#: web_backend/views.py:202 web_backend/views.py:209
 msgid "Bookshelf"
 msgstr "Книжная полка"
 
-#: web_backend/views.py:225
+#: web_backend/views.py:224
 msgid "Doubles for book"
 msgstr "Дубликаты книги"
 
-#: web_backend/views.py:544
+#: web_backend/views.py:543
 msgid "ROOT"
 msgstr "НАЧАЛО"
 
-#: web_backend/views.py:593 web_backend/views.py:639 web_backend/views.py:685
-#: web_backend/views.py:709 web_backend/views.py:719
+#: web_backend/views.py:592 web_backend/views.py:638 web_backend/views.py:684
+#: web_backend/views.py:708 web_backend/views.py:718
 msgid "Select"
 msgstr "Выбор"
 
-#: web_backend/views.py:758
+#: web_backend/views.py:757
 msgid "HOME"
 msgstr "ГЛАВНАЯ"
 
-#: web_backend/views.py:790
+#: web_backend/views.py:781
 msgid "This account is not active!"
 msgstr "Учетная запись не активна!"
 
-#: web_backend/views.py:797
+#: web_backend/views.py:788
 msgid "User does not exist or the password is incorrect!"
 msgstr "Пользователь не существует или введен неправильный пароль!"

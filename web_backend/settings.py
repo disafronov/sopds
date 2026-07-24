@@ -1,1 +1,2 @@
 HALF_PAGES_LINKS = 3
+LOGIN_NEXT_SESSION_KEY = "sopds_login_next"
