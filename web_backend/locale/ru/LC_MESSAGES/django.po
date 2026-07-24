@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-24 12:01+0000\n"
+"POT-Creation-Date: 2026-07-24 13:05+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -45,7 +45,7 @@ msgid "Home"
 msgstr "Главная"
 
 #: web_backend/templates/admin/base.html:74
-#: web_backend/templates/sopds_main.html:38
+#: web_backend/templates/sopds_main.html:36
 #, python-format
 msgid "Your timezone could not be detected. Times are displayed in %(tz)s."
 msgstr ""

@@ -1,30 +1,27 @@
 {
-  "name": "foundation-sites-template",
+  "name": "sopds-frontend",
   "version": "1.0.0",
-  "description": "Basic template for a new Foundation for Sites project.",
-  "main": "gulpfile.js",
-  "devDependencies": {
-    "gulp": "^3.9.0",
-    "gulp-autoprefixer": "^3.1.1",
-    "gulp-load-plugins": "^1.2.4",
-    "gulp-sass": "^2.3.2"
-  },
-  "scripts": {
-    "start": "gulp",
-    "build": "gulp sass"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/zurb/foundation-sites-template.git"
-  },
-  "bugs": {
-    "url": "https://github.com/zurb/foundation-sites/issues",
-    "email": "foundation@zurb.com"
-  },
-  "author": "ZURB <foundation@zurb.com>",
-  "license": "MIT",
   "private": true,
+  "description": "SOPDS frontend assets",
+  "scripts": {
+    "build": "npm run build:css && npm run build:vendor",
+    "build:css": "sass --quiet-deps --load-path=node_modules/foundation-sites/scss --load-path=node_modules/motion-ui/src --style=compressed --no-source-map scss/sopds.scss:../../web_backend/static/css/sopds.css",
+    "build:vendor": "node scripts/copy-vendor.mjs",
+    "dev": "npm run build:vendor && npm run watch:css",
+    "watch:css": "sass --quiet-deps --load-path=node_modules/foundation-sites/scss --load-path=node_modules/motion-ui/src --style=compressed --no-source-map --watch scss/sopds.scss:../../web_backend/static/css/sopds.css",
+    "test": "node --test tests/*.test.mjs"
+  },
   "dependencies": {
-    "gulp-autoprefixer": "^3.1.0"
+    "foundation-sites": "6.9.0",
+    "jquery": "4.0.0",
+    "motion-ui": "2.0.8",
+    "what-input": "5.2.12"
+  },
+  "devDependencies": {
+    "jsdom": "29.1.1",
+    "sass": "1.101.7"
+  },
+  "engines": {
+    "node": ">=24"
   }
 }
