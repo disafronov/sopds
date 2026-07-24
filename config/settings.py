@@ -32,7 +32,7 @@ if not SECRET_KEY:
     raise ImproperlyConfigured("DJANGO_SECRET_KEY is required")
 
 GRACEFUL_TIMEOUT = int(os.getenv("GRACEFUL_TIMEOUT", "25"))
-GUNICORN_WORKERS = int(os.getenv("GUNICORN_WORKERS", "2"))
+GUNICORN_WORKERS = int(os.getenv("GUNICORN_WORKERS", "0")) or os.cpu_count()
 
 # Console logging for Django, application code, scanner orchestration, and workers.
 LOGGING = {

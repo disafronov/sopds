@@ -120,6 +120,12 @@ Settings are read from environment variables. See `env.example` for all options.
 | --- | --- | --- |
 | `DATABASE_URL` | PostgreSQL or MariaDB connection URL. | **required** |
 
+### Runtime
+
+| Variable | Description | Default |
+| --- | --- | --- |
+| `GUNICORN_WORKERS` | Gunicorn worker processes; `0` selects the CPU count automatically. | `0` |
+
 ### Superuser (used by `make run` and `make docker-run`)
 
 | Variable | Description |
