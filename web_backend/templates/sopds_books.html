@@ -58,12 +58,6 @@
             {% if not b.format in nozip %}
                 <i><a href="{% url 'opds_catalog:download' b.id 1 %}"><span class="label small">{{b.format}}+zip</span></a></i>&nbsp;
             {%  endif %}
-			{% if b.format == 'fb2' and fb2toepub %}
-			   <i><a href="{% url 'opds_catalog:convert' b.id 'epub' %}"><span class="label small">epub</span></a></i>&nbsp;
-			{% endif %}
-			{% if b.format == 'fb2' and fb2tomobi %}
-			   <i><a href="{% url 'opds_catalog:convert' b.id 'mobi' %}"><span class="label small">mobi</span></a></i>&nbsp;
-			{% endif %}
 			{% if isbookshelf %}
 			&nbsp;&nbsp;<i><button type="button" data-book-id="{{ b.id }}" data-book-title="{{ b.title }}" onclick="openBookshelfDeleteModal(this);"><span class="secondary label small">&nbsp;{% trans "Delete from bookshelf" %}&nbsp;</span></button></i>
 		    {% endif %}

@@ -120,11 +120,3 @@ msgstr "дни для планировщика sopds_Scanner (как в cron)"
 #: config/settings.py:383
 msgid "sheduled day of weeks for sopds_scanner (cron syntax)"
 msgstr "дни недели для планировщика sopds_Scanner (как в cron)"
-
-#: config/settings.py:385
-msgid "Path to FB2-EPUB converter program"
-msgstr "Путь к конвертеру FB2-EPUB"
-
-#: config/settings.py:386
-msgid "Path to FB2-MOBI converter program"
-msgstr "Путь к конвертеру FB2-MOBI"

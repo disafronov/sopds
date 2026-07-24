@@ -3,6 +3,5 @@
 *.zip binary
 
 assets/* linguist-vendored
-convert/* linguist-vendored
 static/* linguist-vendored
 sopds_web_backend/static/* linguist-vendored

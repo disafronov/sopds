@@ -16,5 +16,5 @@ class constanceTestCase(TestCase):
         out = StringIO()
         call_command("constance", "list", stdout=out)
         out.seek(0)
-        self.assertEqual(out.getvalue().count("\n"), 25)
+        self.assertEqual(out.getvalue().count("\n"), 23)
         out.close()
