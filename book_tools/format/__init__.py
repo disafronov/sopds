@@ -13,11 +13,20 @@ from book_tools.format.fb2 import FB2, FB2Zip
 from book_tools.format.fb2sax import FB2sax
 from book_tools.format.mimetype import Mimetype
 from book_tools.format.mobi import Mobipocket
-from book_tools.format.other import Dummy
 from book_tools.format.util import list_zip_file_infos
 
 if TYPE_CHECKING:
     from book_tools.format.bookfile import BookFile
+
+SUPPORTED_BOOK_EXTENSIONS = frozenset({".fb2", ".epub", ".mobi"})
+
+
+def supported_book_extensions(extensions: str) -> tuple[str, ...]:
+    return tuple(
+        extension
+        for extension in extensions.lower().split()
+        if extension in SUPPORTED_BOOK_EXTENSIONS
+    )
 
 
 class mime_detector:
@@ -33,16 +42,6 @@ class mime_detector:
             return Mimetype.MOBI
         elif fmt.lower() == "zip":
             return Mimetype.ZIP
-        elif fmt.lower() == "pdf":
-            return Mimetype.PDF
-        elif fmt.lower() == "doc" or fmt.lower() == "docx":
-            return Mimetype.MSWORD
-        elif fmt.lower() == "djvu":
-            return Mimetype.DJVU
-        elif fmt.lower() == "txt":
-            return Mimetype.TEXT
-        elif fmt.lower() == "rtf":
-            return Mimetype.RTF
         else:
             return Mimetype.OCTET_STREAM
 
@@ -104,14 +103,6 @@ def create_bookfile(file: str | BinaryIO, original_filename: str) -> BookFile:
         return FB2Zip(file, original_filename)
     elif mimetype == Mimetype.MOBI:
         return Mobipocket(file, original_filename)
-    elif mimetype in [
-        Mimetype.TEXT,
-        Mimetype.PDF,
-        Mimetype.MSWORD,
-        Mimetype.RTF,
-        Mimetype.DJVU,
-    ]:
-        return Dummy(file, original_filename, mimetype)
     else:
         raise Exception("File type '%s' is not supported, sorry" % mimetype)
 

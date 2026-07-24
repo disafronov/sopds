@@ -16,7 +16,6 @@ from book_tools.format.fb2 import FB2, FB2Zip
 from book_tools.format.fb2sax import FB2sax
 from book_tools.format.mimetype import Mimetype
 from book_tools.format.mobi import Mobipocket
-from book_tools.format.other import Dummy
 
 DATA = Path(__file__).parent.parent.parent / "opds_catalog" / "tests" / "data"
 
@@ -217,12 +216,10 @@ class TestCreateBookfile:
         mocker.patch.object(
             fmt, "Mobipocket", return_value=mocker.Mock(spec=Mobipocket)
         )
-        mocker.patch.object(fmt, "Dummy", return_value=mocker.Mock(spec=Dummy))
         bf = create_bookfile(BytesIO(b"data"), filename)
         assert isinstance(bf, expected_cls)
 
-    def test_factory_fb2_returns_dummy_for_unknown(self, mocker: MockerFixture) -> None:
-        mocker.patch.object(fmt, "detect_mime", return_value=Mimetype.TEXT)
-        bf = create_bookfile(BytesIO(b"data"), "book.txt")
-        assert isinstance(bf, Dummy)
-        bf.__exit__(None, None, None)
+    def test_factory_rejects_unsupported_format(self, mocker: MockerFixture) -> None:
+        mocker.patch.object(fmt, "detect_mime", return_value=Mimetype.OCTET_STREAM)
+        with pytest.raises(Exception, match="is not supported"):
+            create_bookfile(BytesIO(b"data"), "book.txt")
