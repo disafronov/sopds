@@ -105,7 +105,6 @@ COPY --chown=ubuntu:ubuntu --from=builder /home/ubuntu/app/ /home/ubuntu/app/
 
 WORKDIR /home/ubuntu/app
 
-ENV GUNICORN_WORKERS=2
 ENV GUNICORN_CMD_ARGS="--control-socket /tmp/gunicorn.ctl --bind 0.0.0.0:8000 --timeout 120 --worker-tmp-dir /tmp --access-logfile - --error-logfile -"
 
 EXPOSE 8000
