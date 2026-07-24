@@ -262,7 +262,7 @@ CONSTANCE_CONFIG = OrderedDict(
         ("SOPDS_LANGUAGE", ("en-US", _("Select language"), "language_select")),
         (
             "SOPDS_BOOK_EXTENSIONS",
-            (".pdf .djvu .fb2 .epub .mobi", _("List of managed book files extensions")),
+            (".fb2 .epub .mobi", _("List of managed book files extensions")),
         ),
         (
             "SOPDS_SCAN_START_DIRECTLY",
