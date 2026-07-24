@@ -426,7 +426,7 @@ SOPDS_TEMP_DIR = os.environ.get("SOPDS_TEMP_DIR", os.path.join(BASE_DIR, "tmp"))
 SOPDS_ROOT_LIB = os.environ.get("SOPDS_ROOT_LIB", "books/")
 SOPDS_NOCOVER_PATH = os.environ.get(
     "SOPDS_NOCOVER_PATH",
-    os.path.join(BASE_DIR, "web_backend/static/images/nocover.jpg"),
+    str(STATIC_ROOT / "images/nocover.jpg"),
 )
 SOPDS_SCAN_WORKERS = int(os.environ.get("SOPDS_SCAN_WORKERS", "0"))
 SOPDS_SCAN_DB_BATCH_SIZE = int(os.environ.get("SOPDS_SCAN_DB_BATCH_SIZE", "0"))
