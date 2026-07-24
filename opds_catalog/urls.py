@@ -89,11 +89,6 @@ urlpatterns = [
     ),
     url(r"^search/(?P<searchterms>.+)/$", feeds.SearchTypesFeed(), name="searchtypes"),
     url(
-        r"^convert/(?P<book_id>[0-9]+)/(?P<convert_type>.+)/$",
-        dl.ConvertFB2,
-        name="convert",
-    ),
-    url(
         r"^download/(?P<book_id>[0-9]+)/(?P<zip_flag>[0-1])/$",
         dl.Download,
         name="download",

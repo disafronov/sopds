@@ -582,29 +582,6 @@ class CatalogsFeed(AuthFeed):
                     "http://opds-spec.org/thumbnail",
                 ),
             ]
-            if (config.SOPDS_FB2TOEPUB != "") and (item["format"] == "fb2"):
-                enclosure += [
-                    opdsEnclosure(
-                        reverse(
-                            "opds_catalog:convert",
-                            kwargs={"book_id": item["id"], "convert_type": "epub"},
-                        ),
-                        Mimetype.EPUB,
-                        "http://opds-spec.org/acquisition/open-access",
-                    )
-                ]
-            if (config.SOPDS_FB2TOMOBI != "") and (item["format"] == "fb2"):
-                enclosure += [
-                    opdsEnclosure(
-                        reverse(
-                            "opds_catalog:convert",
-                            kwargs={"book_id": item["id"], "convert_type": "mobi"},
-                        ),
-                        Mimetype.MOBI,
-                        "http://opds-spec.org/acquisition/open-access",
-                    )
-                ]
-
             return enclosure
 
     def item_description(self, item: ItemDict) -> str:
@@ -992,29 +969,6 @@ class SearchBooksFeed(AuthFeed):
                 "http://opds-spec.org/thumbnail",
             ),
         ]
-        if (config.SOPDS_FB2TOEPUB != "") and (item["format"] == "fb2"):
-            enclosure += [
-                opdsEnclosure(
-                    reverse(
-                        "opds_catalog:convert",
-                        kwargs={"book_id": item["id"], "convert_type": "epub"},
-                    ),
-                    Mimetype.EPUB,
-                    "http://opds-spec.org/acquisition/open-access",
-                )
-            ]
-        if (config.SOPDS_FB2TOMOBI != "") and (item["format"] == "fb2"):
-            enclosure += [
-                opdsEnclosure(
-                    reverse(
-                        "opds_catalog:convert",
-                        kwargs={"book_id": item["id"], "convert_type": "mobi"},
-                    ),
-                    Mimetype.MOBI,
-                    "http://opds-spec.org/acquisition/open-access",
-                )
-            ]
-
         return enclosure
 
     def item_extra_kwargs(self, item: ItemDict) -> dict[str, Any]:
