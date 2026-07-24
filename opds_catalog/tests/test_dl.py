@@ -6,12 +6,16 @@ import tempfile
 import unittest
 import unittest.mock
 import zipfile
+from base64 import b64encode
 from typing import cast
 from unittest.mock import MagicMock
 
 import pytest
+from constance import config
+from django.contrib.auth.models import User
 from django.http import Http404, HttpRequest, HttpResponse
-from django.test import TestCase
+from django.test import Client, TestCase
+from django.urls import reverse
 from PIL import Image
 from pytest_mock import MockerFixture
 
@@ -422,6 +426,44 @@ class TestDownloadView(_ViewTestBase):
                 with pytest.raises(Http404):
                     dl.Download(request, 1, "0")
         add_to_bookshelf.assert_not_called()
+
+    def test_basic_auth_download_updates_bookshelf(self, mocker: MockerFixture) -> None:
+        user = User.objects.create_user(username="reader", password="password")
+        book = mocker.MagicMock(spec=Book)
+        book.catalog = mocker.MagicMock(cat_type=opdsdb.CAT_NORMAL, path=".")
+        book.filename = "book.fb2"
+        book.format = "fb2"
+        book.filesize = 11
+        book.title = "Book"
+        mocker.patch("opds_catalog.dl.Book.objects.get", return_value=book)
+        mocker.patch("opds_catalog.dl.os.path.getsize", return_value=11)
+        mocker.patch("builtins.open", mocker.mock_open(read_data=b"bookcontent"))
+        add_to_bookshelf = mocker.patch(
+            "opds_catalog.dl.bookshelf.objects.get_or_create"
+        )
+        mocker.patch.object(
+            dl,
+            "django_settings",
+            _cfg(SOPDS_ROOT_LIB="/lib"),
+        )
+        original_auth = config.SOPDS_AUTH
+        original_title_as_filename = config.SOPDS_TITLE_AS_FILENAME
+        config.SOPDS_AUTH = True
+        config.SOPDS_TITLE_AS_FILENAME = False
+        credentials = b64encode(b"reader:password").decode()
+
+        try:
+            response = Client().get(
+                reverse("opds:download", args=[1, 0]),
+                HTTP_AUTHORIZATION=f"Basic {credentials}",
+            )
+        finally:
+            config.SOPDS_AUTH = original_auth
+            config.SOPDS_TITLE_AS_FILENAME = original_title_as_filename
+
+        assert response.status_code == 200
+        assert response.content == b"bookcontent"
+        add_to_bookshelf.assert_called_once_with(user=user, book=book)
 
 
 @pytest.mark.django_db
