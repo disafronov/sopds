@@ -14,11 +14,32 @@ Including another URLconf
     2. Add a URL to urlpatterns:  url(r'^blog/', include('blog.urls'))
 """
 
+import tomllib
+from pathlib import Path
+from typing import TypeVar
+
 from django.contrib import admin
 from django.urls import include, path, re_path, reverse_lazy
+from django.utils.functional import Promise
 from django.views.generic import RedirectView
 
 from ops.health import liveness, readiness
+
+_Fallback = TypeVar("_Fallback", bound=str | Promise)
+
+
+def _project_title(pyproject_path: Path, fallback: _Fallback) -> str | _Fallback:
+    try:
+        project = tomllib.loads(pyproject_path.read_text("utf-8"))["project"]
+        return f"{project['name']} {project['version']}"
+    except (OSError, KeyError, TypeError, tomllib.TOMLDecodeError):
+        return fallback
+
+
+admin.site.index_title = _project_title(
+    Path(__file__).resolve().parent.parent / "pyproject.toml",
+    admin.site.index_title,
+)
 
 # from django.contrib.auth import logout
 
