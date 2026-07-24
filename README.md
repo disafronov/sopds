@@ -7,7 +7,7 @@
 
 - **OPDS 1.2 feed** at `/opds/` for OPDS-compatible reading apps (KOReader, FBReader, etc.)
 - **Web UI** at `/web/` for browsing the catalog in a browser
-- **Book formats**: FB2, EPUB, MOBI, PDF, DJVU
+- **Book formats**: FB2, EPUB, MOBI
 - **FB2 conversion** to EPUB/MOBI on download
 - **Scheduled scanning** via APScheduler with cron-like scheduling
 - **INPX archive support** for batch metadata import
