@@ -12,7 +12,6 @@ from django.shortcuts import redirect, render
 from django.template.context_processors import csrf
 from django.urls import reverse, reverse_lazy
 from django.utils.html import strip_tags
-from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 from django.views.decorators.vary import vary_on_headers
@@ -29,7 +28,7 @@ from opds_catalog.models import (
     lang_menu,
 )
 from opds_catalog.opds_paginator import Paginator as OPDS_Paginator
-from web_backend.settings import HALF_PAGES_LINKS
+from web_backend.settings import HALF_PAGES_LINKS, LOGIN_NEXT_SESSION_KEY
 
 
 def sopds_processor(request: HttpRequest) -> dict[str, Any]:
@@ -769,22 +768,14 @@ def LoginView(request: HttpRequest) -> HttpResponse:
     except KeyError:
         return render(request, "sopds_login.html", args)
 
-    next_url = request.GET.get("next", "")
-    if not url_has_allowed_host_and_scheme(
-        next_url,
-        # Login redirects never need to leave this application.  Django treats
-        # ``None`` as an empty host allow-list, accepting relative paths while
-        # rejecting absolute and protocol-relative URLs.
-        allowed_hosts=None,
-        require_https=request.is_secure(),
-    ):
-        next_url = reverse("web:main")
-
     user = authenticate(username=username, password=password)
     if user is not None:
         if user.is_active:
             login(request, user)
-            return redirect(next_url)
+            next_url = request.session.pop(LOGIN_NEXT_SESSION_KEY, None)
+            if next_url is not None:
+                return redirect(next_url)
+            return redirect("web:main")
         else:
             args["system_message"] = {
                 "text": _("This account is not active!"),

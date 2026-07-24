@@ -4,14 +4,16 @@ from typing import Optional
 
 from constance import config
 from django.contrib import auth
-from django.contrib.auth.views import redirect_to_login
 from django.http import HttpRequest, HttpResponse
 from django.middleware.cache import (
     FetchFromCacheMiddleware as DjangoFetchFromCacheMiddleware,
 )
-from django.urls import reverse
+from django.shortcuts import redirect
 from django.utils import translation
 from django.utils.deprecation import MiddlewareMixin
+from django.utils.http import escape_leading_slashes
+
+from web_backend.settings import LOGIN_NEXT_SESSION_KEY
 
 
 class BasicAuthMiddleware(MiddlewareMixin):
@@ -30,10 +32,12 @@ class BasicAuthMiddleware(MiddlewareMixin):
     def process_view(
         self,
         request: HttpRequest,
-        _view_func: object,
+        view_func: object,
         _view_args: object,
         _view_kwargs: object,
     ) -> Optional[HttpResponse]:
+        from web_backend.views import LoginView
+
         if not config.SOPDS_AUTH or request.user.is_authenticated:
             return None
 
@@ -42,11 +46,11 @@ class BasicAuthMiddleware(MiddlewareMixin):
             return None
         if resolver_match.namespace == "opds":
             return self.authenticate(request)
-        if resolver_match.namespace == "web" and resolver_match.url_name != "login":
-            return redirect_to_login(
-                request.get_full_path(),
-                reverse("web:login"),
+        if resolver_match.namespace == "web" and view_func is not LoginView:
+            request.session[LOGIN_NEXT_SESSION_KEY] = escape_leading_slashes(
+                request.get_full_path()
             )
+            return redirect("web:login")
         return None
 
     def authenticate(self, request: HttpRequest) -> Optional[HttpResponse]:
