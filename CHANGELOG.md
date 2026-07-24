@@ -1,3 +1,5 @@
+## [3.0.0-rc.1](https://github.com/disafronov/sopds/compare/v2.2.0...v3.0.0-rc.1) (2026-07-24)
+
 ## [2.2.0](https://github.com/disafronov/sopds/compare/v2.1.2...v2.2.0) (2026-07-24)
 
 ## [2.2.0-rc.1](https://github.com/disafronov/sopds/compare/v2.1.2...v2.2.0-rc.1) (2026-07-24)
