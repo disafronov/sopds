@@ -137,8 +137,8 @@ Settings are read from environment variables. See `env.example` for all options.
 | Variable | Description | Default |
 | --- | --- | --- |
 | `SOPDS_ROOT_LIB` | Root directory for books. | `books/` |
-| `SOPDS_ZIPSCAN` | Scan ZIP archives. | `True` |
-| `SOPDS_ZIPCODEPAGE` | Codepage for ZIP filenames. | `cp866` |
+| `SOPDS_ZIP_ENABLE` | Enable scanning ZIP archives. | `True` |
+| `SOPDS_ZIP_CODEPAGE` | Codepage for ZIP filenames. | `cp866` |
 | `SOPDS_DELETE_LOGICAL` | Logical deletion of removed books. | `False` |
 | `SOPDS_INPX_ENABLE` | Enable INPX archive scanning. | `False` |
 | `SOPDS_INPX_SKIP_UNCHANGED` | Skip unchanged INPX files. | `True` |
