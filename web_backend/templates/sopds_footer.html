@@ -25,11 +25,11 @@
         <div><b>{% trans "Authors" %}:</b> <span class="label">{{ stats.allauthors }}</span></div>
         <div><b>{% trans "Series" %}:</b> <span class="label">{{ stats.allseries }}</span></div>
         <div><b>{% trans "Genres" %}:</b> <span class="label">{{ stats.allgenres }}</span></div>
+        <p class="footer-stats__date">
+            <b>{% trans "Last scan:" %}</b>
+            <span class="label">{% if stats.lastscan_date %}{{ stats.lastscan_date|date:"Y-m-d H:i" }}{% else %}{% trans "Never" %}{% endif %}</span>
+        </p>
     </div>
-    <p class="footer-stats__date">
-        <b>{% trans "Last scan:" %}</b>
-        <span class="label">{% if stats.lastscan_date %}{{ stats.lastscan_date|date:"Y-m-d H:i" }}{% else %}{% trans "Never" %}{% endif %}</span>
-    </p>
 </div>
 </div>
 </div>
