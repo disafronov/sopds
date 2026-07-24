@@ -85,7 +85,6 @@ omit = [
   "*/migrations/*",
   "book_tools/_vendor/*",
   "book_tools/pymobi/*",
-  "opds_catalog/zipf.py",
   "manage.py",
   "sopds/settings.py",
   "config/wsgi.py"
