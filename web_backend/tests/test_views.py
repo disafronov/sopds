@@ -234,6 +234,21 @@ class TestHello:
         auth_content = client.get("/web/").content.decode()
         assert "Hello testuser!" in auth_content
 
+    def test_authenticated_navigation_uses_inline_icons(
+        self,
+        db: Any,
+        auth_client: Client,
+        mocker: MockerFixture,
+    ) -> None:
+        _set_auth(mocker, True)
+
+        content = auth_client.get("/web/").content.decode()
+
+        assert '<img class="nav-icon"' in content
+        assert "images/fi-torsos.svg" in content
+        assert "foundation-icons" not in content
+        assert '<i class="fi-torsos"' not in content
+
     def test_hello_redirects_to_login_when_auth_is_enabled(
         self,
         db: Any,
