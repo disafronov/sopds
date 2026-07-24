@@ -44,3 +44,7 @@ build/
 .env.docker
 
 *.mo
+
+# Generated frontend assets
+/web_backend/static/css/sopds.css
+/web_backend/static/js/vendor/
