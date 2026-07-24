@@ -78,44 +78,6 @@ class TestSopdsProcessor:
         assert ctx["sopds_auth"] is True
 
 
-class TestSopdsLoginDecorator:
-    """Tests for sopds_login() decorator."""
-
-    def test_decorator_with_auth_disabled(self, db: Any, mocker: MockerFixture) -> None:
-        from web_backend import views
-
-        _set_auth(mocker, False)
-        called: dict[str, bool] = {}
-
-        @views.sopds_login(url="web:login")
-        def protected(request: HttpRequest) -> HttpResponse:
-            called["hit"] = True
-            return HttpResponse("ok")
-
-        request = make_anon_request()
-        response = protected(request)
-        assert called.get("hit") is True
-        assert response.status_code == 200
-
-    def test_decorator_with_auth_enabled_anonymous_redirects(
-        self, db: Any, mocker: MockerFixture
-    ) -> None:
-        from web_backend import views
-
-        _set_auth(mocker, True)
-        mocker.patch.object(views, "reverse_lazy", return_value="/login/")
-
-        @views.sopds_login(url="web:login")
-        def protected(request: HttpRequest) -> HttpResponse:
-            return HttpResponse("ok")
-
-        request = make_anon_request()
-        request.path = "/web/protected/"
-        request.META = {"HTTP_HOST": "testserver"}
-        response = protected(request)
-        assert response.status_code == 302
-
-
 class TestSearchBooksView:
     """Tests for SearchBooksView()."""
 
@@ -258,7 +220,14 @@ class TestLogoutView:
 class TestHello:
     """Tests for hello()."""
 
-    def test_hello_returns_200(self, db: Any, client: Client, user: User) -> None:
+    def test_hello_returns_200_when_auth_is_disabled(
+        self,
+        db: Any,
+        client: Client,
+        user: User,
+        mocker: MockerFixture,
+    ) -> None:
+        _set_auth(mocker, False)
         response = client.get("/web/")
         content = response.content.decode()
 
@@ -271,6 +240,19 @@ class TestHello:
         client.force_login(user)
         auth_content = client.get("/web/").content.decode()
         assert "Hello testuser!" in auth_content
+
+    def test_hello_redirects_to_login_when_auth_is_enabled(
+        self,
+        db: Any,
+        client: Client,
+        mocker: MockerFixture,
+    ) -> None:
+        _set_auth(mocker, True)
+
+        response = client.get("/web/")
+
+        assert response.status_code == 302
+        assert response["Location"].startswith("/web/login/?next=")
 
 
 class TestHandler403:

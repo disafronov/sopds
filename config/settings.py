@@ -125,6 +125,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "opds_catalog.middleware.BasicAuthMiddleware",
     # 'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     "opds_catalog.middleware.SOPDSLocaleMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
