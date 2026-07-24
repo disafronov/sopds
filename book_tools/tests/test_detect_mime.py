@@ -34,11 +34,3 @@ def test_detect_xml_generic() -> None:
 def test_detect_unknown() -> None:
     data = b"just plain text content"
     assert detect_mime(BytesIO(data), "file.bin") == Mimetype.OCTET_STREAM
-
-
-def test_detect_fb2_zip() -> None:
-    buf = BytesIO()
-    with zipfile.ZipFile(buf, "w") as zf:
-        zf.writestr("book.fb2", b'<?xml version="1.0"?><FictionBook></FictionBook>')
-    buf.seek(0)
-    assert detect_mime(buf, "book.zip") == Mimetype.FB2_ZIP

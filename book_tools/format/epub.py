@@ -1,5 +1,3 @@
-"""Compatibility export for the vendored FBReader implementation."""
-
-from book_tools._vendor.fbreader.epub import EPub
+from book_tools.format.ebook import EPub
 
 __all__ = ["EPub"]

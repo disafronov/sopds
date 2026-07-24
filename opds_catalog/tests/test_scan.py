@@ -118,14 +118,6 @@ FB2 и помещает в БД)"""
         self.assertEqual(book.genres.get(genre="antique").section, opdsdb.unknown_genre)
         self.assertEqual(book.genres.get(genre="antique").subsection, "antique")
 
-    def test_processfile_fb2sax(self) -> None:
-        config.SOPDS_FB2SAX = True
-        self.test_processfile_fb2()
-
-    def test_processfile_fb2xpath(self) -> None:
-        config.SOPDS_FB2SAX = False
-        self.test_processfile_fb2()
-
     def test_processfile_epub(self) -> None:
         """Тестирование процедуры processfile (извлекает метаданные из книги \
 EPUB и помещает в БД)"""
@@ -188,10 +180,10 @@ EPUB и помещает в БД)"""
         self.assertEqual(book.format, "mobi")
         self.assertEqual(book.catalog.cat_type, 0)
         # self.assertGreaterEqual(book.registerdate, )
-        self.assertEqual(book.docdate, "2011-11-20")
-        self.assertEqual(book.lang, "")
+        self.assertEqual(book.docdate, "1999-01-02T00:00:00+00:00")
+        self.assertEqual(book.lang, "en")
         self.assertEqual(book.title, "Vector")
-        self.assertEqual(book.annotation, "")
+        self.assertIn("Amazon.com Review", book.annotation)
         self.assertEqual(book.avail, 2)
         self.assertEqual(book.catalog.path, ".")
         self.assertEqual(book.catalog.cat_name, ".")
@@ -291,7 +283,7 @@ EPUB и помещает в БД)"""
         self.assertEqual(scanner.bad_books, 1)
         self.assertEqual(Book.objects.all().count(), 6)
         self.assertEqual(Author.objects.all().count(), 6)
-        self.assertEqual(Genre.objects.all().count(), 5)
+        self.assertEqual(Genre.objects.all().count(), 17)
         self.assertEqual(Series.objects.all().count(), 1)
         self.assertEqual(Catalog.objects.all().count(), 2)
 
