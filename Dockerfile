@@ -1,5 +1,5 @@
 # syntax = docker/dockerfile:1.7
-FROM ghcr.io/astral-sh/uv:0.11.31 AS uv
+FROM ghcr.io/astral-sh/uv:0.11.32 AS uv
 
 FROM ubuntu:noble-20260610 AS base
 
