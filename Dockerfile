@@ -93,7 +93,7 @@ RUN export DJANGO_SECRET_KEY=unsafe-secret-key-for-tooling \
         DJANGO_DEBUG=False && \
     python3 manage.py compilemessages && \
     python3 manage.py collectstatic --noinput && \
-    rm -rf assets
+    rm -rf assets web_backend/static
 
 ##########################
 
