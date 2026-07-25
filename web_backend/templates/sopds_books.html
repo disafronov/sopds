@@ -2,17 +2,7 @@
 {% load i18n %}
 
 {% block body %}
-<script>
-       function openBookshelfDeleteModal(trigger) {
-           const bookId = trigger.dataset.bookId;
-           $('#DeleteBook_book').val(bookId);
-           $('#DeleteBook_image').attr("src", "{% url "opds:covertmpl" %}" + bookId + "/");
-           $('#DeleteBook_title').text(trigger.dataset.bookTitle);
-           $('#DeleteBookModal').foundation('open');
-       }
-</script>
-
-<div id="DeleteBookModal" class="reveal tiny text-center" data-reveal>
+<div id="DeleteBookModal" class="reveal tiny text-center" data-reveal data-cover-url="{% url "opds:covertmpl" %}">
   <h5 id="DeleteBookModalTitle">{% trans "Confirm the deletion of the book to your bookshelf." %}</h5>
   <table><tr>
   <td width="100px" style="padding:0rem 0rem;">
@@ -59,7 +49,7 @@
                 <i><a href="{% url 'opds_catalog:download' b.id 1 %}"><span class="label small">{{b.format}}+zip</span></a></i>&nbsp;
             {%  endif %}
 			{% if isbookshelf %}
-			&nbsp;&nbsp;<i><button type="button" data-book-id="{{ b.id }}" data-book-title="{{ b.title }}" onclick="openBookshelfDeleteModal(this);"><span class="secondary label small">&nbsp;{% trans "Delete from bookshelf" %}&nbsp;</span></button></i>
+			&nbsp;&nbsp;<i><button class="bookshelf-delete-trigger" type="button" data-book-id="{{ b.id }}" data-book-title="{{ b.title }}"><span class="secondary label small">&nbsp;{% trans "Delete from bookshelf" %}&nbsp;</span></button></i>
 		    {% endif %}
 		</div>
 
