@@ -8,21 +8,21 @@
     "build:css": "sass --quiet-deps --load-path=node_modules/foundation-sites/scss --load-path=node_modules/motion-ui/src --style=compressed --no-source-map scss/sopds.scss:../web_frontend/static/css/sopds.css",
     "build:js": "node scripts/build-js.mjs",
     "build:dependencies": "node scripts/copy-dependencies.mjs",
-    "dev": "npm run build:vendor && npm run watch:css",
-    "watch:css": "sass --quiet-deps --load-path=node_modules/foundation-sites/scss --load-path=node_modules/motion-ui/src --style=compressed --no-source-map --watch scss/sopds.scss:../../web_frontend/static/css/sopds.css",
+    "dev": "npm run build:dependencies && npm run watch:css",
+    "watch:css": "sass --quiet-deps --load-path=node_modules/foundation-sites/scss --load-path=node_modules/motion-ui/src --style=compressed --no-source-map --watch scss/sopds.scss:../web_frontend/static/css/sopds.css",
     "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
-    "foundation-sites": "6.9.0",
-    "jquery": "4.0.0",
-    "fast-xml-parser": "5.10.1",
-    "motion-ui": "2.0.8",
-    "what-input": "5.2.12"
+    "foundation-sites": ">=6.9.0 <7.0.0",
+    "jquery": ">=4.0.0 <5.0.0",
+    "fast-xml-parser": ">=5.10.1 <6.0.0",
+    "motion-ui": ">=2.0.8 <3.0.0",
+    "what-input": ">=5.2.12 <6.0.0"
   },
   "devDependencies": {
-    "esbuild": "^0.28.1",
-    "jsdom": "29.1.1",
-    "sass": "1.101.7"
+    "esbuild": ">=0.28.1 <0.29.0",
+    "jsdom": ">=29.1.1 <30.0.0",
+    "sass": ">=1.101.7 <2.0.0"
   },
   "engines": {
     "node": ">=24"
