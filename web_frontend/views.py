@@ -5,12 +5,10 @@ from constance import config
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.db.models.functions import Upper
 from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import redirect, render
 from django.template.context_processors import csrf
 from django.urls import reverse, reverse_lazy
-from django.utils.html import strip_tags
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 from django.views.decorators.vary import vary_on_headers
@@ -25,7 +23,6 @@ from opds_catalog.models import (
     bookshelf,
     lang_menu,
 )
-from opds_catalog.opds_paginator import Paginator as OPDS_Paginator
 from web_frontend.settings import HALF_PAGES_LINKS, LOGIN_NEXT_SESSION_KEY
 
 
@@ -80,17 +77,9 @@ def sopds_processor(request: HttpRequest) -> dict[str, Any]:
 
 
 def _footer_book_data(book: Book) -> dict[str, Any]:
-    """Prepare book metadata shared by the two footer cards."""
+    """Pass only the book ID; the browser loads metadata through OPDS."""
 
-    return {
-        "id": book.id,
-        "title": book.title,
-        "docdate": book.docdate,
-        "filesize": book.filesize // 1000,
-        "authors": book.authors.all(),
-        "genres": book.genres.all(),
-        "series": book.bseries_set.all(),
-    }
+    return {"id": book.id}
 
 
 # Create your views here.
@@ -102,10 +91,40 @@ def SearchBooksView(request: HttpRequest) -> HttpResponse:
 
     if request.GET:
         searchtype = request.GET.get("searchtype", "m")
-        searchterms = request.GET.get("searchterms", "")
+        searchterms = " ".join(request.GET.get("searchterms", "").split())
+        display_searchterms = searchterms
+        if searchtype in {"a", "s", "g"} and searchterms and not searchterms.isdigit():
+            normalized_searchterms = " ".join(searchterms.split())
+            model: Any
+            model, field = {
+                "a": (Author, "full_name"),
+                "s": (Series, "ser"),
+                "g": (Genre, "subsection"),
+            }[searchtype]
+            match = model.objects.filter(
+                **{f"{field}__iexact": normalized_searchterms}
+            ).first()
+            if match is None:
+                candidates = model.objects.filter(
+                    **{f"{field}__icontains": normalized_searchterms}
+                )[:20]
+                match = next(
+                    (
+                        candidate
+                        for candidate in candidates
+                        if " ".join(getattr(candidate, field).split()).casefold()
+                        == normalized_searchterms.casefold()
+                    ),
+                    None,
+                )
+            if match:
+                searchterms = str(match.id)
         if searchtype == "u":
             searchterms = "0"
-        if searchtype in {"m", "a", "s", "u"} and searchterms:
+        if (
+            searchtype in {"b", "m", "e", "a", "s", "as", "g", "u", "d", "i"}
+            and searchterms
+        ):
             page_num = max(int(request.GET.get("page", "1")), 1)
             feed_kwargs: dict[str, Any] = {
                 "searchtype": searchtype,
@@ -113,23 +132,31 @@ def SearchBooksView(request: HttpRequest) -> HttpResponse:
             }
             if page_num > 1:
                 feed_kwargs["page"] = page_num
+            if searchtype == "as" and request.GET.get("searchterms0"):
+                feed_kwargs["searchterms0"] = request.GET["searchterms0"]
             labels = {
+                "b": (_("Search by title"), "title"),
                 "m": (_("Search by title"), "title"),
+                "e": (_("Search by title"), "title"),
                 "a": (_("Search by author"), "author"),
                 "s": (_("Search by series"), "series"),
+                "as": (_("Search by author and series"), "series"),
+                "g": (_("Search by genre"), "genre"),
                 "u": (_("Bookshelf"), "title"),
+                "d": (_("Doubles for book"), "title"),
+                "i": (_("Book"), "title"),
             }
             label, searchobject = labels.get(searchtype, (_("Search"), "title"))
             breadcrumbs = (
                 [_("Books"), label]
                 if searchtype == "u"
-                else [_("Books"), label, searchterms]
+                else [_("Books"), label, display_searchterms]
             )
             args.update(
                 {
                     "breadcrumbs": breadcrumbs,
                     "searchobject": searchobject,
-                    "searchterms": searchterms,
+                    "searchterms": display_searchterms,
                     "searchterms0": request.GET.get("searchterms0", ""),
                     "searchtype": searchtype,
                     "current": "search",
@@ -140,7 +167,7 @@ def SearchBooksView(request: HttpRequest) -> HttpResponse:
                         ),
                         "page_url": reverse("web:searchbooks"),
                         "searchtype": searchtype,
-                        "searchterms": searchterms,
+                        "searchterms": display_searchterms,
                         "searchterms0": request.GET.get("searchterms0", ""),
                         "half_pages": HALF_PAGES_LINKS,
                         "isbookshelf": searchtype == "u",
@@ -151,247 +178,31 @@ def SearchBooksView(request: HttpRequest) -> HttpResponse:
                 args["isbookshelf"] = True
             return render(request, "sopds_books_opds.html", args)
 
-    cache_scope = ""
-    cache_time = config.SOPDS_CACHE_TIME
+    # Keep the books page an OPDS client even before a search is selected.
+    args.update(
+        {
+            "breadcrumbs": [_("Books")],
+            "searchobject": "title",
+            "searchterms": "",
+            "searchterms0": "",
+            "searchtype": "m",
+            "current": "search",
+            "cache_t": 0,
+            "opds_adapter": {
+                "feed_url": reverse("opds_catalog:nolang_books"),
+                "page_url": reverse("web:searchbooks"),
+                "searchtype": "m",
+                "searchterms": "",
+                "searchterms0": "",
+                "half_pages": HALF_PAGES_LINKS,
+                "isbookshelf": False,
+            },
+        }
+    )
+    if not request.GET:
+        return render(request, "sopds_books_opds.html", args)
 
-    if request.GET:
-        searchtype = request.GET.get("searchtype", "m")
-        searchterms = request.GET.get("searchterms", "")
-        # searchterms0 = int(request.POST.get('searchterms0', ''))
-        page_num = int(request.GET.get("page", "1"))
-        page_num = page_num if page_num > 0 else 1
-
-        # if (len(searchterms)<3) and (searchtype in ('m', 'b', 'e')):
-        #    args['errormsg'] = 'Too few symbols in search string !';
-        #    return render_to_response('sopds_error.html', args)
-
-        books = Book.objects.none()
-
-        if searchtype == "m":
-            # books = Book.objects.extra(where=["upper(title) like %s"],
-            #     params=["%%%s%%"%searchterms.upper()]).order_by('title','-docdate')
-            books = Book.objects.filter(
-                title__upper__contains=searchterms.upper()
-            ).order_by(Upper("title"), "-docdate")
-            args["breadcrumbs"] = [_("Books"), _("Search by title"), searchterms]
-            args["searchobject"] = "title"
-
-        if searchtype == "b":
-            # books = Book.objects.extra(
-            #     where=["upper(title) like %s"],
-            #     params=["%s%%"%searchterms.upper()]).order_by('title','-docdate')
-            books = Book.objects.filter(
-                title__upper__startswith=searchterms.upper()
-            ).order_by(Upper("title"), "-docdate")
-            args["breadcrumbs"] = [_("Books"), _("Search by title"), searchterms]
-            args["searchobject"] = "title"
-
-        elif searchtype == "a":
-            try:
-                author_id = int(searchterms)
-                author = Author.objects.get(id=author_id)
-                # aname = "%s %s"%(author.last_name,author.first_name)
-                aname = author.full_name
-            except Exception:
-                author_id = 0
-                aname = ""
-            books = Book.objects.filter(authors=author_id).order_by(
-                Upper("title"), "-docdate"
-            )
-            args["breadcrumbs"] = [_("Books"), _("Search by author"), aname]
-            args["searchobject"] = "author"
-
-        # Поиск книг по серии
-        elif searchtype == "s":
-            try:
-                ser_id = int(searchterms)
-                ser = Series.objects.get(id=ser_id).ser
-            except Exception:
-                ser_id = 0
-                ser = ""
-            books = Book.objects.filter(series=ser_id).order_by(
-                "bseries__ser_no", Upper("title"), "-docdate"
-            )
-            args["breadcrumbs"] = [_("Books"), _("Search by series"), ser]
-            args["searchobject"] = "series"
-
-        # Поиск книг по жанру
-        elif searchtype == "g":
-            try:
-                genre_id = int(searchterms)
-                section = Genre.objects.get(id=genre_id).section
-                subsection = Genre.objects.get(id=genre_id).subsection
-                args["breadcrumbs"] = [
-                    _("Books"),
-                    _("Search by genre"),
-                    section,
-                    subsection,
-                ]
-            except Exception:
-                genre_id = 0
-                args["breadcrumbs"] = [_("Books"), _("Search by genre")]
-
-            books = Book.objects.filter(genres=genre_id).order_by(
-                Upper("title"), "-docdate"
-            )
-            args["searchobject"] = "genre"
-
-        # Поиск книг на книжной полке
-        elif searchtype == "u":
-            if config.SOPDS_AUTH:
-                assert request.user.is_authenticated
-                cache_scope = "uncached:%s:" % request.user.pk
-                cache_time = 0
-                books = Book.objects.filter(bookshelf__user=request.user).order_by(
-                    "-bookshelf__readtime"
-                )
-                args["breadcrumbs"] = [
-                    _("Books"),
-                    _("Bookshelf"),
-                    request.user.username,
-                ]
-                # books = bookshelf.objects.filter(user=request.user)
-                #     .select_related('book')
-            else:
-                books = Book.objects.filter(id=0)
-                args["breadcrumbs"] = [_("Books"), _("Bookshelf")]
-            args["searchobject"] = "title"
-            args["isbookshelf"] = 1
-
-        # Поиск дубликатов для книги
-        elif searchtype == "d":
-            # try:
-            book_id = int(searchterms)
-            mbook = Book.objects.get(id=book_id)
-            books = (
-                Book.objects.filter(title=mbook.title, authors__in=mbook.authors.all())
-                .exclude(id=book_id)
-                .distinct()
-                .order_by("-docdate")
-            )
-            args["breadcrumbs"] = [_("Books"), _("Doubles for book"), mbook.title]
-            args["searchobject"] = "title"
-
-        # Поиск книги по ID. Хотел найти еще и дубликаты к книге,
-        # но почему-то не работает запрос правильно. Ума не приложу почему.
-        elif searchtype == "i":
-            try:
-                book_id = int(searchterms)
-                # mbook = Book.objects.get(id=book_id)
-            except Exception:
-                book_id = 0
-                # mbook = None
-            books = Book.objects.filter(id=book_id)
-            args["breadcrumbs"] = [_("Books"), books[0].title]
-            # books = Book.objects.filter(
-            #     title=mbook.title, authors__in=mbook.authors.all()
-            # ).distinct().order_by('-docdate')
-            # args['breadcrumbs'] = [_('Books'),mbook.title]
-            args["searchobject"] = "title"
-
-        # if len(books)>0:
-        #    books = books.select_related('authors','genres','series')
-
-        # Добавляем Left Join с таблицей BookShelfб чтобы вытащить дату
-        # прочтения книги из книжной полки
-        # books = books.filter(
-        #     Q(bookshelf__isnull=True)|Q(bookshelf__user=request.user))
-        # books = books.prefetch_related('bookshelf_set')
-        # print(books.query)
-
-        # Фильтруем дубликаты и формируем выдачу затребованной страницы
-        books_count = books.count()
-        op = OPDS_Paginator(
-            books_count, 0, page_num, config.SOPDS_MAXITEMS, HALF_PAGES_LINKS
-        )
-        items: list[Any] = []
-
-        prev_title = ""
-        prev_authors_set: set[Any] = set()
-
-        # Начаинам анализ с последнего элемента на предидущей странице,
-        # чторбы он "вытянул" с этой страницы
-        # свои дубликаты если они есть
-        summary_DOUBLES_HIDE = config.SOPDS_DOUBLES_HIDE and (searchtype != "d")
-        start = (
-            op.d1_first_pos
-            if ((op.d1_first_pos == 0) or (not summary_DOUBLES_HIDE))
-            else op.d1_first_pos - 1
-        )
-        finish = op.d1_last_pos
-
-        for row in books[start : finish + 1]:
-            p: dict[str, Any] = {
-                "doubles": 0,
-                "lang_code": row.lang_code,
-                "filename": row.filename,
-                "path": row.catalog.path,
-                "registerdate": row.registerdate,
-                "id": row.id,
-                "annotation": strip_tags(row.annotation),
-                "docdate": row.docdate,
-                "format": row.format,
-                "title": row.title,
-                "filesize": row.filesize // 1000,
-                "authors": row.authors.values(),
-                "genres": row.genres.values(),
-                "series": row.series.values(),
-                "ser_no": row.bseries_set.values("ser_no"),
-                "readtime": (
-                    row.bookshelf_set.filter(user=cast(User, request.user)).values(
-                        "readtime"
-                    )
-                    if config.SOPDS_AUTH
-                    else None
-                ),
-            }
-            if summary_DOUBLES_HIDE:
-                title = p["title"]
-                authors_set = {a["id"] for a in p["authors"]}
-                if (
-                    title.upper() == prev_title.upper()
-                    and authors_set == prev_authors_set
-                ):
-                    items[-1]["doubles"] += 1
-                else:
-                    items.append(p)
-                prev_title = title
-                prev_authors_set = authors_set
-            else:
-                items.append(p)
-
-        # "вытягиваем" дубликаты книг со следующей страницы и удаляем первый
-        # элемент который с предыдущей страницы и "вытягивал" дубликаты с текущей
-        if summary_DOUBLES_HIDE:
-            double_flag = True
-            while ((finish + 1) < books_count) and double_flag:
-                finish += 1
-                if (
-                    books[finish].title.upper() == prev_title.upper()
-                    and {a["id"] for a in books[finish].authors.values()}
-                    == prev_authors_set
-                ):
-                    items[-1]["doubles"] += 1
-                else:
-                    double_flag = False
-
-            if op.d1_first_pos != 0:
-                items.pop(0)
-
-        args["paginator"] = op.get_data_dict()
-        args["searchterms"] = searchterms
-        args["searchtype"] = searchtype
-        args["books"] = items
-        args["current"] = "search"
-        args["cache_id"] = "%s%s:%s:%s" % (
-            cache_scope,
-            searchterms,
-            searchtype,
-            op.page_num,
-        )
-        args["cache_t"] = cache_time
-
-    return render(request, "sopds_books.html", args)
+    return render(request, "sopds_books_opds.html", args)
 
 
 @vary_on_headers("HTTP_ACCEPT_LANGUAGE")
