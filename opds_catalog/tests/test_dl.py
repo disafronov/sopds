@@ -380,60 +380,6 @@ class TestDownloadView(_ViewTestBase):
         add_to_bookshelf.assert_called_once_with(user=user, book=book)
 
 
-@pytest.mark.django_db
-class TestCover0:
-    """Tests for Cover0() view — FB2 cover extraction via fb2parse."""
-
-    @pytest.mark.django_db
-    def test_returns_cover_for_fb2(self, mocker: MockerFixture) -> None:
-        from opds_catalog import dl
-
-        dl_fb2parse = dl.fb2parse  # type: ignore[attr-defined]
-        dl_base64 = dl.base64  # type: ignore[attr-defined]
-        mock_book = mocker.MagicMock()
-        mock_book.catalog.cat_type = "fb2"
-        mock_book.format = "fb2"
-        mock_book.catalog.path = "/tmp/book.fb2"
-
-        mocker.patch("opds_catalog.dl.Book.objects.get", return_value=mock_book)
-        mocker.patch("builtins.open", mocker.mock_open(read_data=b"FB2"))
-
-        mock_cover = mocker.MagicMock()
-        mock_cover.cover_data = "BASE64DATA"
-        mock_cover.getattr.return_value = "image/jpeg"
-        mock_fb2 = mocker.MagicMock()
-        mock_fb2.cover_image = mock_cover
-        mocker.patch.object(dl_fb2parse, "fb2parser", return_value=mock_fb2)
-        mocker.patch.object(dl_base64, "b64decode", return_value=b"COVERDATA")
-
-        request = mocker.MagicMock()
-        response = dl.Cover0(request, 1, False)
-        assert response.status_code == 200
-        assert response.content == b"COVERDATA"
-
-    @pytest.mark.django_db
-    def test_returns_404_when_no_cover(self, mocker: MockerFixture) -> None:
-        from opds_catalog import dl
-
-        dl_fb2parse = dl.fb2parse  # type: ignore[attr-defined]
-        mock_book = mocker.MagicMock()
-        mock_book.catalog.cat_type = "fb2"
-        mock_book.format = "fb2"
-        mock_book.catalog.path = "/tmp/book.fb2"
-
-        mocker.patch("opds_catalog.dl.Book.objects.get", return_value=mock_book)
-        mock_cover = mocker.MagicMock()
-        mock_cover.cover_data = ""
-        mock_fb2 = mocker.MagicMock()
-        mock_fb2.cover_image = mock_cover
-        mocker.patch.object(dl_fb2parse, "fb2parser", return_value=mock_fb2)
-        mocker.patch("opds_catalog.dl.os.path.exists", return_value=False)
-
-        request = mocker.MagicMock()
-        with pytest.raises(Http404):
-            dl.Cover0(request, 1, False)
-
-
 class TestThumbnail:
     """Tests for Thumbnail() view."""
 

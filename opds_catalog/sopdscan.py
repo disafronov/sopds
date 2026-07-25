@@ -25,7 +25,7 @@ from django.utils.translation import gettext as _
 
 from book_tools.format import create_bookfile, supported_book_extensions
 from book_tools.format.bookfile import STRIP_SYMBOLS
-from opds_catalog import fb2parse, opdsdb
+from opds_catalog import opdsdb
 from opds_catalog.models import (
     SIZE_AUTHOR_NAME,
     SIZE_BOOK_ANNOTATION,
@@ -452,9 +452,6 @@ def _store_books_batch_atomic(
 
 class opdsScanner:
     def __init__(self, logger: logging.Logger | None = None) -> None:
-        self.fb2parser: Any = None
-        self.init_parser()
-
         if logger:
             self.logger = logger
         else:
@@ -479,9 +476,6 @@ class opdsScanner:
         self.inp_cat: Any = None
         self.zip_file: Any = None
         self.rel_path: str | None = None
-
-    def init_parser(self) -> None:
-        self.fb2parser = fb2parse.fb2parser(False)
 
     def log_options(self) -> None:
         self.logger.info(" ***** Starting sopds-scan...")

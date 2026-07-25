@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 import functools
 import io
 import os
@@ -15,7 +14,7 @@ from PIL import Image
 import opds_catalog.zipf as zipfile
 from book_tools.format import create_bookfile, mime_detector
 from book_tools.format.mimetype import Mimetype
-from opds_catalog import fb2parse, opdsdb, settings, utils
+from opds_catalog import opdsdb, settings, utils
 from opds_catalog.models import Book, bookshelf
 
 
@@ -228,70 +227,6 @@ def Cover(request: HttpRequest, book_id: int, thumbnail: bool = False) -> HttpRe
         response.write(image)
 
     if not image:
-        if os.path.exists(django_settings.SOPDS_NOCOVER_PATH):
-            response["Content-Type"] = "image/jpeg"
-            f = open(django_settings.SOPDS_NOCOVER_PATH, "rb")
-            response.write(f.read())
-            f.close()
-        else:
-            raise Http404
-
-    return response
-
-
-def Cover0(request: HttpRequest, book_id: int, thumbnail: bool = False) -> HttpResponse:
-    """Загрузка обложки"""
-    book = Book.objects.get(id=book_id)
-    response = HttpResponse()
-    c0 = 0
-    full_path = os.path.join(django_settings.SOPDS_ROOT_LIB, book.catalog.path)
-    if book.catalog.cat_type == opdsdb.CAT_INP:
-        inp_path, zip_name = os.path.split(full_path)
-        inpx_path, inp_name = os.path.split(inp_path)
-        path, inpx_name = os.path.split(inpx_path)
-        full_path = os.path.join(path, zip_name)
-
-    if book.format == "fb2":
-        fb2 = fb2parse.fb2parser(1)
-        fo: BinaryIO
-        if book.catalog.cat_type == opdsdb.CAT_NORMAL:
-            file_path = os.path.join(full_path, book.filename)
-            fo = open(file_path, "rb")
-            fb2.parse(fo, 0)
-            fo.close()
-        elif book.catalog.cat_type in [opdsdb.CAT_ZIP, opdsdb.CAT_INP]:
-            fz = open(full_path, "rb")
-            z = zipfile.ZipFile(fz, "r", allowZip64=True)
-            fo = cast(BinaryIO, z.open(book.filename))
-            fb2.parse(fo, 0)
-            fo.close()
-            z.close()
-            fz.close()
-
-        if len(fb2.cover_image.cover_data) > 0:
-            try:
-                s = fb2.cover_image.cover_data
-                dstr = base64.b64decode(s)
-                if thumbnail:
-                    response["Content-Type"] = "image/jpeg"
-                    thumb = Image.open(io.BytesIO(dstr)).convert("RGB")
-                    thumb.thumbnail(
-                        (settings.THUMB_SIZE, settings.THUMB_SIZE),
-                        Image.Resampling.LANCZOS,
-                    )
-                    tfile = io.BytesIO()
-                    thumb.save(tfile, "JPEG")
-                    dstr = tfile.getvalue()
-                else:
-                    response["Content-Type"] = (
-                        fb2.cover_image.getattr("content-type") or "image/jpeg"
-                    )
-                response.write(dstr)
-                c0 = 1
-            except Exception:
-                c0 = 0
-
-    if c0 == 0:
         if os.path.exists(django_settings.SOPDS_NOCOVER_PATH):
             response["Content-Type"] = "image/jpeg"
             f = open(django_settings.SOPDS_NOCOVER_PATH, "rb")
