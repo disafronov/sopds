@@ -17,7 +17,6 @@ dependencies = [
   "gunicorn>=26.0.0,<27.0.0",
   "whitenoise>=6.9.0,<7.0.0",
   "psycopg2-binary>=2.9.12,<3.0.0",
-  "pytz==2026.2",
   "tzdata==2026.3"
 ]
 
@@ -97,7 +96,7 @@ branch = true
 parallel = true
 
 [tool.coverage.report]
-fail_under = 80
+fail_under = 85
 exclude_lines = [
   "raise AssertionError",
   "raise NotImplementedError",
