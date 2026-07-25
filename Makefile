@@ -24,7 +24,7 @@ PYTEST_CMD = DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python -m pytest -v -
 TEST_ARGS = $(if $(filter all,$(MAKECMDGOALS)),,$(filter-out test all,$(MAKECMDGOALS)))
 
 DOCKER_IMAGE = sopds
-FRONTEND_DIR = assets/sopds-sass
+FRONTEND_DIR = assets
 
 DOCKER_RUN_OPTS = --rm \
 	--read-only \
@@ -76,7 +76,7 @@ frontend-test: ## Test frontend libraries
 frontend: frontend-build frontend-test ## Build and test frontend assets
 
 frontend-audit: ## Check frontend dependencies for known vulnerabilities
-	cd $(FRONTEND_DIR) && npm audit
+	cd $(FRONTEND_DIR) && npm run audit
 
 audit: frontend-audit ## Check dependencies for known vulnerabilities
 	@echo "Auditing dependencies..."
@@ -144,7 +144,7 @@ scan: ## Run the sopds scanner oneshot scan
 clean: ## Clean caches and coverage outputs
 	@echo "Cleaning cache and temporary files..."
 	rm -rf .mypy_cache/ .pytest_cache/ .venv/ build/ dist/ htmlcov/ .coverage
-	rm -rf web_backend/static/js/vendor/ web_backend/static/css/sopds.css
+	rm -rf web_frontend/static/js/vendor/ web_frontend/static/css/sopds.css
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	find . -type f -name "*.pyc" -delete 2>/dev/null || true
 

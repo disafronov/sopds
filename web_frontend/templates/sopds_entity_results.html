@@ -1,0 +1,22 @@
+{% load i18n static %}
+<table
+  class="selector-table clickable-rows"
+  data-opds-selector
+  data-feed-url="{{ opds_adapter.feed_url }}"
+  data-mode="{{ opds_adapter.mode }}"
+  data-entity="{{ opds_adapter.entity }}"
+  data-count-label="{{ opds_adapter.count_label }}"
+  data-search-url="{{ opds_adapter.search_url }}"
+  data-page-url="{{ opds_adapter.page_url }}"
+  data-searchtype="{{ opds_adapter.searchtype }}"
+  data-searchterms="{{ opds_adapter.searchterms }}"
+  data-half-pages="{{ opds_adapter.half_pages }}"
+>
+  <tbody><tr data-opds-loading><td>{% trans "Loading..." %}</td></tr></tbody>
+</table>
+<div data-opds-pagination
+     data-previous-label="{% trans "Previous page" %}"
+     data-next-label="{% trans "Next page" %}"></div>
+<p class="callout alert" data-opds-error hidden>
+  {% trans "Unable to load the catalog." %}
+</p>

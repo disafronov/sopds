@@ -61,7 +61,7 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: assets/sopds-sass/package-lock.json
+          cache-dependency-path: assets/package-lock.json
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
@@ -72,7 +72,7 @@ jobs:
       - name: Install dependencies
         run: |
           uv sync --frozen --python ${{ steps.python_version.outputs.version }}
-          npm ci --prefix assets/sopds-sass
+          npm ci --prefix assets
         env:
           UV_PYTHON: ${{ steps.python_version.outputs.version }}
 

@@ -46,5 +46,8 @@ build/
 *.mo
 
 # Generated frontend assets
-/web_backend/static/css/sopds.css
-/web_backend/static/js/vendor/
+/web_frontend/static/css/
+/web_frontend/static/js/
+
+# Frontend dependencies
+/assets/node_modules/

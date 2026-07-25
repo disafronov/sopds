@@ -3,17 +3,18 @@ ARG NODE_VERSION=24
 
 FROM node:${NODE_VERSION}-bookworm-slim AS frontend
 
-WORKDIR /home/node/app/assets/sopds-sass
+WORKDIR /home/node/app/assets
 
 RUN --mount=type=cache,target=/home/node/.npm,uid=1000,gid=1000 \
-    --mount=type=bind,source=assets/sopds-sass/package.json,target=package.json \
-    --mount=type=bind,source=assets/sopds-sass/package-lock.json,target=package-lock.json \
+    --mount=type=bind,source=assets/package.json,target=package.json \
+    --mount=type=bind,source=assets/package-lock.json,target=package-lock.json \
     npm ci
 
-RUN --mount=type=bind,source=assets/sopds-sass/package.json,target=package.json \
-    --mount=type=bind,source=assets/sopds-sass/scss,target=scss \
-    --mount=type=bind,source=assets/sopds-sass/scripts,target=scripts \
-    mkdir -p /home/node/app/web_backend/static/css && \
+RUN --mount=type=bind,source=assets/package.json,target=package.json \
+    --mount=type=bind,source=assets/scss,target=scss \
+    --mount=type=bind,source=assets/js,target=js \
+    --mount=type=bind,source=assets/scripts,target=scripts \
+    mkdir -p /home/node/app/web_frontend/static/css /home/node/app/web_frontend/static/js && \
     npm run build
 
 FROM ghcr.io/astral-sh/uv:0.11.32 AS uv
@@ -72,11 +73,11 @@ COPY --chown=ubuntu:ubuntu \
 
 # Use assets rebuilt from the pinned frontend dependencies.
 COPY --chown=ubuntu:ubuntu --from=frontend \
-    /home/node/app/web_backend/static/css/sopds.css \
-    /home/ubuntu/app/web_backend/static/css/sopds.css
+    /home/node/app/web_frontend/static/css/ \
+    /home/ubuntu/app/web_frontend/static/css/
 COPY --chown=ubuntu:ubuntu --from=frontend \
-    /home/node/app/web_backend/static/js/vendor/ \
-    /home/ubuntu/app/web_backend/static/js/vendor/
+    /home/node/app/web_frontend/static/js/ \
+    /home/ubuntu/app/web_frontend/static/js/
 
 # Sync the project now that sources exist.
 RUN --mount=from=uv,source=/uv,target=/bin/uv \
@@ -93,7 +94,7 @@ RUN export DJANGO_SECRET_KEY=unsafe-secret-key-for-tooling \
         DJANGO_DEBUG=False && \
     python3 manage.py compilemessages && \
     python3 manage.py collectstatic --noinput && \
-    rm -rf assets web_backend/static
+    rm -rf assets web_frontend/static
 
 ##########################
 
