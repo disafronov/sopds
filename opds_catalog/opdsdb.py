@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import os
 import re
-from typing import Any
 
 from django.db import connection, transaction
 from django.db.backends.utils import CursorWrapper
@@ -313,15 +312,6 @@ def addbook(
         lang_code=getlangcode(title),
     )
     return book
-
-
-def findauthor(full_name: str) -> Any:
-    try:
-        author: Any = Author.objects.filter(full_name=full_name[:SIZE_AUTHOR_NAME])[:1]
-    except Author.DoesNotExist:
-        author = None
-
-    return author
 
 
 def addauthor(full_name: str) -> Author:
