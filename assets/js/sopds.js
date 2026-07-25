@@ -1,32 +1,10 @@
-import { Feed } from "opds-ts/v1.2";
+import {fetchFeed} from "./opds.js";
 
 (function($) {
     "use strict";
 
-    function parseFeed(xml) {
-        const feed = Feed.fromXml(xml);
-        const xmlDocument = new DOMParser().parseFromString(xml, "application/xml");
-        const rawEntries = [...xmlDocument.getElementsByTagNameNS("http://www.w3.org/2005/Atom", "entry")];
-        return {
-            feed,
-            page: Number((xml.match(/<sopds:page>(\d+)<\/sopds:page>/) || [])[1] || 1),
-            pages: Number((xml.match(/<sopds:pages>(\d+)<\/sopds:pages>/) || [])[1] || 1),
-            entries: feed.getEntries().map((entry, index) => ({
-                ...entry.options,
-                catType: Number(rawEntries[index]?.getElementsByTagNameNS("urn:sopds:meta", "cat-type")[0]?.textContent || 0),
-            })),
-            links: feed.options.links || [],
-        };
-    }
-
     async function loadOPDS(element) {
-        const response = await fetch(element.dataset.feedUrl, {
-            credentials: "same-origin",
-            headers: {Accept: "application/atom+xml"},
-        });
-        if (!response.ok) throw new Error(`OPDS request failed: ${response.status}`);
-        const text = await response.text();
-        const detail = parseFeed(text);
+        const detail = await fetchFeed(element.dataset.feedUrl);
         const CustomEventClass = element.ownerDocument.defaultView.CustomEvent;
         element.dispatchEvent(new CustomEventClass("sopds:feed", {detail}));
     }
@@ -48,6 +26,24 @@ import { Feed } from "opds-ts/v1.2";
         element.hidden = true;
         const errorBox = document.querySelector("[data-opds-error]");
         if (errorBox) errorBox.hidden = false;
+        });
+    });
+
+    async function loadFooterBook(element) {
+        const bookId = element.dataset.bookId;
+        const detail = await fetchFeed(`/opds/search/books/i/${bookId}/`);
+        const rendered = document.createElement("div");
+        renderBooks(rendered, detail);
+        const card = rendered.querySelector(".book-card");
+        if (card) {
+            card.classList.add("footer-book-card");
+            element.replaceChildren(card);
+        }
+    }
+
+    document.querySelectorAll("[data-opds-footer-book]").forEach((element) => {
+        loadFooterBook(element).catch(() => {
+            element.replaceChildren();
         });
     });
 
@@ -279,7 +275,11 @@ import { Feed } from "opds-ts/v1.2";
         const fragment = documentNode.createDocumentFragment();
         function copy(node, target) {
             if (node.nodeType === 3) {
-                target.append(documentNode.createTextNode(node.nodeValue || ""));
+                target.append(
+                    documentNode.createTextNode(
+                        (node.nodeValue || "").replace(/\s+([,.;:!?])/gu, "$1"),
+                    ),
+                );
             } else if (node.nodeType === 1 && allowed.has(node.tagName)) {
                 const child = documentNode.createElement(node.tagName.toLowerCase());
                 if (node.tagName === "SPAN" && node.className) child.className = node.className;
@@ -290,6 +290,81 @@ import { Feed } from "opds-ts/v1.2";
             }
         }
         parsed.body.childNodes.forEach((node) => copy(node, fragment));
+        return fragment;
+    }
+
+    function searchUrl(type, id) {
+        const url = new URL("/web/search/books/", window.location);
+        url.searchParams.set("searchtype", type);
+        url.searchParams.set("searchterms", String(id).trim().replace(/\s+/gu, " "));
+        return `${url.pathname}${url.search}`;
+    }
+
+    function bookUrl(entry) {
+        const id = String(entry.id || "").split(":").pop();
+        return id ? searchUrl("i", id) : searchUrl("m", entry.title || "");
+    }
+
+    function decorateBookLinks(fragment, entry) {
+        function replaceText(node, links) {
+            let text = node.nodeValue || "";
+            const fragment = document.createDocumentFragment();
+            while (text) {
+                let match = null;
+                for (const [name, href] of links) {
+                    const start = text.indexOf(name);
+                    if (start >= 0 && (!match || start < match.start)) {
+                        match = {name, href, start};
+                    }
+                }
+                if (!match) {
+                    fragment.append(document.createTextNode(text));
+                    break;
+                }
+                if (match.start) fragment.append(document.createTextNode(text.slice(0, match.start)));
+                const link = document.createElement("a");
+                link.href = match.href;
+                link.append(document.createTextNode(match.name));
+                fragment.append(link);
+                text = text.slice(match.start + match.name.length);
+            }
+            node.replaceWith(fragment);
+        }
+
+        fragment.querySelectorAll("b").forEach((label) => {
+            const labelText = label.textContent.toLowerCase();
+            let links = new Map();
+            if (labelText.includes("book name") || labelText.includes("название")) {
+                if (entry.title) links.set(entry.title.trim(), bookUrl(entry));
+            } else if (labelText.includes("authors") || labelText.includes("автор")) {
+                (entry.authors || []).forEach((rawName) => {
+                    const name = rawName.trim().replace(/\s+/gu, " ");
+                    if (name) links.set(name, searchUrl("a", name));
+                });
+            } else if (
+                (labelText.includes("series") || labelText.includes("серия") || labelText.includes("серий"))
+                && !labelText.includes("no in series")
+                && !labelText.includes("номер")
+            ) {
+                links = new Map();
+                let value = "";
+                for (let node = label.nextSibling; node && node.nodeName !== "BR"; node = node.nextSibling) value += node.textContent || "";
+                value.split(",").map((item) => item.trim()).filter(Boolean).forEach((name) => links.set(name, searchUrl("s", name)));
+            } else if (labelText.includes("genres") || labelText.includes("жанр")) {
+                (entry.genres || []).forEach((rawName) => {
+                    const name = rawName.trim();
+                    if (name) links.set(name, searchUrl("g", name));
+                });
+            } else {
+                return;
+            }
+            if (!links.size) return;
+            for (let node = label.nextSibling; node && node.nodeName !== "BR";) {
+                const next = node.nextSibling;
+                if (node.nodeType === 3) replaceText(node, links);
+                node = next;
+            }
+        });
         return fragment;
     }
 
@@ -306,7 +381,10 @@ import { Feed } from "opds-ts/v1.2";
             const heading = document.createElement("div");
             heading.className = "large-12 column";
             const title = document.createElement("b");
-            title.textContent = entry.title || "";
+            const titleLink = document.createElement("a");
+            titleLink.href = bookUrl(entry);
+            titleLink.textContent = entry.title || "";
+            title.append(titleLink);
             heading.append(title, " Download: ");
             (entry.links || []).filter((link) => link.rel === "http://opds-spec.org/acquisition/open-access").forEach((link, index) => {
                 const anchor = document.createElement("a");
@@ -332,7 +410,12 @@ import { Feed } from "opds-ts/v1.2";
             }
             const textCell = row.insertCell();
             textCell.style.cssText = "font-size:80%; padding:0rem 1rem;";
-            textCell.append(safeContent(entry.content?.value || "", document));
+            textCell.append(
+                decorateBookLinks(
+                    safeContent(entry.content?.value || "", document),
+                    entry,
+                ),
+            );
             content.append(card);
             element.append(heading, content);
         });
