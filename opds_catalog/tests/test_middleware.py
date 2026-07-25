@@ -133,26 +133,6 @@ class TestBasicAuthMiddleware:
         assert response.status_code == 401
         authenticate.assert_called_once_with(request_no_auth)
 
-    def test_web_anonymous_request_redirects_to_login(
-        self,
-        mocker: MockerFixture,
-        middleware: BasicAuthMiddleware,
-        request_no_auth: HttpRequest,
-    ) -> None:
-        mocker.patch(
-            "opds_catalog.middleware.config", type("C", (), {"SOPDS_AUTH": True})()
-        )
-        request_no_auth.path = "/web/"
-        request_no_auth.META["HTTP_HOST"] = "testserver"
-        request_no_auth.resolver_match = resolve("/web/")
-
-        response = middleware.process_view(request_no_auth, object(), (), {})
-
-        assert response is not None
-        assert response.status_code == 302
-        assert response["Location"] == "/web/login/"
-        assert request_no_auth.session["sopds_login_next"] == "/web/"
-
     @pytest.mark.parametrize(
         "path",
         ["/web/login/", "/admin/"],

@@ -144,7 +144,7 @@ scan: ## Run the sopds scanner oneshot scan
 clean: ## Clean caches and coverage outputs
 	@echo "Cleaning cache and temporary files..."
 	rm -rf .mypy_cache/ .pytest_cache/ .venv/ build/ dist/ htmlcov/ .coverage
-	rm -rf web_frontend/static/js/vendor/ web_frontend/static/css/sopds.css
+	rm -f web_frontend/static/js/*.min.js web_frontend/static/css/sopds.css
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	find . -type f -name "*.pyc" -delete 2>/dev/null || true
 

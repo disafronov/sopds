@@ -349,7 +349,8 @@ import {fetchFeed} from "./opds.js";
                 links = new Map();
                 let value = "";
                 for (let node = label.nextSibling; node && node.nodeName !== "BR"; node = node.nextSibling) value += node.textContent || "";
-                value.split(",").map((item) => item.trim()).filter(Boolean).forEach((name) => links.set(name, searchUrl("s", name)));
+                const name = value.trim().replace(/\s+/gu, " ");
+                if (name) links.set(name, searchUrl("s", name));
             } else if (labelText.includes("genres") || labelText.includes("жанр")) {
                 (entry.genres || []).forEach((rawName) => {
                     const name = rawName.trim();
