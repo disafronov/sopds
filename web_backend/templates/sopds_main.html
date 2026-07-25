@@ -67,38 +67,7 @@
   <script src="{% static "js/vendor/jquery.min.js" %}"></script>
   <script src="{% static "js/vendor/what-input.min.js" %}"></script>
   <script src="{% static "js/vendor/foundation.min.js" %}"></script>
-
-  <script>
-    $(document).foundation();
-
-    document.querySelectorAll('.clickable-rows tbody tr').forEach(function(row) {
-        row.addEventListener('click', function(event) {
-            if (event.target.closest('a, button, input, select, textarea')) {
-                return;
-            }
-
-            const link = row.querySelector('a[href]');
-            if (link) {
-                window.location.assign(link.href);
-            }
-        });
-    });
-
-    SetSearch();
-	Foundation.Abide.defaults.validators['check_search'] =
-		function($el,required,parent) {
-		     if ($('#main_searchbox')[0].value.length < 3)
-		            return false;
-		     return true;
-	  	};
-	function logout(to_url) {
-	    var out = window.location.href.replace(/:\/\//, '://log:out@');
-
-	    jQuery.get(out).fail(function() {
-	        window.location = to_url;
-	    });
-	}
-  </script>
+  <script src="{% static "js/sopds.js" %}"></script>
 
 
  {% block block-js %}{% endblock %}
