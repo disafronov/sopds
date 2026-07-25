@@ -4,7 +4,6 @@ from typing import Any, Generic, TypeVar, cast
 from urllib.parse import urlsplit
 
 from constance import config
-from django.contrib.auth.models import User
 from django.contrib.syndication.views import Feed
 from django.db.models import Count, Min
 from django.db.models.functions import Upper
@@ -109,6 +108,7 @@ class opdsFeed(Atom1Feed):
         # attrs = super(opdsFeed, self).root_attributes()
         attrs["xmlns"] = "http://www.w3.org/2005/Atom"
         attrs["xmlns:dcterms"] = "http://purl.org/dc/terms"
+        attrs["xmlns:sopds"] = "urn:sopds:meta"
         # attrs['xmlns:os'] = "http://a9.com/-/spec/opensearch/1.1/"
         # attrs['xmlns:opds'] = "http://opds-spec.org/2010/catalog"
         return attrs
@@ -142,8 +142,24 @@ class opdsFeed(Atom1Feed):
                 },
             )
             handler.characters("\n")
+        if self.feed.get("up_url") is not None:
+            handler.addQuickElement(
+                "link",
+                None,
+                {
+                    "href": self.feed["up_url"],
+                    "rel": "up",
+                    "title": self.feed.get("up_title", ""),
+                    "type": "application/atom+xml;profile=opds-catalog;kind=navigation",
+                },
+            )
+            handler.characters("\n")
         handler.addQuickElement("title", self.feed["title"])
         handler.characters("\n")
+        if self.feed.get("page") is not None:
+            handler.addQuickElement("sopds:page", str(self.feed["page"]))
+            handler.addQuickElement("sopds:pages", str(self.feed["pages"]))
+            handler.characters("\n")
         handler.addQuickElement("updated", rfc3339_date(self.latest_post_date()))
         handler.characters("\n")
         if self.feed.get("prev_url") is not None:
@@ -200,6 +216,9 @@ class opdsFeed(Atom1Feed):
         handler.characters("\n")
         handler.addQuickElement("title", item["title"])
         handler.characters("\n")
+        if item.get("is_catalog"):
+            handler.addQuickElement("sopds:cat-type", str(item["cat_type"]))
+            handler.characters("\n")
         if not disable_item_links:
             handler.addQuickElement(
                 "link", "", {"href": item["link"], "rel": "alternate"}
@@ -516,11 +535,19 @@ class CatalogsFeed(AuthFeed):
             "start_url": start_url,
             "prev_url": prev_url,
             "next_url": next_url,
+            "page": paginator["number"],
+            "pages": paginator["num_pages"],
         }
 
     def items(self, obj: Any) -> Any:
         items, cat, paginator = obj
         return items
+
+    def item_extra_kwargs(self, item: ItemDict) -> dict[str, Any]:
+        return {
+            "is_catalog": item["is_catalog"],
+            "cat_type": item.get("cat_type"),
+        }
 
     def item_title(self, item: ItemDict) -> str:
         return cast(str, item["title"])
@@ -784,10 +811,10 @@ class SearchBooksFeed(AuthFeed):
             )
         # Поиск книг на книжной полке
         elif searchtype == "u":
-            if config.SOPDS_AUTH:
-                books = Book.objects.filter(
-                    bookshelf__user=cast("User", request.user)
-                ).order_by("-bookshelf__readtime")
+            if config.SOPDS_AUTH and request.user.is_authenticated:
+                books = Book.objects.filter(bookshelf__user=request.user).order_by(
+                    "-bookshelf__readtime"
+                )
             else:
                 books = Book.objects.filter(id=0)
         # Поиск дубликатов для книги
@@ -914,6 +941,8 @@ class SearchBooksFeed(AuthFeed):
             "description_mime_type": "text/html",
             "prev_url": prev_url,
             "next_url": next_url,
+            "page": obj["paginator"]["number"],
+            "pages": obj["paginator"]["num_pages"],
         }
 
     def items(self, obj: Any) -> Any:
@@ -1191,6 +1220,8 @@ class SearchAuthorsFeed(AuthFeed):
             "description_mime_type": "text",
             "prev_url": prev_url,
             "next_url": next_url,
+            "page": obj["paginator"]["number"],
+            "pages": obj["paginator"]["num_pages"],
         }
 
     def items(self, obj: Any) -> Any:
@@ -1200,7 +1231,7 @@ class SearchAuthorsFeed(AuthFeed):
         return cast(str, item["full_name"])
 
     def item_description(self, item: ItemDict) -> str:
-        return _("Books count: %s") % (Book.objects.filter(authors=item["id"]).count())
+        return cast(str, _("Books count: %s") % item["book_count"])
 
     def item_guid(self, item: ItemDict) -> str:
         return "a:%s" % (item["id"])
@@ -1314,6 +1345,8 @@ class SearchSeriesFeed(AuthFeed):
             "description_mime_type": "text",
             "prev_url": prev_url,
             "next_url": next_url,
+            "page": obj["paginator"]["number"],
+            "pages": obj["paginator"]["num_pages"],
         }
 
     def items(self, obj: Any) -> Any:
@@ -1666,15 +1699,24 @@ class GenresFeed(AuthFeed):
         )
 
     def feed_extra_kwargs(self, obj: Any) -> dict[str, Any]:
-        return {
+        kwargs = {
             "searchTerm_url": "%s%s"
             % (reverse("opds_catalog:opensearch"), "{searchTerms}/"),
             "start_url": reverse("opds_catalog:main"),
             "description_mime_type": "text",
         }
+        if obj:
+            kwargs.update(
+                {
+                    "up_url": reverse("opds_catalog:genres"),
+                    "up_title": self.section_title,
+                }
+            )
+        return kwargs
 
     def get_object(self, request: HttpRequest, section: int = 0) -> Any:
         self.section_id = section
+        self.section_title = Genre.objects.get(id=section).section if section else ""
         return self.section_id
 
     def items(self, obj: Any) -> Any:
@@ -1690,9 +1732,8 @@ class GenresFeed(AuthFeed):
                 .order_by("section")
             )
         else:
-            section = Genre.objects.get(id=section_id).section
             dataset = (
-                Genre.objects.filter(section=section)
+                Genre.objects.filter(section=self.section_title)
                 .annotate(num_book=Count("book"))
                 .filter(num_book__gt=0)
                 .values()

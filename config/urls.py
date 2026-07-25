@@ -45,12 +45,12 @@ admin.site.index_title = _project_title(
 
 urlpatterns = [
     re_path(r"^opds/", include("opds_catalog.urls", namespace="opds")),
-    re_path(r"^web/", include("web_backend.urls", namespace="web")),
+    re_path(r"^web/", include("web_frontend.urls", namespace="web")),
     re_path(r"^admin/", admin.site.urls),
     path("health/liveness/", liveness, name="liveness"),
     path("health/readiness/", readiness, name="readiness"),
     # re_path(r'^logout/$', logout, {'next_page':'/web/'},name='logout'),
-    # re_path(r'^', include('web_backend.urls', namespace='web',
-    #     app_name='web_backend')),
+    # re_path(r'^', include('web_frontend.urls', namespace='web',
+    #     app_name='web_frontend')),
     re_path(r"^$", RedirectView.as_view(url=reverse_lazy("web:main"))),
 ]

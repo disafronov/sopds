@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.utils.translation import gettext as _
 
 from opds_catalog import opdsdb
+from opds_catalog.models import Genre
 
 
 class feedsTestCase(TestCase):
@@ -220,6 +221,17 @@ class feedsTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("prose_contemporary", response.content.decode())
 
+    def test_GenresFeed_subsection_links_to_parent(self) -> None:
+        section = Genre.objects.get(id=232).section
+        content = (
+            Client()
+            .get(reverse("opds:genres", kwargs={"section": 232}))
+            .content.decode()
+        )
+
+        self.assertIn('href="/opds/genres/" rel="up"', content)
+        self.assertIn(f'title="{section}"', content)
+
     def test_CatalogsFeedPage(self) -> None:
         c = Client()
         response = c.get("/opds/catalogs/4/1/")
@@ -236,6 +248,10 @@ class feedsTestCase(TestCase):
         c = Client()
         response = c.get("/opds/search/authors/m/Логинов/1/")
         self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn('xmlns:sopds="urn:sopds:meta"', content)
+        self.assertIn("<sopds:page>1</sopds:page>", content)
+        self.assertIn("<sopds:pages>1</sopds:pages>", content)
 
     def test_SearchSeriesPage(self) -> None:
         c = Client()

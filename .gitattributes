@@ -4,4 +4,4 @@
 
 assets/* linguist-vendored
 static/* linguist-vendored
-sopds_web_backend/static/* linguist-vendored
+sopds_web_frontend/static/* linguist-vendored
