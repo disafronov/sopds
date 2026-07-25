@@ -76,7 +76,7 @@ frontend-test: ## Test frontend libraries
 frontend: frontend-build frontend-test ## Build and test frontend assets
 
 frontend-audit: ## Check frontend dependencies for known vulnerabilities
-	cd $(FRONTEND_DIR) && npm run audit
+	cd $(FRONTEND_DIR) && npm audit
 
 audit: frontend-audit ## Check dependencies for known vulnerabilities
 	@echo "Auditing dependencies..."

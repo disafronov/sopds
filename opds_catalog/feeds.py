@@ -618,14 +618,14 @@ class CatalogsFeed(AuthFeed):
             s = "<b> Book name: </b>%(title)s<br/>"
             if item["authors"]:
                 s += _("<b>Authors: </b>%(authors)s<br/>")
-            if item["genres"]:
-                s += _("<b>Genres: </b>%(genres)s<br/>")
             if item["series"]:
                 s += _("<b>Series: </b>%(series)s<br/>")
-            if item["ser_no"]:
+            if any(series["ser_no"] for series in item["ser_no"]):
                 s += _("<b>No in Series: </b>%(ser_no)s<br/>")
+            if item["genres"]:
+                s += _("<b>Genres: </b>%(genres)s<br/>")
             s += _(
-                "<b>File: </b>%(filename)s<br/><b>File size: </b>%(filesize)s"
+                "<b>File: </b>%(filename)s<br/><b>File size: </b>%(filesize)s KB"
                 "<br/><b>Changes date: </b>%(docdate)s<br/>"
             )
             s += "<p class='book'>%(annotation)s</p>"
@@ -638,7 +638,11 @@ class CatalogsFeed(AuthFeed):
                 "authors": ", ".join(a["full_name"] for a in item["authors"]),
                 "genres": ", ".join(g["subsection"] for g in item["genres"]),
                 "series": ", ".join(s["ser"] for s in item["series"]),
-                "ser_no": ", ".join(str(s["ser_no"]) for s in item["ser_no"]),
+                "ser_no": ", ".join(
+                    str(series["ser_no"])
+                    for series in item["ser_no"]
+                    if series["ser_no"]
+                ),
             }
 
 
@@ -817,6 +821,13 @@ class SearchBooksFeed(AuthFeed):
                 )
             else:
                 books = Book.objects.filter(id=0)
+        # Поиск книги по ID
+        elif searchtype == "i":
+            try:
+                book_id = int(searchterms or "")
+            except Exception:
+                book_id = 0
+            books = Book.objects.filter(id=book_id)
         # Поиск дубликатов для книги
         elif searchtype == "d":
             book_id = int(searchterms or "")
@@ -1011,14 +1022,14 @@ class SearchBooksFeed(AuthFeed):
         s = "<b> Book name: </b>%(title)s<br/>"
         if item["authors"]:
             s += _("<b>Authors: </b>%(authors)s<br/>")
-        if item["genres"]:
-            s += _("<b>Genres: </b>%(genres)s<br/>")
         if item["series"]:
             s += _("<b>Series: </b>%(series)s<br/>")
-        if item["ser_no"]:
+        if any(series["ser_no"] for series in item["ser_no"]):
             s += _("<b>No in Series: </b>%(ser_no)s<br/>")
+        if item["genres"]:
+            s += _("<b>Genres: </b>%(genres)s<br/>")
         s += _(
-            "<b>File: </b>%(filename)s<br/><b>File size: </b>%(filesize)s"
+            "<b>File: </b>%(filename)s<br/><b>File size: </b>%(filesize)s KB"
             "<br/><b>Changes date: </b>%(docdate)s<br/>"
         )
         if item["doubles"]:
@@ -1034,7 +1045,9 @@ class SearchBooksFeed(AuthFeed):
             "authors": ", ".join(a["full_name"] for a in item["authors"]),
             "genres": ", ".join(g["subsection"] for g in item["genres"]),
             "series": ", ".join(s["ser"] for s in item["series"]),
-            "ser_no": ", ".join(str(s["ser_no"]) for s in item["ser_no"]),
+            "ser_no": ", ".join(
+                str(series["ser_no"]) for series in item["ser_no"] if series["ser_no"]
+            ),
         }
 
 

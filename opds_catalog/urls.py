@@ -41,12 +41,13 @@ urlpatterns = [
     url(r"^search/$", feeds.OpenSearch, name="opensearch"),
     # url(r'search/{searchTerms}/$',feeds.OpenSearch, name='search_template'),
     url(
-        r"^search/books/(?P<searchtype>[bmasgued])/(?P<searchterms>.+)/(?P<page>\d+)/$",
+        r"^search/books/(?P<searchtype>[bmasguied])/(?P<searchterms>.+)/"
+        r"(?P<page>\d+)/$",
         feeds.SearchBooksFeed(),
         name="searchbooks",
     ),
     url(
-        r"^search/books/(?P<searchtype>[bmasgued])/(?P<searchterms>.+)/$",
+        r"^search/books/(?P<searchtype>[bmasguied])/(?P<searchterms>.+)/$",
         feeds.SearchBooksFeed(),
         name="searchbooks",
     ),

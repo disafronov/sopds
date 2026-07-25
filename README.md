@@ -6,7 +6,7 @@
 ## Features
 
 - **OPDS 1.2 feed** at `/opds/` for OPDS-compatible reading apps (KOReader, FBReader, etc.)
-- **Web UI** at `/web/` for browsing the catalog in a browser
+- **Web UI** at `/web/` for browsing the catalog in a browser (the browser OPDS client requires JavaScript)
 - **Book formats**: FB2, EPUB, MOBI
 - **Scheduled scanning** via APScheduler with cron-like scheduling
 - **INPX archive support** for batch metadata import
@@ -173,6 +173,11 @@ Run `python manage.py <command> --help` for full usage details.
 | `/admin/` | Django admin interface |
 | `/health/liveness/` | Liveness probe (returns 200) |
 | `/health/readiness/` | Readiness probe (checks DB connectivity) |
+
+The web interface is a built-in OPDS client: catalog navigation, selectors,
+search results, pagination, and book lists are loaded from `/opds/`. JavaScript
+must be enabled in the browser for these pages to render. Native reading apps
+can use `/opds/` directly without the web interface.
 
 ## Development
 
