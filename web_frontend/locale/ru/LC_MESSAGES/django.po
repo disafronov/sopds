@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-25 16:36+0000\n"
+"POT-Creation-Date: 2026-07-25 18:37+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -19,38 +19,6 @@ msgstr ""
 "Plural-Forms: nplurals=4; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<12 || n%100>14) ? 1 : n%10==0 || (n%10>=5 && n%10<=9) || "
 "(n%100>=11 && n%100<=14)? 2 : 3);\n"
-
-#: web_frontend/templates/admin/base.html:31
-msgid "Welcome,"
-msgstr "Добро пожаловать, "
-
-#: web_frontend/templates/admin/base.html:36
-msgid "View site"
-msgstr "Просмотр сайта"
-
-#: web_frontend/templates/admin/base.html:41
-msgid "Documentation"
-msgstr "Документация"
-
-#: web_frontend/templates/admin/base.html:45
-msgid "Change password"
-msgstr "Смена пароля"
-
-#: web_frontend/templates/admin/base.html:47
-msgid "Log out"
-msgstr "Выход"
-
-#: web_frontend/templates/admin/base.html:57
-msgid "Home"
-msgstr "Главная"
-
-#: web_frontend/templates/admin/base.html:74
-#: web_frontend/templates/sopds_main.html:43
-#, python-format
-msgid "Your timezone could not be detected. Times are displayed in %(tz)s."
-msgstr ""
-"Не удалось определить ваш часовой пояс. Время указано для часового пояса "
-"%(tz)s."
 
 #: web_frontend/templates/sopds_books_opds.html:6
 msgid "Confirm the deletion of the book to your bookshelf."
@@ -238,6 +206,13 @@ msgid ""
 msgstr ""
 "Включите JavaScript в браузере, чтобы использовать веб-клиент OPDS. Лента "
 "OPDS также доступна по адресу /opds/."
+
+#: web_frontend/templates/sopds_main.html:43
+#, python-format
+msgid "Your timezone could not be detected. Times are displayed in %(tz)s."
+msgstr ""
+"Не удалось определить ваш часовой пояс. Время указано для часового пояса "
+"%(tz)s."
 
 #: web_frontend/templates/sopds_menu.html:6
 #: web_frontend/templates/sopds_menu.html:16 web_frontend/views.py:297
