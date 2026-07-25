@@ -13,7 +13,7 @@ from django.utils import translation
 from django.utils.deprecation import MiddlewareMixin
 from django.utils.http import escape_leading_slashes
 
-from web_backend.settings import LOGIN_NEXT_SESSION_KEY
+from web_frontend.settings import LOGIN_NEXT_SESSION_KEY
 
 
 class BasicAuthMiddleware(MiddlewareMixin):
@@ -36,7 +36,7 @@ class BasicAuthMiddleware(MiddlewareMixin):
         _view_args: object,
         _view_kwargs: object,
     ) -> Optional[HttpResponse]:
-        from web_backend.views import LoginView
+        from web_frontend.views import LoginView
 
         if not config.SOPDS_AUTH or request.user.is_authenticated:
             return None

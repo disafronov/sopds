@@ -42,8 +42,8 @@ staticfiles/
 *.egg
 
 # Generated frontend assets (rebuilt in the frontend stage)
-web_backend/static/css/sopds.css
-web_backend/static/js/vendor/
+web_frontend/static/css/
+web_frontend/static/js/
 
 # Test files (not needed in production)
 opds_catalog/tests/data/

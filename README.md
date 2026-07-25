@@ -223,7 +223,7 @@ Pre-commit hooks are installed by `make install`.
 ```text
 config/                 Django project configuration (settings, urls, wsgi)
 opds_catalog/           Core app: models, scanner, OPDS feeds, middleware
-web_backend/            Web UI app: views, templates, static assets
+web_frontend/            Web UI app: views, templates, static assets
 ops/                    Operations: dev/start launchers, health checks, supervisor
 book_tools/             SOPDS book-format adapters
 assets/                 Front-end assets
