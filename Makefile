@@ -36,7 +36,7 @@ DOCKER_RUN_OPTS = --rm \
 	$(if $(wildcard .env.docker),--env-file .env.docker,) \
 	-v "${PWD}/opds_catalog/tests/data":/books
 
-.PHONY: all audit clean dead-code dev docker docker-build docker-run format frontend frontend-audit frontend-build frontend-dev frontend-test help install lint locale makemigrations migrate migrate-mysql migrate-postgresql run scanner scan test test-mysql test-postgresql
+.PHONY: all audit clean collectstatic dead-code dev docker docker-build docker-run format frontend frontend-audit frontend-build frontend-dev frontend-test help install lint locale makemigrations migrate migrate-mysql migrate-postgresql run scanner scan test test-mysql test-postgresql
 
 help: ## Show this help message
 	@echo "Available commands:"
@@ -92,6 +92,9 @@ locale: ## Make and compile locale messages
 	@echo "Compiling translation messages..."
 	DATABASE_URL=$(TOOLING_DATABASE_URL) DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py compilemessages --ignore=".venv/*"
 
+collectstatic: ## Collect static assets for local serving
+	DATABASE_URL=$(TOOLING_DATABASE_URL) DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py collectstatic --noinput
+
 makemigrations: ## Create new migrations
 	@echo "Creating migrations..."
 	DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py makemigrations
@@ -119,7 +122,7 @@ test: locale migrate test-postgresql test-mysql ## Run tests on both supported d
 all: lint frontend test dead-code ## Run all checks
 	@echo "All checks completed successfully!"
 
-run: frontend-build locale ## Start the app on selected DATABASE_URL (with migrations)
+run: frontend-build locale collectstatic ## Start the app on selected DATABASE_URL (with migrations)
 	@echo "Running Django dev server + scanner..."
 	DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py migrate
 	@if [ -n "$$DJANGO_SUPERUSER_USERNAME" ] && [ -n "$$DJANGO_SUPERUSER_PASSWORD" ] && [ -n "$$DJANGO_SUPERUSER_EMAIL" ]; then \
