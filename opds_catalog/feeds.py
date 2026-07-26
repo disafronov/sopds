@@ -143,7 +143,6 @@ class opdsFeed(Atom1Feed):
         # attrs = super(opdsFeed, self).root_attributes()
         attrs["xmlns"] = "http://www.w3.org/2005/Atom"
         attrs["xmlns:dcterms"] = "http://purl.org/dc/terms"
-        attrs["xmlns:sopds"] = "urn:sopds:meta"
         # attrs['xmlns:os'] = "http://a9.com/-/spec/opensearch/1.1/"
         # attrs['xmlns:opds'] = "http://opds-spec.org/2010/catalog"
         return attrs
@@ -304,19 +303,6 @@ class opdsFeed(Atom1Feed):
                 )
                 handler.characters("\n")
 
-        if item.get("genres") is not None:
-            for g in item["genres"]:
-                handler.addQuickElement(
-                    "category",
-                    "",
-                    {
-                        "term": g["subsection"],
-                        "label": g["subsection"],
-                        "sopds:id": str(g["id"]),
-                    },
-                )
-            handler.characters("\n")
-
         if item.get("series") is not None:
             series_numbers = {
                 value["ser_id"]: value["ser_no"]
@@ -344,6 +330,38 @@ class opdsFeed(Atom1Feed):
                             "Series: %(series)s",
                         )
                         % {"series": series_title},
+                        "type": (
+                            "application/atom+xml;"
+                            "profile=opds-catalog;kind=acquisition"
+                        ),
+                    },
+                )
+            handler.characters("\n")
+
+        if item.get("genres") is not None:
+            for g in item["genres"]:
+                handler.addQuickElement(
+                    "category",
+                    "",
+                    {
+                        "term": g["subsection"],
+                        "label": g["subsection"],
+                    },
+                )
+                handler.addQuickElement(
+                    "link",
+                    "",
+                    {
+                        "href": reverse(
+                            "opds_catalog:searchbooks",
+                            kwargs={"searchtype": "g", "searchterms": g["id"]},
+                        ),
+                        "rel": "related",
+                        "title": pgettext(
+                            "book metadata link",
+                            "Genre: %(genre)s",
+                        )
+                        % {"genre": g["subsection"]},
                         "type": (
                             "application/atom+xml;"
                             "profile=opds-catalog;kind=acquisition"

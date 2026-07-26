@@ -335,8 +335,14 @@ test("book lists link each series by its stable id", async () => {
             type="application/fb2+xml" length="12000"/>
       <link href="/opds/thumb/42/" rel="http://opds-spec.org/image/thumbnail"
             type="image/jpeg"/>
-      <category term="sf" label="sf" sopds:id="31"/>
-      <category term="sf_detective" label="sf_detective" sopds:id="32"/>
+      <category term="sf" label="sf"/>
+      <category term="sf_detective" label="sf_detective"/>
+      <link href="/opds/search/books/g/31/" rel="related"
+            title="Genre: sf"
+            type="application/atom+xml;profile=opds-catalog;kind=acquisition"/>
+      <link href="/opds/search/books/g/32/" rel="related"
+            title="Genre: sf_detective"
+            type="application/atom+xml;profile=opds-catalog;kind=acquisition"/>
       <link href="/opds/search/books/s/17/" rel="related"
             title="Series: Collection, with comma [3]"
             type="application/atom+xml;profile=opds-catalog;kind=acquisition"/>
