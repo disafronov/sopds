@@ -1,5 +1,5 @@
 # Test data (265 MB) - mounted via VOLUME at runtime
-books/
+opds_catalog/tests/data/local/
 
 # Coverage reports
 htmlcov/
