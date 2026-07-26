@@ -235,7 +235,9 @@ test("book lists hide annotations and preserve series commas", async () => {
       <title>Fixture book</title>
       <author><name>Fixture author</name></author>
       <link href="/opds/search/books/i/42/" rel="alternate"/>
-      <content type="text"><![CDATA[<b> Book name: </b>Fixture book<br/><b>Authors: </b>Fixture author<br/><b>Series: </b>Collection, with comma<br/><b>Genres: </b>prose_contemporary<br/><p class="book">Hidden annotation</p>]]></content>
+      <category term="sf" label="sf"/>
+      <category term="sf_detective" label="sf_detective"/>
+      <content type="text"><![CDATA[<b> Book name: </b>Fixture book<br/><b>Authors: </b>Fixture author<br/><b>Series: </b>Collection, with comma<br/><b>Genres: </b>sf, sf_detective<br/><p class="book">Hidden annotation</p>]]></content>
     </entry>
   </feed>`;
   const dom = new JSDOM(
@@ -255,6 +257,12 @@ test("book lists hide annotations and preserve series commas", async () => {
   assert.equal(
     new URL(seriesLinks[0].href).searchParams.get("searchterms"),
     "Collection, with comma",
+  );
+  const genreLinks = [...window.document.querySelectorAll('a[href*="searchtype=g"]')];
+  assert.deepEqual(genreLinks.map((link) => link.textContent), ["sf", "sf_detective"]);
+  assert.deepEqual(
+    genreLinks.map((link) => new URL(link.href).searchParams.get("searchterms")),
+    ["sf", "sf_detective"],
   );
   assert.equal(window.document.body.textContent.includes("Hidden annotation"), false);
 
