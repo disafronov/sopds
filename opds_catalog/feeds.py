@@ -14,6 +14,7 @@ from django.utils import timezone
 from django.utils.feedgenerator import Atom1Feed, Enclosure, rfc3339_date
 from django.utils.html import strip_tags
 from django.utils.translation import gettext as _
+from django.utils.translation import pgettext
 
 from book_tools.format import mime_detector
 from book_tools.format.mimetype import Mimetype
@@ -108,9 +109,9 @@ class AuthFeed(_SyndicationFeedBase[ItemDict, FeedObject]):
 
 
 class opdsEnclosure(Enclosure):
-    def __init__(self, url: str, mime_type: str, rel: str) -> None:
+    def __init__(self, url: str, mime_type: str, rel: str, length: int = 0) -> None:
         self.rel = rel
-        super(opdsEnclosure, self).__init__(url, 0, mime_type)
+        super(opdsEnclosure, self).__init__(url, length, mime_type)
 
 
 class opdsFeed(Atom1Feed):
@@ -242,14 +243,17 @@ class opdsFeed(Atom1Feed):
         if not disable_item_links:
             if item.get("enclosures") is not None:
                 for enclosure in item["enclosures"]:
+                    attributes = {
+                        "rel": enclosure.rel,
+                        "href": enclosure.url,
+                        "type": enclosure.mime_type,
+                    }
+                    if enclosure.length:
+                        attributes["length"] = str(enclosure.length)
                     handler.addQuickElement(
                         "link",
                         "",
-                        {
-                            "rel": enclosure.rel,
-                            "href": enclosure.url,
-                            "type": enclosure.mime_type,
-                        },
+                        attributes,
                     )
                     handler.characters("\n")
 
@@ -271,7 +275,13 @@ class opdsFeed(Atom1Feed):
             for a in item["authors"]:
                 handler.startElement("author", {})
                 handler.addQuickElement("name", a["full_name"])
-                handler.addQuickElement("sopds:id", str(a["id"]))
+                handler.addQuickElement(
+                    "uri",
+                    reverse(
+                        "opds_catalog:searchbooks",
+                        kwargs={"searchtype": "a", "searchterms": a["id"]},
+                    ),
+                )
                 handler.endElement("author")
                 handler.addQuickElement(
                     "link",
@@ -311,9 +321,12 @@ class opdsFeed(Atom1Feed):
                 )
             handler.characters("\n")
 
-        for name in ("filename", "filesize", "docdate", "annotation"):
-            if item.get(name) is not None:
-                handler.addQuickElement(f"sopds:{name}", str(item[name]))
+        if item.get("docdate") is not None:
+            handler.addQuickElement("dcterms:issued", str(item["docdate"]))
+        if item.get("annotation"):
+            handler.addQuickElement(
+                "summary", str(item["annotation"]), {"type": "text"}
+            )
         handler.characters("\n")
 
         if item.get("doubles") is not None:
@@ -522,6 +535,7 @@ class CatalogsFeed(AuthFeed):
                 "format": book_row.format,
                 "title": book_row.title,
                 "filesize": book_row.filesize // 1000,
+                "file_length": book_row.filesize,
                 "authors": book_row.authors.values(),
                 "genres": book_row.genres.values(),
                 "series": book_row.series.values(),
@@ -584,8 +598,6 @@ class CatalogsFeed(AuthFeed):
             "authors": item.get("authors"),
             "genres": item.get("genres"),
             "series": item.get("series"),
-            "filename": item.get("filename"),
-            "filesize": item.get("filesize"),
             "docdate": item.get("docdate"),
             "annotation": item.get("annotation"),
         }
@@ -626,6 +638,7 @@ class CatalogsFeed(AuthFeed):
                     ),
                     mime,
                     "http://opds-spec.org/acquisition/open-access",
+                    item["file_length"],
                 ),
             ]
             if not item["format"] in settings.NOZIP_FORMATS:
@@ -649,7 +662,7 @@ class CatalogsFeed(AuthFeed):
                 opdsEnclosure(
                     reverse("opds_catalog:thumb", kwargs={"book_id": item["id"]}),
                     "image/jpeg",
-                    "http://opds-spec.org/thumbnail",
+                    "http://opds-spec.org/image/thumbnail",
                 ),
             ]
             return enclosure
@@ -658,30 +671,17 @@ class CatalogsFeed(AuthFeed):
         if item["is_catalog"]:
             return cast(str, item["title"])
         else:
-            s = "<b> Book name: </b>%(title)s<br/>"
-            if item["authors"]:
-                s += _("<b>Authors: </b>%(authors)s<br/>")
+            s = ""
             if item["series"]:
-                s += _("<b>Series: </b>%(series)s<br/>")
+                s += pgettext("book metadata label", "<b>Series: </b>%(series)s<br/>")
             if any(series["ser_no"] for series in item["ser_no"]):
-                s += _("<b>No in Series: </b>%(ser_no)s<br/>")
-            if item["genres"]:
-                s += _("<b>Genres: </b>%(genres)s<br/>")
-            s += _(
-                "<b>File: </b>%(filename)s<br/><b>File size: </b>%(filesize)s KB"
-                "<br/><b>Changes date: </b>%(docdate)s<br/>"
-            )
+                s += pgettext(
+                    "book metadata label",
+                    "<b>No in Series: </b>%(ser_no)s<br/>",
+                )
             s += "<p class='book'>%(annotation)s</p>"
             return s % {
-                "title": _book_title(item["title"]),
-                "filename": item["filename"],
-                "filesize": item["filesize"],
-                "docdate": item["docdate"],
                 "annotation": item["annotation"],
-                "authors": ", ".join(
-                    _author_name(a["full_name"]) for a in item["authors"]
-                ),
-                "genres": ", ".join(g["subsection"] for g in item["genres"]),
                 "series": ", ".join(_series_name(s["ser"]) for s in item["series"]),
                 "ser_no": ", ".join(
                     str(series["ser_no"])
@@ -923,6 +923,7 @@ class SearchBooksFeed(AuthFeed):
                 "format": row.format,
                 "title": row.title,
                 "filesize": row.filesize // 1000,
+                "file_length": row.filesize,
                 "authors": row.authors.values(),
                 "genres": row.genres.values(),
                 "series": row.series.values(),
@@ -1032,6 +1033,7 @@ class SearchBooksFeed(AuthFeed):
                 ),
                 mime,
                 "http://opds-spec.org/acquisition/open-access",
+                item["file_length"],
             ),
         ]
         if not item["format"] in settings.NOZIP_FORMATS:
@@ -1055,7 +1057,7 @@ class SearchBooksFeed(AuthFeed):
             opdsEnclosure(
                 reverse("opds_catalog:thumb", kwargs={"book_id": item["id"]}),
                 "image/jpeg",
-                "http://opds-spec.org/thumbnail",
+                "http://opds-spec.org/image/thumbnail",
             ),
         ]
         return enclosure
@@ -1065,39 +1067,26 @@ class SearchBooksFeed(AuthFeed):
             "authors": item["authors"],
             "genres": item["genres"],
             "series": item["series"],
-            "filename": item["filename"],
-            "filesize": item["filesize"],
             "docdate": item["docdate"],
             "annotation": item["annotation"],
             "doubles": item["id"] if item["doubles"] > 0 else None,
         }
 
     def item_description(self, item: ItemDict) -> str:
-        s = "<b> Book name: </b>%(title)s<br/>"
-        if item["authors"]:
-            s += _("<b>Authors: </b>%(authors)s<br/>")
+        s = ""
         if item["series"]:
-            s += _("<b>Series: </b>%(series)s<br/>")
+            s += pgettext("book metadata label", "<b>Series: </b>%(series)s<br/>")
         if any(series["ser_no"] for series in item["ser_no"]):
-            s += _("<b>No in Series: </b>%(ser_no)s<br/>")
-        if item["genres"]:
-            s += _("<b>Genres: </b>%(genres)s<br/>")
-        s += _(
-            "<b>File: </b>%(filename)s<br/><b>File size: </b>%(filesize)s KB"
-            "<br/><b>Changes date: </b>%(docdate)s<br/>"
-        )
+            s += pgettext(
+                "book metadata label",
+                "<b>No in Series: </b>%(ser_no)s<br/>",
+            )
         if item["doubles"]:
             s += _("<b>Doubles count: </b>%(doubles)s<br/>")
         s += "<p class='book'>%(annotation)s</p>"
         return s % {
-            "title": _book_title(item["title"]),
-            "filename": item["filename"],
-            "filesize": item["filesize"],
-            "docdate": item["docdate"],
             "doubles": item["doubles"],
             "annotation": item["annotation"],
-            "authors": ", ".join(_author_name(a["full_name"]) for a in item["authors"]),
-            "genres": ", ".join(g["subsection"] for g in item["genres"]),
             "series": ", ".join(_series_name(s["ser"]) for s in item["series"]),
             "ser_no": ", ".join(
                 str(series["ser_no"]) for series in item["ser_no"] if series["ser_no"]

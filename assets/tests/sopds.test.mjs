@@ -326,16 +326,18 @@ test("book lists link each series by its stable id", async () => {
     <entry>
       <id>book:42</id>
       <title>Fixture book</title>
-      <author><name>Fixture author</name><sopds:id>11</sopds:id></author>
+      <author><name>Fixture author</name><uri>/opds/search/books/a/11/</uri></author>
       <link href="/opds/search/books/i/42/" rel="alternate"/>
+      <link href="/opds/download/42/0/" rel="http://opds-spec.org/acquisition/open-access"
+            type="application/fb2+xml" length="12000"/>
+      <link href="/opds/thumb/42/" rel="http://opds-spec.org/image/thumbnail"
+            type="image/jpeg"/>
       <category term="sf" label="sf" sopds:id="31"/>
       <category term="sf_detective" label="sf_detective" sopds:id="32"/>
       <sopds:series id="17">Collection, with comma</sopds:series>
       <sopds:series id="23">Other collection</sopds:series>
-      <sopds:filename>fixture.fb2</sopds:filename>
-      <sopds:filesize>12</sopds:filesize>
-      <sopds:docdate>2026-07-26</sopds:docdate>
-      <sopds:annotation>Hidden annotation</sopds:annotation>
+      <dcterms:issued xmlns:dcterms="http://purl.org/dc/terms">2026-07-26</dcterms:issued>
+      <summary type="text">Hidden annotation</summary>
       <content type="text">HTML must not be parsed</content>
     </entry>
   </feed>`;
@@ -344,8 +346,8 @@ test("book lists link each series by its stable id", async () => {
       <div data-opds-books data-feed-url="/opds/search/books/i/42/"
            data-book-name-label="Book name" data-authors-label="Authors"
            data-series-label="Series" data-genres-label="Genres"
-           data-file-label="File" data-file-size-label="File size"
-           data-file-size-unit="KB" data-changes-date-label="Changes date"></div>`,
+           data-file-size-label="File size"
+           data-file-size-unit="KB" data-publication-date-label="Publication date"></div>`,
     { runScripts: "dangerously", url: "https://sopds.test/web/search/books/" },
   );
   const { window } = dom;
@@ -371,6 +373,10 @@ test("book lists link each series by its stable id", async () => {
   );
   assert.equal(window.document.body.textContent.includes("Hidden annotation"), false);
   assert.equal(window.document.body.textContent.includes("HTML must not be parsed"), false);
+  assert.equal(
+    window.document.querySelector(".book-card img.thumbnail").getAttribute("src"),
+    "/opds/thumb/42/",
+  );
 
   dom.window.close();
 });
@@ -382,7 +388,7 @@ test("direct book page shows structured XML annotation", async () => {
       <id>book:42</id>
       <title>Fixture book</title>
       <link href="/opds/search/books/i/42/" rel="alternate"/>
-      <sopds:annotation>Visible annotation</sopds:annotation>
+      <summary type="text">Visible annotation</summary>
       <content type="text">Ignored HTML description</content>
     </entry>
   </feed>`;
@@ -391,8 +397,8 @@ test("direct book page shows structured XML annotation", async () => {
       <div data-opds-books data-searchtype="i" data-feed-url="/opds/search/books/i/42/"
            data-book-name-label="Book name" data-authors-label="Authors"
            data-series-label="Series" data-genres-label="Genres"
-           data-file-label="File" data-file-size-label="File size"
-           data-file-size-unit="KB" data-changes-date-label="Changes date"></div>`,
+           data-file-size-label="File size"
+           data-file-size-unit="KB" data-publication-date-label="Publication date"></div>`,
     { runScripts: "dangerously", url: "https://sopds.test/web/search/books/" },
   );
   const { window } = dom;
