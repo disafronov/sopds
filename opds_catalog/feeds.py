@@ -19,6 +19,7 @@ from django.utils.translation import pgettext
 from book_tools.format import mime_detector
 from book_tools.format.mimetype import Mimetype
 from opds_catalog import models, settings
+from opds_catalog.dl import getBookAnnotation
 from opds_catalog.models import (
     Author,
     Book,
@@ -379,10 +380,10 @@ class opdsFeed(Atom1Feed):
 
         if item.get("docdate") is not None:
             handler.addQuickElement("dcterms:issued", str(item["docdate"]))
-        if item.get("annotation"):
-            handler.addQuickElement(
-                "summary", str(item["annotation"]), {"type": "text"}
-            )
+        # if item.get("annotation"):
+        #     handler.addQuickElement(
+        #         "summary", str(item["annotation"]), {"type": "text"}
+        #     )
         handler.characters("\n")
 
         if item.get("doubles") is not None:
@@ -941,12 +942,12 @@ class SearchBooksFeed(AuthFeed):
                 "path": row.catalog.path,
                 "registerdate": row.registerdate,
                 "id": row.id,
-                "annotation": strip_tags(row.annotation) if searchtype != "i" else "",
-                "content_url": (
-                    reverse("opds_catalog:annotation", kwargs={"book_id": row.id})
+                "annotation": (
+                    row.annotation or getBookAnnotation(row) or ""
                     if searchtype == "i"
-                    else None
+                    else ""
                 ),
+                "content_url": None,
                 "docdate": row.docdate,
                 "format": row.format,
                 "title": row.title,

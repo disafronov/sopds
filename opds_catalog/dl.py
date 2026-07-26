@@ -14,7 +14,6 @@ from django.http import (
     HttpResponse,
     HttpResponseRedirect,
 )
-from django.utils.html import strip_tags
 from django.views.decorators.cache import cache_page
 from PIL import Image
 
@@ -88,10 +87,8 @@ def getBookAnnotation(book: Book) -> str | None:
 def Annotation(request: HttpRequest, book_id: int) -> HttpResponse:
     """Load one book's annotation from its source file."""
     book = Book.objects.get(id=book_id)
-    annotation = book.annotation or getBookAnnotation(book)
-    return HttpResponse(
-        strip_tags(annotation or ""), content_type="text/plain; charset=utf-8"
-    )
+    annotation = getBookAnnotation(book)
+    return HttpResponse(annotation or "", content_type="text/html; charset=utf-8")
 
 
 def getFileDataZip(book: Book) -> io.BytesIO:

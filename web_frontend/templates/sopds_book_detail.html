@@ -1,0 +1,19 @@
+{% extends "sopds_main.html" %}
+{% load i18n static %}
+
+{% block body %}
+<div class="opds-book-detail" data-opds-book-detail
+     data-feed-url="/opds/search/books/i/{{ book_id }}/"
+     data-cover-url="{% url 'opds:covertmpl' %}"
+     data-no-cover="{% static 'images/nocover.jpg' %}"
+     data-download-label="{% trans "Download" %}"
+     data-authors-label="{% trans "Authors" %}"
+     data-series-label="{% trans "Series" %}"
+     data-genres-label="{% trans "Genres" %}"
+     data-file-size-label="{% trans "File size" %}"
+     data-file-size-unit="{% trans "Kb" %}"
+     data-publication-date-label="{% trans "Date" %}"
+     data-annotation-label="{% trans "Annotation" %}"
+>
+</div>
+{% endblock %}
