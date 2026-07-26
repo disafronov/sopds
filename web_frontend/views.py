@@ -500,3 +500,13 @@ def handler403(request: HttpRequest, args: dict[str, Any]) -> HttpResponse:
     response = render(request, "sopds_login.html", args)
     response.status_code = 403
     return response
+
+
+@login_required
+def BookDetailView(request: HttpRequest, book_id: int) -> HttpResponse:
+    """Book detail page — rendered client-side via JS OPDS client."""
+    args = {
+        "book_id": book_id,
+        "breadcrumbs": [_("Book")],
+    }
+    return render(request, "sopds_book_detail.html", args)
