@@ -125,6 +125,7 @@ export function parseFeed(xml) {
 
 export async function fetchFeed(url) {
     const response = await fetch(url, {
+        cache: "no-store",
         credentials: "same-origin",
         headers: {Accept: "application/atom+xml"},
     });
