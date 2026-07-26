@@ -318,11 +318,37 @@ class opdsFeed(Atom1Feed):
             handler.characters("\n")
 
         if item.get("series") is not None:
+            series_numbers = {
+                value["ser_id"]: value["ser_no"]
+                for value in item.get("ser_no") or []
+                if value["ser_no"]
+            }
             for series in item["series"]:
+                series_title = _series_name(series["ser"])
+                if number := series_numbers.get(series["id"]):
+                    series_title = f"{series_title} [{number}]"
                 handler.addQuickElement(
-                    "sopds:series",
-                    _series_name(series["ser"]),
-                    {"id": str(series["id"])},
+                    "link",
+                    "",
+                    {
+                        "href": reverse(
+                            "opds_catalog:searchbooks",
+                            kwargs={
+                                "searchtype": "s",
+                                "searchterms": series["id"],
+                            },
+                        ),
+                        "rel": "related",
+                        "title": pgettext(
+                            "book metadata link",
+                            "Series: %(series)s",
+                        )
+                        % {"series": series_title},
+                        "type": (
+                            "application/atom+xml;"
+                            "profile=opds-catalog;kind=acquisition"
+                        ),
+                    },
                 )
             handler.characters("\n")
 
@@ -543,7 +569,7 @@ class CatalogsFeed(AuthFeed):
                 "authors": book_row.authors.values(),
                 "genres": book_row.genres.values(),
                 "series": book_row.series.values(),
-                "ser_no": book_row.bseries_set.values("ser_no"),
+                "ser_no": book_row.bseries_set.values("ser_id", "ser_no"),
             }
             items.append(p)
 
@@ -581,6 +607,7 @@ class CatalogsFeed(AuthFeed):
             "authors": item.get("authors"),
             "genres": item.get("genres"),
             "series": item.get("series"),
+            "ser_no": item.get("ser_no"),
             "docdate": item.get("docdate"),
             "annotation": item.get("annotation"),
         }
@@ -655,22 +682,9 @@ class CatalogsFeed(AuthFeed):
             return cast(str, item["title"])
         else:
             s = ""
-            if item["series"]:
-                s += pgettext("book metadata label", "<b>Series: </b>%(series)s<br/>")
-            if any(series["ser_no"] for series in item["ser_no"]):
-                s += pgettext(
-                    "book metadata label",
-                    "<b>No in Series: </b>%(ser_no)s<br/>",
-                )
             s += "<p class='book'>%(annotation)s</p>"
             return s % {
                 "annotation": item["annotation"],
-                "series": ", ".join(_series_name(s["ser"]) for s in item["series"]),
-                "ser_no": ", ".join(
-                    str(series["ser_no"])
-                    for series in item["ser_no"]
-                    if series["ser_no"]
-                ),
             }
 
 
@@ -910,7 +924,7 @@ class SearchBooksFeed(AuthFeed):
                 "authors": row.authors.values(),
                 "genres": row.genres.values(),
                 "series": row.series.values(),
-                "ser_no": row.bseries_set.values("ser_no"),
+                "ser_no": row.bseries_set.values("ser_id", "ser_no"),
             }
             if summary_DOUBLES_HIDE:
                 title = p["title"]
@@ -1036,6 +1050,7 @@ class SearchBooksFeed(AuthFeed):
             "authors": item["authors"],
             "genres": item["genres"],
             "series": item["series"],
+            "ser_no": item["ser_no"],
             "docdate": item["docdate"],
             "annotation": item["annotation"],
             "doubles": item["id"] if item["doubles"] > 0 else None,
@@ -1043,23 +1058,12 @@ class SearchBooksFeed(AuthFeed):
 
     def item_description(self, item: ItemDict) -> str:
         s = ""
-        if item["series"]:
-            s += pgettext("book metadata label", "<b>Series: </b>%(series)s<br/>")
-        if any(series["ser_no"] for series in item["ser_no"]):
-            s += pgettext(
-                "book metadata label",
-                "<b>No in Series: </b>%(ser_no)s<br/>",
-            )
         if item["doubles"]:
             s += _("<b>Doubles count: </b>%(doubles)s<br/>")
         s += "<p class='book'>%(annotation)s</p>"
         return s % {
             "doubles": item["doubles"],
             "annotation": item["annotation"],
-            "series": ", ".join(_series_name(s["ser"]) for s in item["series"]),
-            "ser_no": ", ".join(
-                str(series["ser_no"]) for series in item["ser_no"] if series["ser_no"]
-            ),
         }
 
 
