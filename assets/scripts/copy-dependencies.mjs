@@ -7,8 +7,11 @@ const outputRoot = resolve(frontendRoot, "../web_frontend/static/js");
 
 const assets = [
   ["jquery/dist/jquery.min.js", "jquery.min.js"],
+  ["jquery/dist/jquery.min.map", "jquery.min.map"],
   ["foundation-sites/dist/js/foundation.min.js", "foundation.min.js"],
+  ["foundation-sites/dist/js/foundation.min.js.map", "foundation.min.js.map"],
   ["what-input/dist/what-input.min.js", "what-input.min.js"],
+  ["what-input/dist/what-input.min.js.map", "what-input.min.js.map"],
 ];
 
 await mkdir(outputRoot, { recursive: true });
