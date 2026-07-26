@@ -9,6 +9,7 @@ urlpatterns = [
     url(r"^search/authors/$", views.SearchAuthorsView, name="searchauthors"),
     url(r"^search/series/$", views.SearchSeriesView, name="searchseries"),
     url(r"^catalog/$", views.CatalogsView, name="catalog"),
+    url(r"^details/(?P<book_id>[0-9]+)/$", views.BookDetailView, name="bookdetail"),
     url(r"^book/$", views.BooksView, name="book"),
     url(r"^author/$", views.AuthorsView, name="author"),
     url(r"^genre/$", views.GenresView, name="genre"),

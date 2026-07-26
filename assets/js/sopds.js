@@ -15,11 +15,12 @@ import {fetchFeed} from "./opds.js";
         if (element.matches("[data-opds-catalogs]")) renderCatalogs(element, detail);
         else if (element.matches("[data-opds-books]")) renderBooks(element, detail);
         else if (element.matches("[data-opds-selector]")) renderSelector(element, detail);
+        else if (element.matches("[data-opds-book-detail]")) renderBookDetail(element, detail);
         renderPagination(element, detail);
     }
 
     document.querySelectorAll(
-        "[data-opds-selector], [data-opds-books], [data-opds-catalogs]",
+        "[data-opds-selector], [data-opds-books], [data-opds-catalogs], [data-opds-book-detail]",
     ).forEach((element) => {
         element.addEventListener("sopds:feed", handleFeed);
         loadOPDS(element).catch(() => {
@@ -283,7 +284,7 @@ import {fetchFeed} from "./opds.js";
 
     function bookUrl(entry) {
         const id = String(entry.id || "").split(":").pop();
-        return id ? searchUrl("i", id) : searchUrl("m", entry.title || "");
+        return id ? `/web/details/${id}/` : searchUrl("m", entry.title || "");
     }
 
     function appendMetadataLine(container, label, values) {
@@ -315,6 +316,144 @@ import {fetchFeed} from "./opds.js";
             "application/x-mobipocket-ebook": "mobi",
         };
         return labels[link.type] || "download";
+    }
+
+    function renderBookDetail(element, detail) {
+        const entry = detail.entries[0];
+        if (!entry) return;
+        element.replaceChildren();
+
+        // Layout: cover on left, metadata on right.
+        const row = document.createElement("div");
+        row.className = "row book-detail-row";
+
+        // Cover image (full size).
+        const coverCol = document.createElement("div");
+        coverCol.className = "large-4 medium-5 small-12 columns book-detail-cover";
+
+        const coverLink = document.createElement("a");
+        coverLink.href = `/opds/cover/${(entry.id || "").split(":").pop()}/`;
+
+        const coverImg = document.createElement("img");
+        const imageLink = (entry.links || []).find((link) => link.rel === "http://opds-spec.org/image");
+        if (imageLink) {
+            coverImg.src = imageLink.href;
+        }
+        coverImg.alt = entry.title || "";
+        coverImg.style = "max-width: 100%; height: auto; border-radius: 4px;";
+        coverImg.onerror = () => {
+            coverImg.onerror = null;
+            coverImg.src = element.dataset.noCover || "";
+        };
+        coverLink.append(coverImg);
+        coverCol.append(coverLink);
+        row.append(coverCol);
+
+        // Metadata column.
+        const metaCol = document.createElement("div");
+        metaCol.className = "large-8 medium-7 small-12 columns book-detail-meta";
+
+        // Title.
+        const title = document.createElement("h2");
+        title.textContent = entry.title || "";
+        metaCol.append(title);
+
+        // Downloads.
+        const downloads = (entry.links || []).filter((link) => link.rel === "http://opds-spec.org/acquisition/open-access");
+        if (downloads.length) {
+            const downloadsDiv = document.createElement("div");
+            downloadsDiv.className = "book-detail-downloads";
+            const label = document.createElement("span");
+            label.className = "book-detail-label";
+            label.textContent = `${element.dataset.downloadLabel || "Download"}: `;
+            downloadsDiv.append(label);
+            downloads.forEach((link) => {
+                const anchor = document.createElement("a");
+                anchor.href = link.href;
+                anchor.className = "label small book-download-link";
+                anchor.textContent = formatLabel(link);
+                downloadsDiv.append(anchor, " ");
+            });
+            metaCol.append(downloadsDiv);
+        }
+
+        // Utility to append metadata line.
+        function appendLine(labelText, items) {
+            if (!items.length) return;
+            const p = document.createElement("p");
+            const label = document.createElement("strong");
+            label.textContent = `${labelText}: `;
+            p.append(label);
+            items.forEach((item, i) => {
+                if (i > 0) p.append(", ");
+                if (item.href) {
+                    const a = document.createElement("a");
+                    a.href = item.href;
+                    a.textContent = item.text;
+                    p.append(a);
+                } else {
+                    p.append(item.text);
+                }
+            });
+            metaCol.append(p);
+        }
+
+        appendLine(
+            element.dataset.authorsLabel || "Authors",
+            (entry.authors || []).map((author) => ({text: author.name, href: searchUrl("a", author.id)})),
+        );
+        appendLine(
+            element.dataset.seriesLabel || "Series",
+            (entry.series || []).map((series) => ({text: series.name, href: searchUrl("s", series.id)})),
+        );
+        appendLine(
+            element.dataset.genresLabel || "Genres",
+            (entry.genres || []).map((genre) => ({text: genre.name, href: searchUrl("g", genre.id)})),
+        );
+        appendLine(
+            element.dataset.fileSizeLabel || "File size",
+            [{text: `${entry.filesize || "0"} ${element.dataset.fileSizeUnit || "Kb"}`}],
+        );
+        appendLine(
+            element.dataset.publicationDateLabel || "Date",
+            [{text: entry.issued || ""}],
+        );
+
+        // Annotation (inline from DB OR lazy-fetched from content.src endpoint).
+        if (entry.annotation) {
+            const section = document.createElement("section");
+            section.className = "book-detail-annotation";
+            const heading = document.createElement("h3");
+            heading.textContent = element.dataset.annotationLabel || "Annotation";
+            section.append(heading);
+            const div = document.createElement("div");
+            div.innerHTML = entry.annotation;
+            section.append(div);
+            metaCol.append(section);
+        } else if (entry.content?.src) {
+            const section = document.createElement("section");
+            section.className = "book-detail-annotation";
+            const heading = document.createElement("h3");
+            heading.textContent = element.dataset.annotationLabel || "Annotation";
+            section.append(heading);
+            const placeholder = document.createElement("p");
+            placeholder.className = "book-detail-annotation-loading";
+            placeholder.textContent = "Loading annotation…";
+            section.append(placeholder);
+            metaCol.append(section);
+            fetch(entry.content.src, {credentials: "same-origin"})
+                .then((response) => response.ok ? response.text() : "")
+                .then((annotation) => {
+                    if (!annotation) return;
+                    const div = document.createElement("div");
+                    div.innerHTML = annotation;
+                    placeholder.replaceWith(div);
+                })
+                .catch(() => placeholder.remove());
+        }
+
+        row.append(metaCol);
+        element.append(row);
     }
 
     function renderBooks(element, detail, showAnnotation = element.dataset.searchtype === "i") {
@@ -408,7 +547,7 @@ import {fetchFeed} from "./opds.js";
                 const annotationCell = annotationRow.insertCell();
                 annotationCell.colSpan = 2;
                 annotationCell.className = "book-annotation";
-                annotationCell.textContent = entry.annotation;
+                annotationCell.innerHTML = entry.annotation;
             }
             if (showAnnotation && entry.content?.src) {
                 fetch(entry.content.src, {credentials: "same-origin"})
@@ -419,7 +558,7 @@ import {fetchFeed} from "./opds.js";
                         const annotationCell = annotationRow.insertCell();
                         annotationCell.colSpan = 2;
                         annotationCell.className = "book-annotation";
-                        annotationCell.textContent = annotation;
+                        annotationCell.innerHTML = annotation;
                     })
                     .catch(() => {});
             }
