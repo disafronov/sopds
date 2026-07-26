@@ -335,8 +335,12 @@ class feedsTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         content = response.content.decode()
         self.assertIn('xmlns:sopds="urn:sopds:meta"', content)
-        self.assertIn("<sopds:page>1</sopds:page>", content)
-        self.assertIn("<sopds:pages>1</sopds:pages>", content)
+        self.assertNotIn("<sopds:page>", content)
+        self.assertNotIn("<sopds:pages>", content)
+        self.assertIn('rel="first"', content)
+        self.assertIn('rel="last"', content)
+        self.assertNotIn("<sopds:cat-type>", content)
+        self.assertNotIn('rel="alternate"', content)
 
     def test_SearchSeriesPage(self) -> None:
         c = Client()

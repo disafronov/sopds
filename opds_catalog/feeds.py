@@ -114,6 +114,26 @@ class opdsEnclosure(Enclosure):
         super(opdsEnclosure, self).__init__(url, length, mime_type)
 
 
+def _pagination_links(
+    route_name: str, kwargs: dict[str, Any], paginator: dict[str, Any]
+) -> dict[str, Any]:
+    def page_url(page: int) -> str:
+        return reverse(route_name, kwargs={**kwargs, "page": page})
+
+    return {
+        "first_url": page_url(1),
+        "prev_url": (
+            page_url(paginator["previous_page_number"])
+            if paginator["has_previous"]
+            else None
+        ),
+        "next_url": (
+            page_url(paginator["next_page_number"]) if paginator["has_next"] else None
+        ),
+        "last_url": page_url(paginator["num_pages"]),
+    }
+
+
 class opdsFeed(Atom1Feed):
     # content_type = 'text/xml; charset=utf-8'
     content_type = "application/atom+xml; charset=utf-8"
@@ -171,33 +191,26 @@ class opdsFeed(Atom1Feed):
             handler.characters("\n")
         handler.addQuickElement("title", self.feed["title"])
         handler.characters("\n")
-        if self.feed.get("page") is not None:
-            handler.addQuickElement("sopds:page", str(self.feed["page"]))
-            handler.addQuickElement("sopds:pages", str(self.feed["pages"]))
-            handler.characters("\n")
         handler.addQuickElement("updated", rfc3339_date(self.latest_post_date()))
         handler.characters("\n")
-        if self.feed.get("prev_url") is not None:
+        for key, rel, title in (
+            ("first_url", "first", "First Page"),
+            ("prev_url", "previous", "Previous Page"),
+            ("next_url", "next", "Next Page"),
+            ("last_url", "last", "Last Page"),
+        ):
+            if self.feed.get(key) is None:
+                continue
             handler.addQuickElement(
                 "link",
                 None,
                 {
-                    "href": self.feed["prev_url"],
-                    "rel": "prev",
-                    "title": "Previous Page",
-                    "type": "application/atom+xml;profile=opds-catalog",
-                },
-            )
-            handler.characters("\n")
-        if self.feed.get("next_url") is not None:
-            handler.addQuickElement(
-                "link",
-                None,
-                {
-                    "href": self.feed["next_url"],
-                    "rel": "next",
-                    "title": "Next Page",
-                    "type": "application/atom+xml;profile=opds-catalog",
+                    "href": self.feed[key],
+                    "rel": rel,
+                    "title": title,
+                    "type": (
+                        "application/atom+xml;" "profile=opds-catalog;kind=navigation"
+                    ),
                 },
             )
             handler.characters("\n")
@@ -231,14 +244,6 @@ class opdsFeed(Atom1Feed):
         handler.characters("\n")
         handler.addQuickElement("title", item["title"])
         handler.characters("\n")
-        if item.get("is_catalog"):
-            handler.addQuickElement("sopds:cat-type", str(item["cat_type"]))
-            handler.characters("\n")
-        if not disable_item_links:
-            handler.addQuickElement(
-                "link", "", {"href": item["link"], "rel": "alternate"}
-            )
-            handler.characters("\n")
         # Enclosures.
         if not disable_item_links:
             if item.get("enclosures") is not None:
@@ -517,7 +522,6 @@ class CatalogsFeed(AuthFeed):
                 "is_catalog": 1,
                 "title": row.cat_name,
                 "id": row.id,
-                "cat_type": row.cat_type,
                 "parent_id": row.parent_id,
             }
             items.append(p)
@@ -560,31 +564,11 @@ class CatalogsFeed(AuthFeed):
 
     def feed_extra_kwargs(self, obj: Any) -> dict[str, Any]:
         items, cat, paginator = obj
-        start_url = reverse("opds_catalog:main")
-        if paginator["has_previous"]:
-            prev_url = reverse(
-                "opds_catalog:cat_page",
-                kwargs={"cat_id": cat.id, "page": paginator["previous_page_number"]},
-            )
-        else:
-            prev_url = None
-
-        if paginator["has_next"]:
-            next_url = reverse(
-                "opds_catalog:cat_page",
-                kwargs={"cat_id": cat.id, "page": paginator["next_page_number"]},
-            )
-        else:
-            next_url = None
-
         return {
             "searchTerm_url": "%s%s"
             % (reverse("opds_catalog:opensearch"), "{searchTerms}/"),
-            "start_url": start_url,
-            "prev_url": prev_url,
-            "next_url": next_url,
-            "page": paginator["number"],
-            "pages": paginator["num_pages"],
+            "start_url": reverse("opds_catalog:main"),
+            **_pagination_links("opds_catalog:cat_page", {"cat_id": cat.id}, paginator),
         }
 
     def items(self, obj: Any) -> Any:
@@ -594,7 +578,6 @@ class CatalogsFeed(AuthFeed):
     def item_extra_kwargs(self, item: ItemDict) -> dict[str, Any]:
         return {
             "is_catalog": item["is_catalog"],
-            "cat_type": item.get("cat_type"),
             "authors": item.get("authors"),
             "genres": item.get("genres"),
             "series": item.get("series"),
@@ -984,26 +967,12 @@ class SearchBooksFeed(AuthFeed):
 
     def feed_extra_kwargs(self, obj: Any) -> dict[str, Any]:
         kwargs = self.get_link_kwargs(obj)
-        if obj["paginator"]["has_previous"]:
-            kwargs["page"] = obj["paginator"]["previous_page_number"]
-            prev_url = reverse("opds_catalog:searchbooks", kwargs=kwargs)
-        else:
-            prev_url = None
-
-        if obj["paginator"]["has_next"]:
-            kwargs["page"] = obj["paginator"]["next_page_number"]
-            next_url = reverse("opds_catalog:searchbooks", kwargs=kwargs)
-        else:
-            next_url = None
         return {
             "searchTerm_url": "%s%s"
             % (reverse("opds_catalog:opensearch"), "{searchTerms}/"),
             "start_url": reverse("opds_catalog:main"),
             "description_mime_type": "text/html",
-            "prev_url": prev_url,
-            "next_url": next_url,
-            "page": obj["paginator"]["number"],
-            "pages": obj["paginator"]["num_pages"],
+            **_pagination_links("opds_catalog:searchbooks", kwargs, obj["paginator"]),
         }
 
     def items(self, obj: Any) -> Any:
@@ -1248,38 +1217,19 @@ class SearchAuthorsFeed(AuthFeed):
         )
 
     def feed_extra_kwargs(self, obj: Any) -> dict[str, Any]:
-        if obj["paginator"]["has_previous"]:
-            prev_url = reverse(
-                "opds_catalog:searchauthors",
-                kwargs={
-                    "searchtype": obj["searchtype"],
-                    "searchterms": obj["searchterms"],
-                    "page": (obj["paginator"]["previous_page_number"]),
-                },
-            )
-        else:
-            prev_url = None
-
-        if obj["paginator"]["has_next"]:
-            next_url = reverse(
-                "opds_catalog:searchauthors",
-                kwargs={
-                    "searchtype": obj["searchtype"],
-                    "searchterms": obj["searchterms"],
-                    "page": (obj["paginator"]["next_page_number"]),
-                },
-            )
-        else:
-            next_url = None
         return {
             "searchTerm_url": "%s%s"
             % (reverse("opds_catalog:opensearch"), "{searchTerms}/"),
             "start_url": reverse("opds_catalog:main"),
             "description_mime_type": "text",
-            "prev_url": prev_url,
-            "next_url": next_url,
-            "page": obj["paginator"]["number"],
-            "pages": obj["paginator"]["num_pages"],
+            **_pagination_links(
+                "opds_catalog:searchauthors",
+                {
+                    "searchtype": obj["searchtype"],
+                    "searchterms": obj["searchterms"],
+                },
+                obj["paginator"],
+            ),
         }
 
     def items(self, obj: Any) -> Any:
@@ -1377,38 +1327,19 @@ class SearchSeriesFeed(AuthFeed):
         )
 
     def feed_extra_kwargs(self, obj: Any) -> dict[str, Any]:
-        if obj["paginator"]["has_previous"]:
-            prev_url = reverse(
-                "opds_catalog:searchseries",
-                kwargs={
-                    "searchtype": obj["searchtype"],
-                    "searchterms": obj["searchterms"],
-                    "page": (obj["paginator"]["previous_page_number"]),
-                },
-            )
-        else:
-            prev_url = None
-
-        if obj["paginator"]["has_next"]:
-            next_url = reverse(
-                "opds_catalog:searchseries",
-                kwargs={
-                    "searchtype": obj["searchtype"],
-                    "searchterms": obj["searchterms"],
-                    "page": (obj["paginator"]["next_page_number"]),
-                },
-            )
-        else:
-            next_url = None
         return {
             "searchTerm_url": "%s%s"
             % (reverse("opds_catalog:opensearch"), "{searchTerms}/"),
             "start_url": reverse("opds_catalog:main"),
             "description_mime_type": "text",
-            "prev_url": prev_url,
-            "next_url": next_url,
-            "page": obj["paginator"]["number"],
-            "pages": obj["paginator"]["num_pages"],
+            **_pagination_links(
+                "opds_catalog:searchseries",
+                {
+                    "searchtype": obj["searchtype"],
+                    "searchterms": obj["searchterms"],
+                },
+                obj["paginator"],
+            ),
         }
 
     def items(self, obj: Any) -> Any:

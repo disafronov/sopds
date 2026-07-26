@@ -248,8 +248,11 @@ test("entity adapter preserves result links and numeric pagination", async () =>
   <feed xmlns="http://www.w3.org/2005/Atom" xmlns:sopds="urn:sopds:meta">
     <id>urn:test:feed</id>
     <title>Test feed</title>
-    <sopds:page>2</sopds:page>
-    <sopds:pages>5</sopds:pages>
+    <link href="/opds/search/authors/m/Test/2/" rel="self"/>
+    <link href="/opds/search/authors/m/Test/1/" rel="first"/>
+    <link href="/opds/search/authors/m/Test/1/" rel="previous"/>
+    <link href="/opds/search/authors/m/Test/3/" rel="next"/>
+    <link href="/opds/search/authors/m/Test/5/" rel="last"/>
     <entry>
       <id>a:42</id>
       <title>Test Author</title>

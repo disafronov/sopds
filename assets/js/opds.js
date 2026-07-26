@@ -22,8 +22,34 @@ function decodeContent(value) {
     return area.value;
 }
 
+function pageNumber(href) {
+    if (!href) return 0;
+    const url = new URL(href, window.location);
+    const queryPage = Number(url.searchParams.get("page"));
+    if (queryPage > 0) return queryPage;
+    const finalSegment = url.pathname.split("/").filter(Boolean).at(-1);
+    return /^\d+$/u.test(finalSegment || "") ? Number(finalSegment) : 1;
+}
+
 export function parseFeed(xml) {
     const feed = parser.parse(xml).feed || {};
+    const feedLinks = list(feed.link).map((link) => ({
+        href: link["@_href"] || "",
+        rel: link["@_rel"] || "",
+        type: link["@_type"] || undefined,
+        title: link["@_title"] || undefined,
+    }));
+    const linkByRel = (...relations) => feedLinks.find(
+        (link) => relations.includes(link.rel),
+    );
+    const previousPage = pageNumber(linkByRel("previous", "prev")?.href);
+    const nextPage = pageNumber(linkByRel("next")?.href);
+    const currentPage = previousPage
+        ? previousPage + 1
+        : nextPage
+            ? Math.max(1, nextPage - 1)
+            : pageNumber(linkByRel("self")?.href) || 1;
+    const lastPage = pageNumber(linkByRel("last")?.href) || currentPage;
     const entries = list(feed.entry).map((entry) => {
         const links = list(entry.link).map((link) => ({
             href: link["@_href"] || "",
@@ -37,7 +63,6 @@ export function parseFeed(xml) {
             title: text(entry.title),
             content: entry.content ? {value: decodeContent(text(entry.content))} : undefined,
             links,
-            catType: Number(text(entry["sopds:cat-type"])),
             authors: list(entry.author).map((author) => ({
                 id: text(author.uri).split("/").filter(Boolean).at(-1) || "",
                 name: text(author.name),
@@ -56,15 +81,10 @@ export function parseFeed(xml) {
         };
     });
     return {
-        page: Number(text(feed["sopds:page"]) || 1),
-        pages: Number(text(feed["sopds:pages"]) || 1),
+        page: currentPage,
+        pages: lastPage,
         entries,
-        links: list(feed.link).map((link) => ({
-            href: link["@_href"] || "",
-            rel: link["@_rel"] || "",
-            type: link["@_type"] || undefined,
-            title: link["@_title"] || undefined,
-        })),
+        links: feedLinks,
     };
 }
 
