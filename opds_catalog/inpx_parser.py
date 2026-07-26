@@ -132,13 +132,13 @@ class Inpx:
                 for idx, key in enumerate(self.inpx_format):
                     try:
                         if key in [sAuthor, sGenre, sSeries]:
-                            meta_data[key] = (
-                                meta_list[idx]
+                            meta_data[key] = [
+                                value
+                                for value in meta_list[idx]
                                 .decode(self.inpx_encoding)
                                 .split(self.inpx_itemseparator)
-                            )
-                            if "" in meta_data[key]:
-                                meta_data[key].remove("")
+                                if value
+                            ]
                         else:
                             meta_data[key] = meta_list[idx].decode(self.inpx_encoding)
                     except IndexError:

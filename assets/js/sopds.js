@@ -208,8 +208,12 @@ import {fetchFeed} from "./opds.js";
                     url.searchParams.set("chars", title);
                 } else {
                     url = new URL(element.dataset.searchUrl, window.location);
-                    url.searchParams.set("searchtype", "b");
-                    url.searchParams.set("searchterms", title);
+                    const emptySearch = href.includes("/e/__sopds_empty__/");
+                    url.searchParams.set("searchtype", emptySearch ? "e" : "b");
+                    url.searchParams.set(
+                        "searchterms",
+                        emptySearch ? "__sopds_empty__" : title,
+                    );
                 }
             }
             link.href = `${url.pathname}${url.search}`;
