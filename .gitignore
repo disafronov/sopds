@@ -35,7 +35,7 @@ build/
 *.egg-info/
 
 
-/books/
+/opds_catalog/tests/data/local/
 /static/
 /staticfiles/
 
