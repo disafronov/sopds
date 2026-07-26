@@ -37,6 +37,20 @@ ItemDict = dict[str, Any]
 # Objects returned by ``get_object`` are heterogeneous too.
 FeedObject = Any
 
+EMPTY_SEARCH_TERM = "__sopds_empty__"
+
+
+def _book_title(value: str) -> str:
+    return value or _("Untitled")
+
+
+def _author_name(value: str) -> str:
+    return value or _("Unknown author")
+
+
+def _series_name(value: str) -> str:
+    return value or _("Unnamed series")
+
 
 _ItemT = TypeVar("_ItemT")
 _ObjectT = TypeVar("_ObjectT")
@@ -550,7 +564,9 @@ class CatalogsFeed(AuthFeed):
         }
 
     def item_title(self, item: ItemDict) -> str:
-        return cast(str, item["title"])
+        if item["is_catalog"]:
+            return cast(str, item["title"])
+        return _book_title(item["title"])
 
     def item_guid(self, item: ItemDict) -> str:
         gp = "c:" if item["is_catalog"] else "b:"
@@ -630,14 +646,16 @@ class CatalogsFeed(AuthFeed):
             )
             s += "<p class='book'>%(annotation)s</p>"
             return s % {
-                "title": item["title"],
+                "title": _book_title(item["title"]),
                 "filename": item["filename"],
                 "filesize": item["filesize"],
                 "docdate": item["docdate"],
                 "annotation": item["annotation"],
-                "authors": ", ".join(a["full_name"] for a in item["authors"]),
+                "authors": ", ".join(
+                    _author_name(a["full_name"]) for a in item["authors"]
+                ),
                 "genres": ", ".join(g["subsection"] for g in item["genres"]),
-                "series": ", ".join(s["ser"] for s in item["series"]),
+                "series": ", ".join(_series_name(s["ser"]) for s in item["series"]),
                 "ser_no": ", ".join(
                     str(series["ser_no"])
                     for series in item["ser_no"]
@@ -773,7 +791,9 @@ class SearchBooksFeed(AuthFeed):
             # books = Book.objects.extra(where=["upper(title)=%s"],
             #     params=["%s"%searchterms.upper()]).order_by('title','-docdate')
             books = Book.objects.filter(
-                title__upper=(searchterms or "").upper()
+                title__upper=(
+                    "" if searchterms == EMPTY_SEARCH_TERM else (searchterms or "")
+                ).upper()
             ).order_by(Upper("title"), "-docdate")
         # Поиск книг по автору
         elif searchtype == "a":
@@ -885,7 +905,8 @@ class SearchBooksFeed(AuthFeed):
                 title = p["title"]
                 authors_set = {a["id"] for a in p["authors"]}
                 if (
-                    title.upper() == prev_title.upper()
+                    title
+                    and title.upper() == prev_title.upper()
                     and authors_set == prev_authors_set
                 ):
                     items[-1]["doubles"] += 1
@@ -904,7 +925,8 @@ class SearchBooksFeed(AuthFeed):
             while ((finish + 1) < books_count) and double_flag:
                 finish += 1
                 if (
-                    books[finish].title.upper() == prev_title.upper()
+                    prev_title
+                    and books[finish].title.upper() == prev_title.upper()
                     and {a["id"] for a in books[finish].authors.values()}
                     == prev_authors_set
                 ):
@@ -960,7 +982,7 @@ class SearchBooksFeed(AuthFeed):
         return obj["books"]
 
     def item_title(self, item: ItemDict) -> str:
-        return cast(str, item["title"])
+        return _book_title(item["title"])
 
     def item_guid(self, item: ItemDict) -> str:
         return "b:%s" % (item["id"])
@@ -1036,15 +1058,15 @@ class SearchBooksFeed(AuthFeed):
             s += _("<b>Doubles count: </b>%(doubles)s<br/>")
         s += "<p class='book'>%(annotation)s</p>"
         return s % {
-            "title": item["title"],
+            "title": _book_title(item["title"]),
             "filename": item["filename"],
             "filesize": item["filesize"],
             "docdate": item["docdate"],
             "doubles": item["doubles"],
             "annotation": item["annotation"],
-            "authors": ", ".join(a["full_name"] for a in item["authors"]),
+            "authors": ", ".join(_author_name(a["full_name"]) for a in item["authors"]),
             "genres": ", ".join(g["subsection"] for g in item["genres"]),
-            "series": ", ".join(s["ser"] for s in item["series"]),
+            "series": ", ".join(_series_name(s["ser"]) for s in item["series"]),
             "ser_no": ", ".join(
                 str(series["ser_no"]) for series in item["ser_no"] if series["ser_no"]
             ),
@@ -1172,7 +1194,9 @@ class SearchAuthorsFeed(AuthFeed):
             ).order_by(Upper("full_name"))
         elif searchtype == "e":
             authors = Author.objects.filter(
-                full_name__upper=searchterms.upper()
+                full_name__upper=(
+                    "" if searchterms == EMPTY_SEARCH_TERM else searchterms
+                ).upper()
             ).order_by(Upper("full_name"))
 
         # Создаем результирующее множество
@@ -1241,7 +1265,7 @@ class SearchAuthorsFeed(AuthFeed):
         return obj["authors"]
 
     def item_title(self, item: ItemDict) -> str:
-        return cast(str, item["full_name"])
+        return _author_name(item["full_name"])
 
     def item_description(self, item: ItemDict) -> str:
         return cast(str, _("Books count: %s") % item["book_count"])
@@ -1288,7 +1312,11 @@ class SearchSeriesFeed(AuthFeed):
         elif searchtype == "b":
             series = Series.objects.filter(ser__upper__startswith=searchterms.upper())
         elif searchtype == "e":
-            series = Series.objects.filter(ser__upper=searchterms.upper())
+            series = Series.objects.filter(
+                ser__upper=(
+                    "" if searchterms == EMPTY_SEARCH_TERM else searchterms
+                ).upper()
+            )
         elif searchtype == "a":
             try:
                 self.author_id = int(searchterms or "")
@@ -1366,7 +1394,7 @@ class SearchSeriesFeed(AuthFeed):
         return obj["series"]
 
     def item_title(self, item: ItemDict) -> str:
-        return "%s" % (item["ser"])
+        return _series_name(item["ser"])
 
     def item_description(self, item: ItemDict) -> str:
         return cast(str, _("Books count: %s") % item["book_count"])
@@ -1477,7 +1505,10 @@ class BooksFeed(AuthFeed):
                    from opds_catalog_book
                    where lang_code=%(lang_code)s and upper(title) like '%(chars)s%%%%'
                    group by substring(upper(title),1,%(length)s)
-                   order by id""" % {
+                   order by case
+                       when substring(upper(title),1,%(length)s)='' then 0
+                       else 1
+                   end, id""" % {
                 "length": length,
                 "lang_code": self.lang_code,
                 "chars": chars,
@@ -1488,7 +1519,10 @@ class BooksFeed(AuthFeed):
                    from opds_catalog_book
                    where upper(title) like '%(chars)s%%%%'
                    group by substring(upper(title),1,%(length)s)
-                   order by id""" % {
+                   order by case
+                       when substring(upper(title),1,%(length)s)='' then 0
+                       else 1
+                   end, id""" % {
                 "length": length,
                 "chars": chars,
             }
@@ -1497,13 +1531,14 @@ class BooksFeed(AuthFeed):
         return dataset
 
     def item_title(self, item: Any) -> str:
-        return "%s" % item.id
+        return _book_title(item.id)
 
     def item_description(self, item: Any) -> str:
         return cast(str, _("Found: %s books") % item.cnt)
 
     def item_link(self, item: Any) -> str:
         title_full = len(item.id) < item.l
+        searchterms = item.id or EMPTY_SEARCH_TERM
         if item.cnt >= config.SOPDS_SPLITITEMS and not title_full:
             return reverse(
                 "opds_catalog:chars_books",
@@ -1514,7 +1549,7 @@ class BooksFeed(AuthFeed):
                 "opds_catalog:searchbooks",
                 kwargs={
                     "searchtype": "b" if not title_full else "e",
-                    "searchterms": item.id,
+                    "searchterms": searchterms,
                 },
             )
 
@@ -1563,7 +1598,10 @@ class AuthorsFeed(AuthFeed):
                    where lang_code=%(lang_code)s
                    and upper(full_name) like '%(chars)s%%%%'
                    group by substring(upper(full_name),1,%(length)s)
-                   order by id""" % {
+                   order by case
+                       when substring(upper(full_name),1,%(length)s)='' then 0
+                       else 1
+                   end, id""" % {
                 "length": length,
                 "lang_code": self.lang_code,
                 "chars": chars,
@@ -1575,7 +1613,10 @@ class AuthorsFeed(AuthFeed):
                    from opds_catalog_author
                    where upper(full_name) like '%(chars)s%%%%'
                    group by substring(upper(full_name),1,%(length)s)
-                   order by id""" % {
+                   order by case
+                       when substring(upper(full_name),1,%(length)s)='' then 0
+                       else 1
+                   end, id""" % {
                 "length": length,
                 "chars": chars,
             }
@@ -1584,13 +1625,14 @@ class AuthorsFeed(AuthFeed):
         return dataset
 
     def item_title(self, item: Any) -> str:
-        return "%s" % item.id
+        return _author_name(item.id)
 
     def item_description(self, item: Any) -> str:
         return cast(str, _("Found: %s authors") % item.cnt)
 
     def item_link(self, item: Any) -> str:
         last_name_full = len(item.id) < item.l
+        searchterms = item.id or EMPTY_SEARCH_TERM
         if (item.cnt >= config.SOPDS_SPLITITEMS) and not last_name_full:
             return reverse(
                 "opds_catalog:chars_authors",
@@ -1601,7 +1643,7 @@ class AuthorsFeed(AuthFeed):
                 "opds_catalog:searchauthors",
                 kwargs={
                     "searchtype": "b" if not last_name_full else "e",
-                    "searchterms": item.id,
+                    "searchterms": searchterms,
                 },
             )
 
@@ -1648,7 +1690,10 @@ class SeriesFeed(AuthFeed):
                    from opds_catalog_series
                    where lang_code=%(lang_code)s and upper(ser) like '%(chars)s%%%%'
                    group by substring(upper(ser),1,%(length)s)
-                   order by id""" % {
+                   order by case
+                       when substring(upper(ser),1,%(length)s)='' then 0
+                       else 1
+                   end, id""" % {
                 "length": length,
                 "lang_code": self.lang_code,
                 "chars": chars,
@@ -1659,7 +1704,10 @@ class SeriesFeed(AuthFeed):
                    from opds_catalog_series
                    where upper(ser) like '%(chars)s%%%%'
                    group by substring(upper(ser),1,%(length)s)
-                   order by id""" % {
+                   order by case
+                       when substring(upper(ser),1,%(length)s)='' then 0
+                       else 1
+                   end, id""" % {
                 "length": length,
                 "chars": chars,
             }
@@ -1668,13 +1716,14 @@ class SeriesFeed(AuthFeed):
         return dataset
 
     def item_title(self, item: Any) -> str:
-        return "%s" % item.id
+        return _series_name(item.id)
 
     def item_description(self, item: Any) -> str:
         return cast(str, _("Found: %s series") % item.cnt)
 
     def item_link(self, item: Any) -> str:
         series_full = len(item.id) < item.l
+        searchterms = item.id or EMPTY_SEARCH_TERM
         if item.cnt >= config.SOPDS_SPLITITEMS and not series_full:
             return reverse(
                 "opds_catalog:chars_series",
@@ -1685,7 +1734,7 @@ class SeriesFeed(AuthFeed):
                 "opds_catalog:searchseries",
                 kwargs={
                     "searchtype": "b" if not series_full else "e",
-                    "searchterms": item.id,
+                    "searchterms": searchterms,
                 },
             )
 

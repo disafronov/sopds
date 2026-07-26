@@ -146,6 +146,51 @@ test("OPDS selectors preserve zero as a digit", async () => {
   }
 });
 
+test("OPDS selector links empty-name placeholders to exact empty search", async () => {
+  const emptyFeed = `<?xml version="1.0" encoding="utf-8"?>
+  <feed xmlns="http://www.w3.org/2005/Atom">
+    <entry>
+      <id>/opds/search/books/e/__sopds_empty__/</id>
+      <title>Untitled</title>
+      <link href="/opds/search/books/e/__sopds_empty__/" rel="alternate"/>
+      <content type="text">Found: 6 books</content>
+    </entry>
+  </feed>`;
+  const dom = new JSDOM(
+    `<!doctype html>
+      <table
+        data-opds-selector
+        data-feed-url="/opds/books/9/"
+        data-feed-kind="books"
+        data-kind="book"
+        data-lang-code="9"
+        data-count-label="Total: %(count)s books."
+        data-selector-url="/web/book/"
+        data-search-url="/web/search/books/"
+      ><tbody></tbody></table>
+      <p data-opds-error hidden></p>`,
+    {
+      runScripts: "dangerously",
+      url: "https://sopds.test/web/book/?lang=9",
+    },
+  );
+  const { window } = dom;
+  window.fetch = async () => ({ok: true, text: async () => emptyFeed});
+
+  await loadFrontend(window);
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+
+  const link = window.document.querySelector(".selector-link");
+  assert.equal(link.textContent, "Untitled Total: 6 books.");
+  assert.equal(link.pathname, "/web/search/books/");
+  assert.equal(
+    link.search,
+    "?searchtype=e&searchterms=__sopds_empty__",
+  );
+
+  dom.window.close();
+});
+
 test("genre adapter uses OPDS links and parent metadata", async () => {
   const genreFeed = `<?xml version="1.0" encoding="utf-8"?>
   <feed xmlns="http://www.w3.org/2005/Atom">
