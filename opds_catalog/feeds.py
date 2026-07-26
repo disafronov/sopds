@@ -658,13 +658,14 @@ class CatalogsFeed(AuthFeed):
             ]
         else:
             mime = mime_detector.fmt(item["format"])
+            acquisition_mime = Mimetype.FB2_OPDS if mime == Mimetype.FB2 else mime
             enclosure = [
                 opdsEnclosure(
                     reverse(
                         "opds_catalog:download",
                         kwargs={"book_id": item["id"], "zip_flag": 0},
                     ),
-                    mime,
+                    acquisition_mime,
                     "http://opds-spec.org/acquisition/open-access",
                     item["file_length"],
                 ),
@@ -1026,13 +1027,14 @@ class SearchBooksFeed(AuthFeed):
 
     def item_enclosures(self, item: ItemDict) -> list[Any]:
         mime = mime_detector.fmt(item["format"])
+        acquisition_mime = Mimetype.FB2_OPDS if mime == Mimetype.FB2 else mime
         enclosure = [
             opdsEnclosure(
                 reverse(
                     "opds_catalog:download",
                     kwargs={"book_id": item["id"], "zip_flag": 0},
                 ),
-                mime,
+                acquisition_mime,
                 "http://opds-spec.org/acquisition/open-access",
                 item["file_length"],
             ),

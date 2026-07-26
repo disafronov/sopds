@@ -332,7 +332,9 @@ test("book lists link each series by its stable id", async () => {
       <author><name>Fixture author</name><uri>/opds/search/books/a/11/</uri></author>
       <link href="/opds/search/books/i/42/" rel="alternate"/>
       <link href="/opds/download/42/0/" rel="http://opds-spec.org/acquisition/open-access"
-            type="application/fb2+xml" length="12000"/>
+            type="application/x-mobipocket-ebook" length="12000"/>
+      <link href="/opds/download/42/1/" rel="http://opds-spec.org/acquisition/open-access"
+            type="application/fb2"/>
       <link href="/opds/thumb/42/" rel="http://opds-spec.org/image/thumbnail"
             type="image/jpeg"/>
       <category term="sf" label="sf"/>
@@ -386,6 +388,10 @@ test("book lists link each series by its stable id", async () => {
   );
   assert.equal(window.document.body.textContent.includes("Hidden annotation"), false);
   assert.equal(window.document.body.textContent.includes("HTML must not be parsed"), false);
+  assert.deepEqual(
+    [...window.document.querySelectorAll("a.label.small")].map((link) => link.textContent),
+    ["mobi", "fb2"],
+  );
   assert.equal(
     window.document.querySelector(".book-card img.thumbnail").getAttribute("src"),
     "/opds/thumb/42/",
