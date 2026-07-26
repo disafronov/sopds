@@ -394,6 +394,19 @@ import {fetchFeed} from "./opds.js";
                 annotationCell.className = "book-annotation";
                 annotationCell.textContent = entry.annotation;
             }
+            if (showAnnotation && entry.content?.src) {
+                fetch(entry.content.src, {credentials: "same-origin"})
+                    .then((response) => response.ok ? response.text() : "")
+                    .then((annotation) => {
+                        if (!annotation) return;
+                        const annotationRow = card.insertRow();
+                        const annotationCell = annotationRow.insertCell();
+                        annotationCell.colSpan = 2;
+                        annotationCell.className = "book-annotation";
+                        annotationCell.textContent = annotation;
+                    })
+                    .catch(() => {});
+            }
             content.append(card);
             element.append(heading, content);
         });

@@ -269,7 +269,14 @@ class opdsFeed(Atom1Feed):
             content_type = self.feed["description_mime_type"]
         else:
             content_type = "text/html"
-        if item.get("description") is not None:
+        if item.get("content_url") is not None:
+            handler.addQuickElement(
+                "content",
+                "",
+                {"type": "text/plain", "src": item["content_url"]},
+            )
+            handler.characters("\n")
+        elif item.get("description") is not None:
             handler.addQuickElement(
                 "content", item["description"], {"type": content_type}
             )
@@ -934,7 +941,12 @@ class SearchBooksFeed(AuthFeed):
                 "path": row.catalog.path,
                 "registerdate": row.registerdate,
                 "id": row.id,
-                "annotation": strip_tags(row.annotation),
+                "annotation": strip_tags(row.annotation) if searchtype != "i" else "",
+                "content_url": (
+                    reverse("opds_catalog:annotation", kwargs={"book_id": row.id})
+                    if searchtype == "i"
+                    else None
+                ),
                 "docdate": row.docdate,
                 "format": row.format,
                 "title": row.title,
@@ -1073,6 +1085,7 @@ class SearchBooksFeed(AuthFeed):
             "ser_no": item["ser_no"],
             "docdate": item["docdate"],
             "annotation": item["annotation"],
+            "content_url": item["content_url"],
             "doubles": item["id"] if item["doubles"] > 0 else None,
         }
 
