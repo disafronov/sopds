@@ -49,6 +49,24 @@ function seriesFromLinks(links) {
         }));
 }
 
+function genresFromLinks(links) {
+    return links
+        .filter((link) => {
+            if (link.rel !== "related") return false;
+            const parts = new URL(link.href, window.location).pathname
+                .split("/")
+                .filter(Boolean);
+            return parts.at(-2) === "g";
+        })
+        .map((link) => ({
+            id: new URL(link.href, window.location).pathname
+                .split("/")
+                .filter(Boolean)
+                .at(-1) || "",
+            name: (link.title || "").replace(/^[^:]+:\s*/u, ""),
+        }));
+}
+
 export function parseFeed(xml) {
     const feed = parser.parse(xml).feed || {};
     const feedLinks = list(feed.link).map((link) => ({
@@ -86,10 +104,7 @@ export function parseFeed(xml) {
                 id: text(author.uri).split("/").filter(Boolean).at(-1) || "",
                 name: text(author.name),
             })),
-            genres: list(entry.category).map((category) => ({
-                id: category["@_sopds:id"] || "",
-                name: category["@_term"] || category["@_label"] || "",
-            })),
+            genres: genresFromLinks(links),
             series: seriesFromLinks(links),
             filesize: acquisition?.length ? String(Math.floor(acquisition.length / 1000)) : "",
             issued: text(entry["dcterms:issued"]),
