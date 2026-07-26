@@ -7,7 +7,13 @@ from typing import Any, BinaryIO, Callable, cast
 
 from constance import config
 from django.conf import settings as django_settings
-from django.http import Http404, HttpRequest, HttpResponse
+from django.contrib.staticfiles.storage import staticfiles_storage
+from django.http import (
+    Http404,
+    HttpRequest,
+    HttpResponse,
+    HttpResponseRedirect,
+)
 from django.utils.html import strip_tags
 from django.views.decorators.cache import cache_page
 from PIL import Image
@@ -246,13 +252,8 @@ def Cover(request: HttpRequest, book_id: int, thumbnail: bool = False) -> HttpRe
         response.write(image)
 
     if not image:
-        if os.path.exists(django_settings.SOPDS_NOCOVER_PATH):
-            response["Content-Type"] = "image/jpeg"
-            f = open(django_settings.SOPDS_NOCOVER_PATH, "rb")
-            response.write(f.read())
-            f.close()
-        else:
-            raise Http404
+        nocover_url = staticfiles_storage.url("images/nocover.jpg")
+        return HttpResponseRedirect(nocover_url, status=307)
 
     return response
 
