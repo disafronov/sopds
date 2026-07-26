@@ -34,8 +34,8 @@ build/
 # Python packaging
 *.egg-info/
 
-/books/
-/opds_catalog/tests/data/books/
+/books
+/opds_catalog/tests/data/books
 /static/
 /staticfiles/
 
