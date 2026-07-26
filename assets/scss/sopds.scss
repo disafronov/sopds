@@ -101,6 +101,16 @@
   display: block;
 }
 
+.book-annotation {
+  background: $light-gray;
+  padding: 0.5rem 1rem;
+  font-size: 80%;
+
+  p {
+    margin: 0;
+  }
+}
+
 .selector-table tbody td {
   padding: 0;
 }
