@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import re
 
-from django.db import connection, transaction
+from django.db import connection
 from django.db.backends.utils import CursorWrapper
 from django.db.models import Q
 from django.utils.translation import gettext as _
@@ -354,11 +354,3 @@ def addseries(ser: str) -> Series:
 def addbseries(book: Book, ser: Series, ser_no: int) -> None:
     bs = bseries(book=book, ser=ser, ser_no=ser_no)
     bs.save()
-
-
-def set_autocommit(autocommit: bool) -> None:
-    transaction.set_autocommit(autocommit)
-
-
-def commit() -> None:
-    transaction.commit()
