@@ -33,6 +33,9 @@ import {fetchFeed} from "./opds.js";
         const bookId = element.dataset.bookId;
         const detail = await fetchFeed(`/opds/search/books/i/${bookId}/`);
         const rendered = document.createElement("div");
+        for (const [name, value] of Object.entries(element.dataset)) {
+            rendered.dataset[name] = value;
+        }
         renderBooks(rendered, detail, false);
         const card = rendered.querySelector(".book-card");
         if (card) {
@@ -273,30 +276,6 @@ import {fetchFeed} from "./opds.js";
         renderPagination(element, detail);
     }
 
-    function safeContent(value, documentNode) {
-        const parsed = new documentNode.defaultView.DOMParser().parseFromString(value, "text/html");
-        const allowed = new Set(["B", "BR", "EM", "I", "P", "SPAN", "STRONG"]);
-        const fragment = documentNode.createDocumentFragment();
-        function copy(node, target) {
-            if (node.nodeType === 3) {
-                target.append(
-                    documentNode.createTextNode(
-                        (node.nodeValue || "").replace(/\s+([,.;:!?])/gu, "$1"),
-                    ),
-                );
-            } else if (node.nodeType === 1 && allowed.has(node.tagName)) {
-                const child = documentNode.createElement(node.tagName.toLowerCase());
-                if (["P", "SPAN"].includes(node.tagName) && node.className) child.className = node.className;
-                node.childNodes.forEach((item) => copy(item, child));
-                target.append(child);
-            } else if (node.nodeType === 1) {
-                node.childNodes.forEach((item) => copy(item, target));
-            }
-        }
-        parsed.body.childNodes.forEach((node) => copy(node, fragment));
-        return fragment;
-    }
-
     function searchUrl(type, id) {
         const url = new URL("/web/search/books/", window.location);
         url.searchParams.set("searchtype", type);
@@ -309,71 +288,24 @@ import {fetchFeed} from "./opds.js";
         return id ? searchUrl("i", id) : searchUrl("m", entry.title || "");
     }
 
-    function decorateBookLinks(fragment, entry) {
-        function replaceText(node, links) {
-            let text = node.nodeValue || "";
-            const fragment = document.createDocumentFragment();
-            while (text) {
-                let match = null;
-                for (const [name, href] of links) {
-                    const start = text.indexOf(name);
-                    if (
-                        start >= 0
-                        && (!match || start < match.start || (start === match.start && name.length > match.name.length))
-                    ) {
-                        match = {name, href, start};
-                    }
-                }
-                if (!match) {
-                    fragment.append(document.createTextNode(text));
-                    break;
-                }
-                if (match.start) fragment.append(document.createTextNode(text.slice(0, match.start)));
+    function appendMetadataLine(container, label, values) {
+        if (!values.length) return;
+        const line = document.createElement("div");
+        const heading = document.createElement("b");
+        heading.textContent = `${label}: `;
+        line.append(heading);
+        values.forEach((value, index) => {
+            if (index) line.append(document.createTextNode(", "));
+            if (value.href) {
                 const link = document.createElement("a");
-                link.href = match.href;
-                link.append(document.createTextNode(match.name));
-                fragment.append(link);
-                text = text.slice(match.start + match.name.length);
-            }
-            node.replaceWith(fragment);
-        }
-
-        fragment.querySelectorAll("b").forEach((label) => {
-            const labelText = label.textContent.toLowerCase();
-            let links = new Map();
-            if (labelText.includes("book name") || labelText.includes("название")) {
-                if (entry.title) links.set(entry.title.trim(), bookUrl(entry));
-            } else if (labelText.includes("authors") || labelText.includes("автор")) {
-                (entry.authors || []).forEach((rawName) => {
-                    const name = rawName.trim().replace(/\s+/gu, " ");
-                    if (name) links.set(name, searchUrl("a", name));
-                });
-            } else if (
-                (labelText.includes("series") || labelText.includes("серия") || labelText.includes("серий"))
-                && !labelText.includes("no in series")
-                && !labelText.includes("номер")
-            ) {
-                links = new Map();
-                let value = "";
-                for (let node = label.nextSibling; node && node.nodeName !== "BR"; node = node.nextSibling) value += node.textContent || "";
-                const name = value.trim().replace(/\s+/gu, " ");
-                if (name) links.set(name, searchUrl("s", name));
-            } else if (labelText.includes("genres") || labelText.includes("жанр")) {
-                (entry.genres || []).forEach((rawName) => {
-                    const name = rawName.trim();
-                    if (name) links.set(name, searchUrl("g", name));
-                });
+                link.href = value.href;
+                link.textContent = value.text;
+                line.append(link);
             } else {
-                return;
-            }
-            if (!links.size) return;
-            for (let node = label.nextSibling; node && node.nodeName !== "BR";) {
-                const next = node.nextSibling;
-                if (node.nodeType === 3) replaceText(node, links);
-                node = next;
+                line.append(document.createTextNode(value.text));
             }
         });
-        return fragment;
+        container.append(line);
     }
 
     function formatLabel(link, index) {
@@ -418,18 +350,49 @@ import {fetchFeed} from "./opds.js";
             }
             const textCell = row.insertCell();
             textCell.style.cssText = "font-size:80%; padding:0rem 1rem;";
-            const bookContent = safeContent(entry.content?.value || "", document);
-            const annotation = [...bookContent.querySelectorAll("p.book")].find(
-                (item) => item.textContent.trim(),
+            appendMetadataLine(textCell, element.dataset.bookNameLabel, [{
+                text: entry.title || "",
+                href: bookUrl(entry),
+            }]);
+            appendMetadataLine(
+                textCell,
+                element.dataset.authorsLabel,
+                (entry.authors || []).map((author) => ({
+                    text: author.name,
+                    href: searchUrl("a", author.id),
+                })),
             );
-            bookContent.querySelectorAll("p.book").forEach((item) => item.remove());
-            textCell.append(decorateBookLinks(bookContent, entry));
-            if (showAnnotation && annotation) {
+            appendMetadataLine(
+                textCell,
+                element.dataset.seriesLabel,
+                (entry.series || []).map((series) => ({
+                    text: series.name,
+                    href: searchUrl("s", series.id),
+                })),
+            );
+            appendMetadataLine(
+                textCell,
+                element.dataset.genresLabel,
+                (entry.genres || []).map((genre) => ({
+                    text: genre.name,
+                    href: searchUrl("g", genre.id),
+                })),
+            );
+            appendMetadataLine(textCell, element.dataset.fileLabel, [{
+                text: entry.filename || "",
+            }]);
+            appendMetadataLine(textCell, element.dataset.fileSizeLabel, [{
+                text: `${entry.filesize || "0"} ${element.dataset.fileSizeUnit}`,
+            }]);
+            appendMetadataLine(textCell, element.dataset.changesDateLabel, [{
+                text: entry.docdate || "",
+            }]);
+            if (showAnnotation && entry.annotation) {
                 const annotationRow = card.insertRow();
                 const annotationCell = annotationRow.insertCell();
                 annotationCell.colSpan = 2;
                 annotationCell.className = "book-annotation";
-                annotationCell.append(annotation);
+                annotationCell.textContent = entry.annotation;
             }
             content.append(card);
             element.append(heading, content);
