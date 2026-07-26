@@ -21,7 +21,6 @@ TOOLING_DATABASE_URL = postgres://unused:unused@127.0.0.1:5432/unused
 
 UV = uv run
 PYTEST_CMD = $(COMMON_OPTS) DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python -m pytest -v -n auto
-TEST_ARGS = $(if $(filter all,$(MAKECMDGOALS)),,$(filter-out test all,$(MAKECMDGOALS)))
 
 DOCKER_IMAGE = sopds
 FRONTEND_DIR = assets
@@ -114,11 +113,11 @@ migrate: migrate-postgresql migrate-mysql ## Apply migrations to both supported 
 
 test-postgresql: ## Run tests on PostgreSQL
 	@echo "Running tests on PostgreSQL..."
-	DATABASE_URL="$(DATABASE_URL_POSTGRESQL)" $(PYTEST_CMD) $(TEST_ARGS)
+	DATABASE_URL="$(DATABASE_URL_POSTGRESQL)" $(PYTEST_CMD)
 
 test-mysql: ## Run tests on MySQL/MariaDB
 	@echo "Running tests on MySQL/MariaDB..."
-	DATABASE_URL="$(DATABASE_URL_MYSQL)" $(PYTEST_CMD) $(TEST_ARGS)
+	DATABASE_URL="$(DATABASE_URL_MYSQL)" $(PYTEST_CMD)
 
 test: locale migrate test-postgresql test-mysql ## Run tests on both supported databases
 
