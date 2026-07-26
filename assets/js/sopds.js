@@ -306,11 +306,15 @@ import {fetchFeed} from "./opds.js";
         container.append(line);
     }
 
-    function formatLabel(link, index) {
-        const type = link.type || "download";
-        if (type === "application/fb2+xml") return index === 0 ? "fb2" : "fb2+zip";
-        if (type === "application/epub+zip") return index === 0 ? "epub" : "epub+zip";
-        return type.split("/").pop();
+    function formatLabel(link) {
+        const labels = {
+            "application/fb2": "fb2",
+            "application/fb2+xml": "fb2",
+            "application/fb2+zip": "fb2+zip",
+            "application/epub+zip": "epub",
+            "application/x-mobipocket-ebook": "mobi",
+        };
+        return labels[link.type] || "download";
     }
 
     function renderBooks(element, detail, showAnnotation = element.dataset.searchtype === "i") {
@@ -324,11 +328,11 @@ import {fetchFeed} from "./opds.js";
             titleLink.textContent = entry.title || "";
             title.append(titleLink);
             heading.append(title, " Download: ");
-            (entry.links || []).filter((link) => link.rel === "http://opds-spec.org/acquisition/open-access").forEach((link, index) => {
+            (entry.links || []).filter((link) => link.rel === "http://opds-spec.org/acquisition/open-access").forEach((link) => {
                 const anchor = document.createElement("a");
                 anchor.href = link.href;
                 anchor.className = "label small";
-                anchor.textContent = formatLabel(link, index);
+                anchor.textContent = formatLabel(link);
                 heading.append(anchor, " ");
             });
             const content = document.createElement("div");
