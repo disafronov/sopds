@@ -283,5 +283,54 @@ test("direct book page shows annotation", async () => {
   await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
 
   assert.equal(window.document.body.textContent.includes("Visible annotation"), true);
+  assert.ok(window.document.querySelector(".book-annotation"));
+  dom.window.close();
+});
+
+test("footer book card hides annotation", async () => {
+  const bookFeed = `<?xml version="1.0" encoding="utf-8"?>
+  <feed xmlns="http://www.w3.org/2005/Atom">
+    <entry>
+      <id>book:42</id>
+      <title>Fixture book</title>
+      <content type="text"><![CDATA[<b> Book name: </b>Fixture book<br/><p class="book">Hidden footer annotation</p>]]></content>
+    </entry>
+  </feed>`;
+  const dom = new JSDOM(
+    `<!doctype html>
+      <div data-opds-footer-book data-book-id="42"></div>`,
+    { runScripts: "dangerously", url: "https://sopds.test/web/" },
+  );
+  const { window } = dom;
+  window.fetch = async () => ({ ok: true, text: async () => bookFeed });
+
+  await loadFrontend(window);
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+
+  assert.equal(window.document.body.textContent.includes("Hidden footer annotation"), false);
+  dom.window.close();
+});
+
+test("direct book page omits empty annotation", async () => {
+  const bookFeed = `<?xml version="1.0" encoding="utf-8"?>
+  <feed xmlns="http://www.w3.org/2005/Atom">
+    <entry>
+      <id>book:42</id>
+      <title>Fixture book</title>
+      <content type="text"><![CDATA[<b> Book name: </b>Fixture book<br/><p class="book">  </p>]]></content>
+    </entry>
+  </feed>`;
+  const dom = new JSDOM(
+    `<!doctype html>
+      <div data-opds-books data-searchtype="i" data-feed-url="/opds/search/books/i/42/"></div>`,
+    { runScripts: "dangerously", url: "https://sopds.test/web/search/books/" },
+  );
+  const { window } = dom;
+  window.fetch = async () => ({ ok: true, text: async () => bookFeed });
+
+  await loadFrontend(window);
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+
+  assert.equal(window.document.querySelector(".book-annotation"), null);
   dom.window.close();
 });

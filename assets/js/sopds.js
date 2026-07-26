@@ -33,7 +33,7 @@ import {fetchFeed} from "./opds.js";
         const bookId = element.dataset.bookId;
         const detail = await fetchFeed(`/opds/search/books/i/${bookId}/`);
         const rendered = document.createElement("div");
-        renderBooks(rendered, detail);
+        renderBooks(rendered, detail, false);
         const card = rendered.querySelector(".book-card");
         if (card) {
             card.classList.add("footer-book-card");
@@ -376,7 +376,7 @@ import {fetchFeed} from "./opds.js";
         return type.split("/").pop();
     }
 
-    function renderBooks(element, detail) {
+    function renderBooks(element, detail, showAnnotation = element.dataset.searchtype === "i") {
         element.replaceChildren();
         detail.entries.forEach((entry) => {
             const heading = document.createElement("div");
@@ -412,10 +412,18 @@ import {fetchFeed} from "./opds.js";
             const textCell = row.insertCell();
             textCell.style.cssText = "font-size:80%; padding:0rem 1rem;";
             const bookContent = safeContent(entry.content?.value || "", document);
-            if (element.dataset.searchtype !== "i") {
-                bookContent.querySelectorAll("p.book").forEach((annotation) => annotation.remove());
-            }
+            const annotation = [...bookContent.querySelectorAll("p.book")].find(
+                (item) => item.textContent.trim(),
+            );
+            bookContent.querySelectorAll("p.book").forEach((item) => item.remove());
             textCell.append(decorateBookLinks(bookContent, entry));
+            if (showAnnotation && annotation) {
+                const annotationRow = card.insertRow();
+                const annotationCell = annotationRow.insertCell();
+                annotationCell.colSpan = 2;
+                annotationCell.className = "book-annotation";
+                annotationCell.append(annotation);
+            }
             content.append(card);
             element.append(heading, content);
         });
