@@ -225,7 +225,7 @@ test("entity adapter preserves result links and numeric pagination", async () =>
   dom.window.close();
 });
 
-test("book adapter keeps a comma inside the series search term", async () => {
+test("book lists hide annotations and preserve series commas", async () => {
   const bookFeed = `<?xml version="1.0" encoding="utf-8"?>
   <feed xmlns="http://www.w3.org/2005/Atom">
     <id>urn:test:feed</id>
@@ -235,7 +235,7 @@ test("book adapter keeps a comma inside the series search term", async () => {
       <title>Fixture book</title>
       <author><name>Fixture author</name></author>
       <link href="/opds/search/books/i/42/" rel="alternate"/>
-      <content type="text"><![CDATA[<b> Book name: </b>Fixture book<br/><b>Authors: </b>Fixture author<br/><b>Series: </b>Collection, with comma<br/><b>Genres: </b>prose_contemporary<br/>]]></content>
+      <content type="text"><![CDATA[<b> Book name: </b>Fixture book<br/><b>Authors: </b>Fixture author<br/><b>Series: </b>Collection, with comma<br/><b>Genres: </b>prose_contemporary<br/><p class="book">Hidden annotation</p>]]></content>
     </entry>
   </feed>`;
   const dom = new JSDOM(
@@ -256,6 +256,32 @@ test("book adapter keeps a comma inside the series search term", async () => {
     new URL(seriesLinks[0].href).searchParams.get("searchterms"),
     "Collection, with comma",
   );
+  assert.equal(window.document.body.textContent.includes("Hidden annotation"), false);
 
+  dom.window.close();
+});
+
+test("direct book page shows annotation", async () => {
+  const bookFeed = `<?xml version="1.0" encoding="utf-8"?>
+  <feed xmlns="http://www.w3.org/2005/Atom">
+    <entry>
+      <id>book:42</id>
+      <title>Fixture book</title>
+      <link href="/opds/search/books/i/42/" rel="alternate"/>
+      <content type="text"><![CDATA[<b> Book name: </b>Fixture book<br/><p class="book">Visible annotation</p>]]></content>
+    </entry>
+  </feed>`;
+  const dom = new JSDOM(
+    `<!doctype html>
+      <div data-opds-books data-searchtype="i" data-feed-url="/opds/search/books/i/42/"></div>`,
+    { runScripts: "dangerously", url: "https://sopds.test/web/search/books/" },
+  );
+  const { window } = dom;
+  window.fetch = async () => ({ ok: true, text: async () => bookFeed });
+
+  await loadFrontend(window);
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+
+  assert.equal(window.document.body.textContent.includes("Visible annotation"), true);
   dom.window.close();
 });
