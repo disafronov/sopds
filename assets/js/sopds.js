@@ -282,7 +282,7 @@ import {fetchFeed} from "./opds.js";
                 );
             } else if (node.nodeType === 1 && allowed.has(node.tagName)) {
                 const child = documentNode.createElement(node.tagName.toLowerCase());
-                if (node.tagName === "SPAN" && node.className) child.className = node.className;
+                if (["P", "SPAN"].includes(node.tagName) && node.className) child.className = node.className;
                 node.childNodes.forEach((item) => copy(item, child));
                 target.append(child);
             } else if (node.nodeType === 1) {
@@ -411,12 +411,11 @@ import {fetchFeed} from "./opds.js";
             }
             const textCell = row.insertCell();
             textCell.style.cssText = "font-size:80%; padding:0rem 1rem;";
-            textCell.append(
-                decorateBookLinks(
-                    safeContent(entry.content?.value || "", document),
-                    entry,
-                ),
-            );
+            const bookContent = safeContent(entry.content?.value || "", document);
+            if (element.dataset.searchtype !== "i") {
+                bookContent.querySelectorAll("p.book").forEach((annotation) => annotation.remove());
+            }
+            textCell.append(decorateBookLinks(bookContent, entry));
             content.append(card);
             element.append(heading, content);
         });
