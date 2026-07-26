@@ -24,33 +24,37 @@ function decodeContent(value) {
 
 export function parseFeed(xml) {
     const feed = parser.parse(xml).feed || {};
-    const entries = list(feed.entry).map((entry) => ({
-        id: text(entry.id),
-        title: text(entry.title),
-        content: entry.content ? {value: decodeContent(text(entry.content))} : undefined,
-        links: list(entry.link).map((link) => ({
+    const entries = list(feed.entry).map((entry) => {
+        const links = list(entry.link).map((link) => ({
             href: link["@_href"] || "",
             rel: link["@_rel"] || "",
             type: link["@_type"] || undefined,
-        })),
-        catType: Number(text(entry["sopds:cat-type"])),
-        authors: list(entry.author).map((author) => ({
-            id: text(author["sopds:id"]),
-            name: text(author.name),
-        })),
-        genres: list(entry.category).map((category) => ({
-            id: category["@_sopds:id"] || "",
-            name: category["@_term"] || category["@_label"] || "",
-        })),
-        series: list(entry["sopds:series"]).map((series) => ({
-            id: series["@_id"] || "",
-            name: text(series),
-        })),
-        filename: text(entry["sopds:filename"]),
-        filesize: text(entry["sopds:filesize"]),
-        docdate: text(entry["sopds:docdate"]),
-        annotation: text(entry["sopds:annotation"]),
-    }));
+            length: Number(link["@_length"] || 0),
+        }));
+        const acquisition = links.find((link) => link.rel.startsWith("http://opds-spec.org/acquisition"));
+        return {
+            id: text(entry.id),
+            title: text(entry.title),
+            content: entry.content ? {value: decodeContent(text(entry.content))} : undefined,
+            links,
+            catType: Number(text(entry["sopds:cat-type"])),
+            authors: list(entry.author).map((author) => ({
+                id: text(author.uri).split("/").filter(Boolean).at(-1) || "",
+                name: text(author.name),
+            })),
+            genres: list(entry.category).map((category) => ({
+                id: category["@_sopds:id"] || "",
+                name: category["@_term"] || category["@_label"] || "",
+            })),
+            series: list(entry["sopds:series"]).map((series) => ({
+                id: series["@_id"] || "",
+                name: text(series),
+            })),
+            filesize: acquisition?.length ? String(Math.floor(acquisition.length / 1000)) : "",
+            issued: text(entry["dcterms:issued"]),
+            annotation: text(entry.summary),
+        };
+    });
     return {
         page: Number(text(feed["sopds:page"]) || 1),
         pages: Number(text(feed["sopds:pages"]) || 1),
