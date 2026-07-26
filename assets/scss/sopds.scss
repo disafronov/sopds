@@ -168,6 +168,24 @@
   margin-right: 0.125rem;
 }
 
+.book-download-link {
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: $label-font-size;
+  font-weight: inherit;
+  line-height: 1;
+  vertical-align: middle;
+  background-color: $sopds-bg-color;
+  color: $white;
+}
+
+.book-download-link:hover,
+.book-download-link:focus {
+  background-color: $sopds-menu-bg-hover-color;
+  color: $sopds-menu-color;
+}
+
 .bookshelf-delete-trigger {
   position: relative;
   margin-left: 0.75rem;

@@ -337,7 +337,7 @@ import {fetchFeed} from "./opds.js";
             (entry.links || []).filter((link) => link.rel === "http://opds-spec.org/acquisition/open-access").forEach((link) => {
                 const anchor = document.createElement("a");
                 anchor.href = link.href;
-                anchor.className = "label small";
+                anchor.className = "label small book-download-link";
                 anchor.textContent = formatLabel(link);
                 downloads.append(" ", anchor);
             });
