@@ -120,6 +120,50 @@ class TestGetFileData:
                 dl.getFileData(book)
 
 
+class TestGetBookAnnotation:
+    def test_extracts_annotation(self, mocker: MockerFixture) -> None:
+        book = mocker.MagicMock(spec=Book)
+        book.filename = "book.fb2"
+        mocker.patch.object(dl, "getFileData", return_value=io.BytesIO(b"book"))
+        parsed = mocker.MagicMock(description="Annotation from source")
+        create_bookfile = mocker.patch.object(
+            dl, "create_bookfile", return_value=parsed
+        )
+
+        assert dl.getBookAnnotation(book) == "Annotation from source"
+        create_bookfile.assert_called_once()
+
+    def test_returns_none_when_extraction_fails(self, mocker: MockerFixture) -> None:
+        book = mocker.MagicMock(spec=Book)
+        mocker.patch.object(dl, "getFileData", side_effect=FileNotFoundError)
+
+        assert dl.getBookAnnotation(book) is None
+
+
+class TestAnnotationView:
+    def test_returns_annotation_from_source(self, mocker: MockerFixture) -> None:
+        book = mocker.MagicMock(annotation="")
+        mocker.patch.object(Book.objects, "get", return_value=book)
+        mocker.patch.object(
+            dl, "getBookAnnotation", return_value="<p>Source annotation</p>"
+        )
+
+        response = dl.Annotation(HttpRequest(), 5)
+
+        assert response.status_code == 200
+        assert response.content.decode() == "Source annotation"
+        assert response["Content-Type"] == "text/plain; charset=utf-8"
+
+    def test_falls_back_to_stored_annotation(self, mocker: MockerFixture) -> None:
+        book = mocker.MagicMock(annotation="Stored annotation")
+        mocker.patch.object(Book.objects, "get", return_value=book)
+        mocker.patch.object(dl, "getBookAnnotation", return_value=None)
+
+        response = dl.Annotation(HttpRequest(), 5)
+
+        assert response.content.decode() == "Stored annotation"
+
+
 class TestGetFileDataZip:
     """dl.getFileDataZip()."""
 

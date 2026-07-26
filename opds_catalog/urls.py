@@ -95,6 +95,7 @@ urlpatterns = [
         name="download",
     ),
     url(r"^cover/(?P<book_id>[0-9]+)/$", dl.Cover, name="cover"),
+    url(r"^annotation/(?P<book_id>[0-9]+)/$", dl.Annotation, name="annotation"),
     url(r"^thumb/(?P<book_id>[0-9]+)/$", dl.Thumbnail, name="thumb"),
     url(r"^thumb/$", dl.Cover, name="covertmpl"),
     url(r"^$", feeds.MainFeed(), name="main"),

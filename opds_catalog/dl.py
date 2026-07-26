@@ -8,6 +8,7 @@ from typing import Any, BinaryIO, Callable, cast
 from constance import config
 from django.conf import settings as django_settings
 from django.http import Http404, HttpRequest, HttpResponse
+from django.utils.html import strip_tags
 from django.views.decorators.cache import cache_page
 from PIL import Image
 
@@ -67,6 +68,24 @@ def getFileData(book: Book) -> io.BytesIO:
         fz.close()
 
     return dio
+
+
+def getBookAnnotation(book: Book) -> str | None:
+    """Extract a book annotation directly from its source file."""
+    try:
+        book_data = create_bookfile(getFileData(book), book.filename)
+        return book_data.description
+    except Exception:
+        return None
+
+
+def Annotation(request: HttpRequest, book_id: int) -> HttpResponse:
+    """Load one book's annotation from its source file."""
+    book = Book.objects.get(id=book_id)
+    annotation = book.annotation or getBookAnnotation(book)
+    return HttpResponse(
+        strip_tags(annotation or ""), content_type="text/plain; charset=utf-8"
+    )
 
 
 def getFileDataZip(book: Book) -> io.BytesIO:
