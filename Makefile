@@ -20,11 +20,13 @@ TOOLING_SECRET_KEY = unsafe-secret-key-for-tooling
 TOOLING_DATABASE_URL = postgres://unused:unused@127.0.0.1:5432/unused
 
 UV = uv run
-PYTEST_CMD = DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python -m pytest -v -n auto
+PYTEST_CMD = $(COMMON_OPTS) DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python -m pytest -v -n auto
 TEST_ARGS = $(if $(filter all,$(MAKECMDGOALS)),,$(filter-out test all,$(MAKECMDGOALS)))
 
 DOCKER_IMAGE = sopds
 FRONTEND_DIR = assets
+
+COMMON_OPTS=SOPDS_ROOT_LIB="${PWD}/opds_catalog/tests/data"
 
 DOCKER_RUN_OPTS = --rm \
 	--read-only \
@@ -132,15 +134,15 @@ run: frontend-build locale collectstatic ## Start the app on selected DATABASE_U
 	else \
 		echo "Skipping createsuperuser (set DJANGO_SUPERUSER_USERNAME/PASSWORD/EMAIL to enable)."; \
 	fi
-	DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py dev
+	$(COMMON_OPTS) DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py dev
 
 scanner: ## Run the sopds scanner (APScheduler)
 	@echo "Running sopds scanner..."
-	$(UV) python manage.py sopds_scanner start
+	$(COMMON_OPTS) $(UV) python manage.py sopds_scanner start
 
 scan: ## Run the sopds scanner oneshot scan
 	@echo "Running sopds scanner oneshot scan..."
-	$(UV) python manage.py sopds_scanner scan
+	$(COMMON_OPTS) $(UV) python manage.py sopds_scanner scan
 
 clean: ## Clean caches and coverage outputs
 	@echo "Cleaning cache and temporary files..."
