@@ -31,6 +31,24 @@ function pageNumber(href) {
     return /^\d+$/u.test(finalSegment || "") ? Number(finalSegment) : 1;
 }
 
+function seriesFromLinks(links) {
+    return links
+        .filter((link) => {
+            if (link.rel !== "related") return false;
+            const parts = new URL(link.href, window.location).pathname
+                .split("/")
+                .filter(Boolean);
+            return parts.at(-2) === "s";
+        })
+        .map((link) => ({
+            id: new URL(link.href, window.location).pathname
+                .split("/")
+                .filter(Boolean)
+                .at(-1) || "",
+            name: (link.title || "").replace(/^[^:]+:\s*/u, ""),
+        }));
+}
+
 export function parseFeed(xml) {
     const feed = parser.parse(xml).feed || {};
     const feedLinks = list(feed.link).map((link) => ({
@@ -55,6 +73,7 @@ export function parseFeed(xml) {
             href: link["@_href"] || "",
             rel: link["@_rel"] || "",
             type: link["@_type"] || undefined,
+            title: link["@_title"] || undefined,
             length: Number(link["@_length"] || 0),
         }));
         const acquisition = links.find((link) => link.rel.startsWith("http://opds-spec.org/acquisition"));
@@ -71,10 +90,7 @@ export function parseFeed(xml) {
                 id: category["@_sopds:id"] || "",
                 name: category["@_term"] || category["@_label"] || "",
             })),
-            series: list(entry["sopds:series"]).map((series) => ({
-                id: series["@_id"] || "",
-                name: text(series),
-            })),
+            series: seriesFromLinks(links),
             filesize: acquisition?.length ? String(Math.floor(acquisition.length / 1000)) : "",
             issued: text(entry["dcterms:issued"]),
             annotation: text(entry.summary),
