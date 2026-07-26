@@ -321,20 +321,36 @@ import {fetchFeed} from "./opds.js";
         element.replaceChildren();
         detail.entries.forEach((entry) => {
             const heading = document.createElement("div");
-            heading.className = "large-12 column";
+            heading.className = "large-12 column book-heading";
             const title = document.createElement("b");
             const titleLink = document.createElement("a");
             titleLink.href = bookUrl(entry);
             titleLink.textContent = entry.title || "";
             title.append(titleLink);
-            heading.append(title, " Download: ");
+            heading.append(title, " ");
+            const downloads = document.createElement("span");
+            downloads.className = "book-downloads";
+            const downloadsLabel = document.createElement("span");
+            downloadsLabel.className = "book-downloads__label";
+            downloadsLabel.textContent = `${element.dataset.downloadLabel || "Download"}:`;
+            downloads.append(downloadsLabel);
             (entry.links || []).filter((link) => link.rel === "http://opds-spec.org/acquisition/open-access").forEach((link) => {
                 const anchor = document.createElement("a");
                 anchor.href = link.href;
                 anchor.className = "label small";
                 anchor.textContent = formatLabel(link);
-                heading.append(anchor, " ");
+                downloads.append(" ", anchor);
             });
+            heading.append(downloads);
+            if (element.dataset.isbookshelf === "1") {
+                const deleteButton = document.createElement("button");
+                deleteButton.type = "button";
+                deleteButton.className = "alert label small bookshelf-delete-trigger";
+                deleteButton.dataset.bookId = String(entry.id || "").split(":").pop();
+                deleteButton.dataset.bookTitle = entry.title || "";
+                deleteButton.textContent = element.dataset.deleteLabel || "Delete";
+                heading.append(" ", deleteButton);
+            }
             const content = document.createElement("div");
             content.className = "large-12 column";
             const card = document.createElement("table");

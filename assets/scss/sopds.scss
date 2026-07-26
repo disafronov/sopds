@@ -139,6 +139,65 @@
   margin-top: 1rem;
 }
 
+.book-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.book-downloads {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: 0.75rem;
+  vertical-align: middle;
+}
+
+.book-downloads::before {
+  position: absolute;
+  top: 50%;
+  left: -0.5rem;
+  color: $dark-gray;
+  line-height: 1;
+  content: "|";
+  transform: translateY(-50%);
+}
+
+.book-downloads__label {
+  margin-right: 0.125rem;
+}
+
+.bookshelf-delete-trigger {
+  position: relative;
+  margin-left: 0.75rem;
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: $label-font-size;
+  font-weight: inherit;
+  line-height: 1;
+  vertical-align: middle;
+  background-color: $alert-color;
+  color: $white;
+}
+
+.bookshelf-delete-trigger:hover,
+.bookshelf-delete-trigger:focus {
+  background-color: $sopds-menu-bg-hover-color;
+  color: $sopds-menu-color;
+}
+
+.bookshelf-delete-trigger::before {
+  position: absolute;
+  top: 50%;
+  left: -0.5rem;
+  color: $dark-gray;
+  line-height: 1;
+  content: "|";
+  transform: translateY(-50%);
+}
+
 .footer-book-card,
 .footer-book-card tbody {
   background: transparent;
