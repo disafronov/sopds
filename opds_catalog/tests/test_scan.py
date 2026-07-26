@@ -265,16 +265,34 @@ EPUB и помещает в БД)"""
         self.assertEqual(book.cat_type, 1)
 
     def test_scanall(self) -> None:
-        """Тестирование процедуры scanall (извлекает метаданные из книг и \
-помещает в БД)"""
-        opdsdb.clear_all()
-        scanner = opdsScanner()
-        executor = ImmediateExecutor()
-        with patch(
-            "opds_catalog.sopdscan.create_scan_executor",
-            return_value=executor,
-        ):
-            scanner.scan_all()
+        """Scan every artifact stored directly in the test data directory."""
+        artifact_names = (
+            "262001.fb2",
+            "badfile.fb2",
+            "badfile.zip",
+            "books.zip",
+            "mirer.epub",
+            "robin_cook.mobi",
+        )
+        with tempfile.TemporaryDirectory() as root:
+            for name in artifact_names:
+                os.symlink(
+                    os.path.join(self.test_ROOTLIB, name),
+                    os.path.join(root, name),
+                )
+
+            opdsdb.clear_all()
+            scanner = opdsScanner()
+            executor = ImmediateExecutor()
+            with (
+                self.settings(SOPDS_ROOT_LIB=root),
+                patch(
+                    "opds_catalog.sopdscan.create_scan_executor",
+                    return_value=executor,
+                ),
+            ):
+                scanner.scan_all()
+
         self.assertIn("discover_directory", executor.submitted)
         self.assertIn("discover_zip_entries", executor.submitted)
         self.assertIn("parse_zip_member_job", executor.submitted)
@@ -282,6 +300,17 @@ EPUB и помещает в БД)"""
         self.assertEqual(scanner.books_added, 6)
         self.assertEqual(scanner.bad_books, 1)
         self.assertEqual(Book.objects.all().count(), 6)
+        self.assertSetEqual(
+            set(Book.objects.values_list("filename", flat=True)),
+            {
+                "262001.fb2",
+                "539273.fb2",
+                "539485.fb2",
+                "539603.fb2",
+                "mirer.epub",
+                "robin_cook.mobi",
+            },
+        )
         self.assertEqual(Author.objects.all().count(), 6)
         self.assertEqual(Genre.objects.all().count(), 17)
         self.assertEqual(Series.objects.all().count(), 1)
