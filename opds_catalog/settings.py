@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 
 from django.conf import settings
+from django.contrib.staticfiles.storage import staticfiles_storage
 
 loglevels = {
     "debug": logging.DEBUG,
@@ -15,7 +16,7 @@ loglevels = {
 NOZIP_FORMATS = ["epub", "mobi"]
 
 TITLE = getattr(settings, "SOPDS_TITLE", "SimpleOPDS")
-ICON = getattr(settings, "SOPDS_ICON", "/static/images/favicon.ico")
+ICON = getattr(settings, "SOPDS_ICON", staticfiles_storage.url("images/favicon.ico"))
 THUMB_SIZE = 100
 
 loglevel = getattr(settings, "SOPDS_LOGLEVEL", "info")

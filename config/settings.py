@@ -117,7 +117,6 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    "django.middleware.cache.UpdateCacheMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -127,12 +126,9 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "opds_catalog.middleware.BasicAuthMiddleware",
     "web_frontend.middleware.WebAuthenticationMiddleware",
-    # 'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     "opds_catalog.middleware.SOPDSLocaleMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    # 'django.middleware.cache.CacheMiddleware',
-    # 'opds_catalog.middleware.FetchFromCacheMiddleware',
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -242,7 +238,7 @@ STORAGES = {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
 
