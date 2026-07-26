@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-25 17:30+0000\n"
+"POT-Creation-Date: 2026-07-26 19:53+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -20,63 +20,63 @@ msgstr ""
 "n%10<=4 && (n%100<12 || n%100>14) ? 1 : n%10==0 || (n%10>=5 && n%10<=9) || "
 "(n%100>=11 && n%100<=14)? 2 : 3);\n"
 
-#: config/settings.py:270
+#: config/settings.py:266
 msgid "Select language"
 msgstr "Выбор языка"
 
-#: config/settings.py:275
+#: config/settings.py:271
 msgid "List of managed book files extensions"
 msgstr "Список расширений файлов, для включения в коллекцию книг"
 
-#: config/settings.py:284
+#: config/settings.py:280
 msgid "Turn once scanning directly"
 msgstr "Запустить внеочередное однократное сканирование коллекции книг"
 
-#: config/settings.py:287
+#: config/settings.py:283
 msgid "Pages cache time"
 msgstr "Время хранения страницы в кэше"
 
-#: config/settings.py:288
+#: config/settings.py:284
 msgid "Enable authentication"
 msgstr "Включить аутентификацию"
 
-#: config/settings.py:289
+#: config/settings.py:285
 msgid "Enable alphabet submenu"
 msgstr "Включить субменю выбора алфавита"
 
-#: config/settings.py:290
+#: config/settings.py:286
 msgid "This flag hides found doublicates"
 msgstr "Флаг прячет найденные дубликаты книг"
 
-#: config/settings.py:291
+#: config/settings.py:287
 msgid "This flag activate showing cover of books"
 msgstr "Флаг активирует показ обложек книг"
 
-#: config/settings.py:292
+#: config/settings.py:288
 msgid "Max subitems count in alphabet menuitem"
 msgstr "Максимальное число подэлементов в элементах алфавитных меню"
 
-#: config/settings.py:293
+#: config/settings.py:289
 msgid "Max items on page"
 msgstr "Максимальное число элементов на странице"
 
-#: config/settings.py:296
+#: config/settings.py:292
 msgid "Create downloaded filename from book title"
 msgstr "Имя загружаемого файла формировать из названия книги"
 
-#: config/settings.py:303
+#: config/settings.py:299
 msgid "This flag activate zip files scanning"
 msgstr "Флаг разрешает сканированеи содержимого ZIP файлов"
 
-#: config/settings.py:311
+#: config/settings.py:307
 msgid "Skip unchanged ZIP archives on re-scan by comparing file size"
 msgstr "Пропускать неизменённые ZIP-архивы при повторном сканировании"
 
-#: config/settings.py:318
+#: config/settings.py:314
 msgid "Set codepage for filenames inside zipfile"
 msgstr "Codepage для имен файлов внутри ZIP"
 
-#: config/settings.py:327
+#: config/settings.py:323
 msgid ""
 "Enables read metadata from inpx-file (and stop scanning deeper from ipx-file "
 "place)"
@@ -84,39 +84,39 @@ msgstr ""
 "Считываем метаданные книг з INPX-файлов (при этом не сканируем файлы и "
 "каталоги, расположенные на уровне или ниже найденого INPX)"
 
-#: config/settings.py:337
+#: config/settings.py:333
 msgid "Skip scanning INPX with unchanged size after previous scan"
 msgstr ""
 "Не сканируем INPX, если его размер не изменился с предидущего сканирования"
 
-#: config/settings.py:346
+#: config/settings.py:342
 msgid "Test avialability zip files listed in INPX before add in collection"
 msgstr ""
 "Проверяем наличие zip файлов, перечисленных в INPX перед добавлением их "
 "содержимого в коллекцию"
 
-#: config/settings.py:357
+#: config/settings.py:353
 msgid "Test avialability book files listed in INPX before add in collection"
 msgstr ""
 "Тестируем наличие книг, перечисленных в INPX перед добавлением их "
 "содержимого в коллекцию"
 
-#: config/settings.py:367
+#: config/settings.py:363
 msgid "Logical deleting unavialable files"
 msgstr "Логическое удаление отсутствующих файлов"
 
-#: config/settings.py:372
+#: config/settings.py:368
 msgid "sheduled minutes for sopds_scanner (cron syntax)"
 msgstr "минуты для планировщика sopds_Scanner (как в cron)"
 
-#: config/settings.py:376
+#: config/settings.py:372
 msgid "sheduled hours for sopds_scanner (cron syntax)"
 msgstr "часы для планировщика sopds_Scanner (как в cron)"
 
-#: config/settings.py:380
+#: config/settings.py:376
 msgid "sheduled day for sopds_scanner (cron syntax)"
 msgstr "дни для планировщика sopds_Scanner (как в cron)"
 
-#: config/settings.py:384
+#: config/settings.py:380
 msgid "sheduled day of weeks for sopds_scanner (cron syntax)"
 msgstr "дни недели для планировщика sopds_Scanner (как в cron)"

@@ -89,7 +89,7 @@ class feedsTestCase(TestCase):
         c = Client()
         response = c.get("/opds/search/")
         self.assertEqual(response.status_code, 200)
-        self.assertIn("/static/images/favicon.ico", response.content.decode())
+        self.assertIn("images/favicon", response.content.decode())
         self.assertIn(
             'template="/opds/search/{searchTerms}/"',
             response.content.decode(),

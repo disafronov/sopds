@@ -119,7 +119,7 @@ test-mysql: ## Run tests on MySQL/MariaDB
 	@echo "Running tests on MySQL/MariaDB..."
 	DATABASE_URL="$(DATABASE_URL_MYSQL)" $(PYTEST_CMD)
 
-test: locale migrate test-postgresql test-mysql ## Run tests on both supported databases
+test: locale collectstatic migrate test-postgresql test-mysql ## Run tests on both supported databases
 
 all: lint frontend test dead-code ## Run all checks
 	@echo "All checks completed successfully!"
