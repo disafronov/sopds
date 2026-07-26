@@ -221,8 +221,13 @@ class feedsTestCase(TestCase):
         Author.objects.filter(pk=6).update(full_name=" ", lang_code=9)
         empty_series = Series.objects.create(ser="", lang_code=9)
         Series.objects.create(ser=" ", lang_code=9)
+        linked_genre = Genre.objects.create(
+            section="test",
+            subsection="test_genre",
+        )
         book_with_series = Book.objects.get(pk=5)
         book_with_series.series.add(empty_series)
+        book_with_series.genres.add(linked_genre)
         book_with_series.bseries_set.filter(ser=empty_series).update(ser_no=3)
 
         client = Client()
@@ -283,6 +288,14 @@ class feedsTestCase(TestCase):
                         'rel="related" title="Series: Unnamed series [3]"',
                         content,
                     )
+                    self.assertIn(
+                        f'href="/opds/search/books/g/{linked_genre.pk}/"',
+                        content,
+                    )
+                    self.assertLess(
+                        content.index('title="Series: Unnamed series [3]"'),
+                        content.index('title="Genre: test_genre"'),
+                    )
                     self.assertNotIn("<sopds:series", content)
                     self.assertIn('length="503533"', content)
                     self.assertNotIn("<sopds:filename>", content)
@@ -300,6 +313,14 @@ class feedsTestCase(TestCase):
                             )
                             % {"series": "Серия без названия"},
                             "Серия: Серия без названия",
+                        )
+                        self.assertEqual(
+                            pgettext(
+                                "book metadata link",
+                                "Genre: %(genre)s",
+                            )
+                            % {"genre": "fantasy"},
+                            "Жанр: fantasy",
                         )
 
     def test_GenresFeed(self) -> None:
@@ -341,7 +362,7 @@ class feedsTestCase(TestCase):
         response = c.get("/opds/search/authors/m/Логинов/1/")
         self.assertEqual(response.status_code, 200)
         content = response.content.decode()
-        self.assertIn('xmlns:sopds="urn:sopds:meta"', content)
+        self.assertNotIn("xmlns:sopds=", content)
         self.assertNotIn("<sopds:page>", content)
         self.assertNotIn("<sopds:pages>", content)
         self.assertIn('rel="first"', content)
