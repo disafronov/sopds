@@ -298,6 +298,8 @@ class feedsTestCase(TestCase):
                     )
                     self.assertNotIn("<sopds:series", content)
                     self.assertIn('length="503533"', content)
+                    self.assertIn('type="application/fb2"', content)
+                    self.assertNotIn('type="application/fb2+xml"', content)
                     self.assertNotIn("<sopds:filename>", content)
                     self.assertNotIn("<sopds:filesize>", content)
                     self.assertNotIn("<sopds:annotation>", content)

@@ -8,6 +8,7 @@ class Mimetype:
 
     EPUB = "application/epub+zip"
     FB2 = "application/fb2+xml"
+    FB2_OPDS = "application/fb2"
     FB2_ZIP = "application/fb2+zip"
     MOBI = "application/x-mobipocket-ebook"
 
