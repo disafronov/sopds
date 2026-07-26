@@ -268,6 +268,14 @@ class feedsTestCase(TestCase):
                     self.assertIn("<id>b:5</id>", content)
                     self.assertIn("<id>b:6</id>", content)
                     self.assertIn("Series: &lt;/b&gt;Unnamed series", content)
+                    self.assertIn(
+                        f'<sopds:series id="{empty_series.pk}">'
+                        "Unnamed series</sopds:series>",
+                        content,
+                    )
+                    self.assertIn(
+                        "<sopds:filename>262001.fb2</sopds:filename>", content
+                    )
 
     def test_GenresFeed(self) -> None:
         c = Client()

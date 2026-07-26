@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 15:26+0000\n"
+"POT-Creation-Date: 2026-07-26 15:47+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -46,25 +46,68 @@ msgid "Clear bookshelf"
 msgstr "Очистить книжную полку"
 
 #: web_frontend/templates/sopds_books_opds.html:28
+#: web_frontend/templates/sopds_footer_book.html:3
+msgid "Book name"
+msgstr "Название"
+
+#: web_frontend/templates/sopds_books_opds.html:29
+#: web_frontend/templates/sopds_footer_book.html:4
+msgctxt "book metadata label"
+msgid "Authors"
+msgstr "Авторы"
+
+#: web_frontend/templates/sopds_books_opds.html:30
+#: web_frontend/templates/sopds_footer_book.html:5
+msgctxt "book metadata label"
+msgid "Series"
+msgstr "Серии"
+
+#: web_frontend/templates/sopds_books_opds.html:31
+#: web_frontend/templates/sopds_footer_book.html:6
+msgctxt "book metadata label"
+msgid "Genres"
+msgstr "Жанры"
+
+#: web_frontend/templates/sopds_books_opds.html:32
+#: web_frontend/templates/sopds_footer_book.html:7
+msgid "File"
+msgstr "Файл"
+
+#: web_frontend/templates/sopds_books_opds.html:33
+#: web_frontend/templates/sopds_footer_book.html:8
+msgid "File size"
+msgstr "Размер файла"
+
+#: web_frontend/templates/sopds_books_opds.html:34
+#: web_frontend/templates/sopds_footer_book.html:9
+msgid "KB"
+msgstr "Кб."
+
+#: web_frontend/templates/sopds_books_opds.html:35
+#: web_frontend/templates/sopds_footer_book.html:10
+msgid "Changes date"
+msgstr "Дата изменения"
+
+#: web_frontend/templates/sopds_books_opds.html:36
 #: web_frontend/templates/sopds_catalogs_opds.html:10
 #: web_frontend/templates/sopds_entity_results.html:15
 #: web_frontend/templates/sopds_selector.html:16
 msgid "Loading..."
 msgstr "Загрузка..."
 
-#: web_frontend/templates/sopds_books_opds.html:30
+#: web_frontend/templates/sopds_books_opds.html:38
 #: web_frontend/templates/sopds_catalogs_opds.html:12
 #: web_frontend/templates/sopds_entity_results.html:18
 msgid "Previous page"
 msgstr "Назад"
 
-#: web_frontend/templates/sopds_books_opds.html:30
+#: web_frontend/templates/sopds_books_opds.html:38
 #: web_frontend/templates/sopds_catalogs_opds.html:12
 #: web_frontend/templates/sopds_entity_results.html:19
 msgid "Next page"
 msgstr "Вперед"
 
-#: web_frontend/templates/sopds_books_opds.html:31
+#: web_frontend/templates/sopds_books_opds.html:39
 #: web_frontend/templates/sopds_catalogs_opds.html:13
 #: web_frontend/templates/sopds_entity_results.html:21
 #: web_frontend/templates/sopds_selector.html:21
