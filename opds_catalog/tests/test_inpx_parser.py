@@ -9,7 +9,7 @@ from typing import Any
 import pytest
 from pytest_mock import MockerFixture
 
-from opds_catalog.inpx_parser import Inpx, sAuthor, sExt, sFile, sTitle
+from opds_catalog.inpx_parser import Inpx, sAuthor, sExt, sFile, sSeries, sTitle
 from opds_catalog.scan_parser import discover_inpx_entries, parse_inp_job
 
 
@@ -64,6 +64,32 @@ class TestInpxInit:
 
 
 class TestInpxParse:
+    def test_parse_removes_all_empty_series_items(
+        self, patch_constance: None, tmp_path: Any
+    ) -> None:
+        archive_path = tmp_path / "empty-series-items.inpx"
+        values = [
+            b"Author",
+            b"genre",
+            b"Title",
+            ":А:Н:Т:И:М:И:Р:".encode(),
+            b"1",
+            b"book.fb2",
+            b"100",
+            b"1",
+            b"",
+            b"fb2",
+            b"",
+            b"ru",
+        ]
+        with zipfile.ZipFile(archive_path, "w") as archive:
+            archive.writestr("collection.inp", b"\x04".join(values) + b"\x04")
+        calls: list[dict[str, Any]] = []
+
+        Inpx(str(archive_path), lambda _inpx, _inp, data: calls.append(data)).parse()
+
+        assert calls[0][sSeries] == ["А", "Н", "Т", "И", "М", "И", "Р"]
+
     def test_parse_calls_append_callback(
         self, patch_constance: None, inpx_archive: str
     ) -> None:

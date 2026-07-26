@@ -7,9 +7,10 @@ from django.contrib.auth.models import User
 from django.http import HttpRequest, HttpResponse, QueryDict
 from django.template.loader import render_to_string
 from django.test import Client
+from django.urls import reverse
 from pytest_mock import MockerFixture
 
-from opds_catalog.models import Genre, lang_menu
+from opds_catalog.models import Genre, Series, lang_menu
 
 
 @pytest.fixture
@@ -327,6 +328,20 @@ class TestHandler403:
 
 class TestSearchSeriesView:
     """Tests for SearchSeriesView()."""
+
+    def test_exact_series_redirects_directly_to_books(self, db: Any) -> None:
+        from web_frontend import views
+
+        series = Series.objects.create(ser="")
+        request = make_anon_request()
+        request.GET = QueryDict("searchtype=e&searchterms=__sopds_empty__")
+
+        response = views.SearchSeriesView(request)
+
+        assert response.status_code == 302
+        assert response["Location"] == (
+            f"{reverse('web:searchbooks')}?searchtype=s&searchterms={series.pk}"
+        )
 
     def test_returns_200_anonymous(self, db: Any, mocker: MockerFixture) -> None:
         from web_frontend import views

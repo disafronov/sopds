@@ -14,6 +14,7 @@ from django.views.decorators.http import require_POST
 from django.views.decorators.vary import vary_on_headers
 
 from opds_catalog import models, settings
+from opds_catalog.feeds import EMPTY_SEARCH_TERM
 from opds_catalog.models import (
     Author,
     Book,
@@ -207,6 +208,14 @@ def SearchBooksView(request: HttpRequest) -> HttpResponse:
 
 @vary_on_headers("HTTP_ACCEPT_LANGUAGE")
 def SearchSeriesView(request: HttpRequest) -> HttpResponse:
+    if request.GET.get("searchtype") == "e":
+        searchterms = request.GET.get("searchterms", "")
+        series_name = "" if searchterms == EMPTY_SEARCH_TERM else searchterms
+        series = Series.objects.filter(ser__iexact=series_name).only("pk").first()
+        if series is not None:
+            url = reverse("web:searchbooks")
+            return redirect(f"{url}?searchtype=s&searchterms={series.pk}")
+
     args = _search_entities_context(
         request,
         entity="series",

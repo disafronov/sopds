@@ -7,7 +7,7 @@ from django.urls import reverse
 from django.utils.translation import gettext as _
 
 from opds_catalog import opdsdb
-from opds_catalog.models import Genre
+from opds_catalog.models import Author, Book, Genre, Series
 
 
 class feedsTestCase(TestCase):
@@ -209,6 +209,65 @@ class feedsTestCase(TestCase):
             self.assertIn(_("Cyrillic"), response.content.decode())
         response = c.get(reverse("opds:char_authors", kwargs={"lang_code": 0}))
         self.assertIn("<title>P</title>", response.content.decode())
+
+    def test_empty_names_use_placeholders_in_alphabet_feeds(self) -> None:
+        Book.objects.filter(pk=5).update(title="", lang_code=9)
+        Book.objects.filter(pk=6).update(title="", lang_code=9)
+        Book.objects.filter(pk=7).update(title=" ", lang_code=9)
+        Book.objects.get(pk=5).authors.clear()
+        Book.objects.get(pk=6).authors.clear()
+        Author.objects.filter(pk=5).update(full_name="", lang_code=9)
+        Author.objects.filter(pk=6).update(full_name=" ", lang_code=9)
+        empty_series = Series.objects.create(ser="", lang_code=9)
+        Series.objects.create(ser=" ", lang_code=9)
+        Book.objects.get(pk=5).series.add(empty_series)
+
+        client = Client()
+        routes = {
+            "char_books": _("Untitled"),
+            "char_authors": _("Unknown author"),
+            "char_series": _("Unnamed series"),
+        }
+        for lang_code in (0, 9):
+            for route_name, placeholder in routes.items():
+                with self.subTest(route_name=route_name, lang_code=lang_code):
+                    response = client.get(
+                        reverse(f"opds:{route_name}", kwargs={"lang_code": lang_code})
+                    )
+                    content = response.content.decode()
+                    self.assertEqual(response.status_code, 200)
+                    self.assertIn(placeholder, content)
+                    self.assertIn("__sopds_empty__", content)
+                    if lang_code == 9:
+                        self.assertIn("%20", content)
+                        self.assertLess(
+                            content.index("__sopds_empty__"), content.index("%20")
+                        )
+
+        search_routes = {
+            "searchbooks": _("Untitled"),
+            "searchauthors": _("Unknown author"),
+            "searchseries": _("Unnamed series"),
+        }
+        for route_name, placeholder in search_routes.items():
+            with self.subTest(route_name=route_name):
+                response = client.get(
+                    reverse(
+                        f"opds:{route_name}",
+                        kwargs={
+                            "searchtype": "e",
+                            "searchterms": "__sopds_empty__",
+                        },
+                    )
+                )
+                self.assertEqual(response.status_code, 200)
+                content = response.content.decode()
+                self.assertIn(placeholder, content)
+                if route_name == "searchbooks":
+                    self.assertEqual(content.count("<title>Untitled</title>"), 2)
+                    self.assertIn("<id>b:5</id>", content)
+                    self.assertIn("<id>b:6</id>", content)
+                    self.assertIn("Series: &lt;/b&gt;Unnamed series", content)
 
     def test_GenresFeed(self) -> None:
         c = Client()
