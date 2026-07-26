@@ -337,8 +337,12 @@ test("book lists link each series by its stable id", async () => {
             type="image/jpeg"/>
       <category term="sf" label="sf" sopds:id="31"/>
       <category term="sf_detective" label="sf_detective" sopds:id="32"/>
-      <sopds:series id="17">Collection, with comma</sopds:series>
-      <sopds:series id="23">Other collection</sopds:series>
+      <link href="/opds/search/books/s/17/" rel="related"
+            title="Series: Collection, with comma [3]"
+            type="application/atom+xml;profile=opds-catalog;kind=acquisition"/>
+      <link href="/opds/search/books/s/23/" rel="related"
+            title="Series: Other collection"
+            type="application/atom+xml;profile=opds-catalog;kind=acquisition"/>
       <dcterms:issued xmlns:dcterms="http://purl.org/dc/terms">2026-07-26</dcterms:issued>
       <summary type="text">Hidden annotation</summary>
       <content type="text">HTML must not be parsed</content>
@@ -362,7 +366,7 @@ test("book lists link each series by its stable id", async () => {
   const seriesLinks = [...window.document.querySelectorAll('a[href*="searchtype=s"]')];
   assert.deepEqual(
     seriesLinks.map((link) => link.textContent),
-    ["Collection, with comma", "Other collection"],
+    ["Collection, with comma [3]", "Other collection"],
   );
   assert.deepEqual(
     seriesLinks.map((link) => new URL(link.href).searchParams.get("searchterms")),

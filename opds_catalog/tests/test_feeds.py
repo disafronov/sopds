@@ -221,7 +221,9 @@ class feedsTestCase(TestCase):
         Author.objects.filter(pk=6).update(full_name=" ", lang_code=9)
         empty_series = Series.objects.create(ser="", lang_code=9)
         Series.objects.create(ser=" ", lang_code=9)
-        Book.objects.get(pk=5).series.add(empty_series)
+        book_with_series = Book.objects.get(pk=5)
+        book_with_series.series.add(empty_series)
+        book_with_series.bseries_set.filter(ser=empty_series).update(ser_no=3)
 
         client = Client()
         routes = {
@@ -268,15 +270,20 @@ class feedsTestCase(TestCase):
                     self.assertEqual(content.count("<title>Untitled</title>"), 2)
                     self.assertIn("<id>b:5</id>", content)
                     self.assertIn("<id>b:6</id>", content)
-                    self.assertIn("Series: &lt;/b&gt;Unnamed series", content)
+                    self.assertNotIn("Series: &lt;/b&gt;", content)
+                    self.assertNotIn("No in Series:", content)
                     self.assertNotIn("Book name:", content)
                     self.assertNotIn("File: &lt;/b&gt;", content)
                     self.assertNotIn("Changes date:", content)
                     self.assertIn(
-                        f'<sopds:series id="{empty_series.pk}">'
-                        "Unnamed series</sopds:series>",
+                        f'href="/opds/search/books/s/{empty_series.pk}/"',
                         content,
                     )
+                    self.assertIn(
+                        'rel="related" title="Series: Unnamed series [3]"',
+                        content,
+                    )
+                    self.assertNotIn("<sopds:series", content)
                     self.assertIn('length="503533"', content)
                     self.assertNotIn("<sopds:filename>", content)
                     self.assertNotIn("<sopds:filesize>", content)
@@ -288,11 +295,11 @@ class feedsTestCase(TestCase):
                     with override("ru"):
                         self.assertEqual(
                             pgettext(
-                                "book metadata label",
-                                "<b>Series: </b>%(series)s<br/>",
+                                "book metadata link",
+                                "Series: %(series)s",
                             )
                             % {"series": "Серия без названия"},
-                            "<b>Серия: </b>Серия без названия<br/>",
+                            "Серия: Серия без названия",
                         )
 
     def test_GenresFeed(self) -> None:
