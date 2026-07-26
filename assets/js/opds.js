@@ -10,7 +10,10 @@ function list(value) {
 }
 
 function text(value) {
-    return typeof value === "object" && value !== null ? value["#text"] || "" : value || "";
+    if (typeof value === "object" && value !== null) {
+        return text(value["#text"]);
+    }
+    return value === undefined || value === null ? "" : String(value);
 }
 
 function decodeContent(value) {
