@@ -133,6 +133,34 @@ class TestSearchBooksView:
         response = views.SearchBooksView(request)
         assert response.status_code == 200
 
+    def test_genre_search_resolves_card_link_to_opds_id(
+        self, db: Any, mocker: MockerFixture
+    ) -> None:
+        from web_frontend import views
+
+        genre = Genre.objects.create(
+            genre="sf_detective", section="sf", subsection="sf_detective"
+        )
+        rendered: dict[str, Any] = {}
+
+        def capture_render(
+            request: HttpRequest, template: str, context: dict[str, Any]
+        ) -> HttpResponse:
+            rendered.update(context)
+            return HttpResponse("ok")
+
+        mocker.patch.object(views, "render", side_effect=capture_render)
+        _set_auth(mocker, False)
+        request = make_anon_request()
+        request.GET = QueryDict("searchtype=g&searchterms=sf_detective")
+
+        response = views.SearchBooksView(request)
+
+        assert response.status_code == 200
+        assert rendered["opds_adapter"]["feed_url"].endswith(
+            f"/opds/search/books/g/{genre.id}/"
+        )
+
     @pytest.mark.parametrize(
         ("searchtype", "searchobject", "breadcrumb"),
         [
