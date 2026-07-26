@@ -98,7 +98,11 @@ export function parseFeed(xml) {
         return {
             id: text(entry.id),
             title: text(entry.title),
-            content: entry.content ? {value: decodeContent(text(entry.content))} : undefined,
+            content: entry.content ? {
+                value: decodeContent(text(entry.content)),
+                src: entry.content["@_src"] || undefined,
+                type: entry.content["@_type"] || undefined,
+            } : undefined,
             links,
             authors: list(entry.author).map((author) => ({
                 id: text(author.uri).split("/").filter(Boolean).at(-1) || "",

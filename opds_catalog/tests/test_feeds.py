@@ -151,6 +151,19 @@ class feedsTestCase(TestCase):
         self.assertIn("prose_contemporary", response.content.decode())
         self.assertIn("<category ", response.content.decode())
 
+    def test_SearchBooks_by_id_links_annotation_lazily(self) -> None:
+        response = Client().get(
+            reverse(
+                "opds:searchbooks",
+                kwargs={"searchtype": "i", "searchterms": "5"},
+            )
+        )
+
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn('<content src="/opds/annotation/5/" type="text/plain"', content)
+        self.assertIn('src="/opds/annotation/5/"', content)
+
     def test_SearchAuthors(self) -> None:
         c = Client()
         response = c.get("/opds/search/authors/m/Логинов/")
