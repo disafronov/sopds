@@ -313,7 +313,10 @@ import {fetchFeed} from "./opds.js";
                 let match = null;
                 for (const [name, href] of links) {
                     const start = text.indexOf(name);
-                    if (start >= 0 && (!match || start < match.start)) {
+                    if (
+                        start >= 0
+                        && (!match || start < match.start || (start === match.start && name.length > match.name.length))
+                    ) {
                         match = {name, href, start};
                     }
                 }
