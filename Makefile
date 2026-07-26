@@ -34,6 +34,7 @@ DOCKER_RUN_OPTS = --rm \
 	$(if $(wildcard env.docker),--env-file env.docker,) \
 	$(if $(wildcard .env),--env-file .env,) \
 	$(if $(wildcard .env.docker),--env-file .env.docker,) \
+	-e SOPDS_ROOT_LIB=/books \
 	-v "${PWD}/opds_catalog/tests/data":/books
 
 .PHONY: all audit clean collectstatic dead-code dev docker docker-build docker-run format frontend frontend-audit frontend-build frontend-dev frontend-test help install lint locale makemigrations migrate migrate-mysql migrate-postgresql run scanner scan test test-mysql test-postgresql
