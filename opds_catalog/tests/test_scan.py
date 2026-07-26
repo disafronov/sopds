@@ -4,7 +4,7 @@ import logging
 import os
 import tempfile
 from concurrent.futures import Future
-from contextlib import nullcontext
+from contextlib import contextmanager, nullcontext
 from types import TracebackType
 from typing import Any
 from unittest import mock
@@ -62,6 +62,17 @@ class scanTestCase(TestCase):
 
     def setUp(self) -> None:
         django_settings.SOPDS_ROOT_LIB = self.test_ROOTLIB
+
+    @contextmanager
+    def isolated_root(self, *artifact_names: str) -> Any:
+        with tempfile.TemporaryDirectory() as root:
+            for name in artifact_names:
+                os.symlink(
+                    os.path.join(self.test_ROOTLIB, name),
+                    os.path.join(root, name),
+                )
+            with self.settings(SOPDS_ROOT_LIB=root):
+                yield root
 
     def test_log_stats_reports_elapsed_time_longer_than_one_day(self) -> None:
         logger = mock.Mock(spec=logging.Logger)
@@ -274,18 +285,26 @@ EPUB и помещает в БД)"""
             "mirer.epub",
             "robin_cook.mobi",
         )
-        with tempfile.TemporaryDirectory() as root:
-            for name in artifact_names:
-                os.symlink(
-                    os.path.join(self.test_ROOTLIB, name),
-                    os.path.join(root, name),
-                )
-
+        with self.isolated_root(*artifact_names) as root:
             opdsdb.clear_all()
             scanner = opdsScanner()
             executor = ImmediateExecutor()
+            from opds_catalog import scan_parser
+
+            discovered_directories: list[str] = []
+            discover_directory = scan_parser.discover_directory
+
+            def traced_discover_directory(*args: Any, **kwargs: Any) -> Any:
+                discovered_directories.append(args[0])
+                return discover_directory(*args, **kwargs)
+
+            traced_discover_directory.__name__ = discover_directory.__name__
             with (
                 self.settings(SOPDS_ROOT_LIB=root),
+                patch(
+                    "opds_catalog.scan_parser.discover_directory",
+                    new=traced_discover_directory,
+                ),
                 patch(
                     "opds_catalog.sopdscan.create_scan_executor",
                     return_value=executor,
@@ -293,6 +312,8 @@ EPUB и помещает в БД)"""
             ):
                 scanner.scan_all()
 
+        self.assertEqual(discovered_directories[0], root)
+        self.assertTrue(all(path.startswith(root) for path in discovered_directories))
         self.assertIn("discover_directory", executor.submitted)
         self.assertIn("discover_zip_entries", executor.submitted)
         self.assertIn("parse_zip_member_job", executor.submitted)
@@ -333,11 +354,14 @@ EPUB и помещает в БД)"""
         scanner = opdsScanner()
         executor = ImmediateExecutor()
 
-        with patch(
-            "opds_catalog.sopdscan.create_scan_executor",
-            return_value=executor,
-        ):
-            scanner.scan_all()
+        with self.isolated_root("badfile.fb2"):
+            with (
+                patch(
+                    "opds_catalog.sopdscan.create_scan_executor",
+                    return_value=executor,
+                ),
+            ):
+                scanner.scan_all()
 
         book.refresh_from_db()
         self.assertEqual(book.avail, 0)
@@ -366,17 +390,18 @@ EPUB и помещает в БД)"""
         scanner = opdsScanner()
         executor = ImmediateExecutor()
 
-        with (
-            patch(
-                "opds_catalog.sopdscan.create_scan_executor",
-                return_value=executor,
-            ),
-            patch(
-                "opds_catalog.scan_parser.discover_directory",
-                new=failed_discovery,
-            ),
-        ):
-            scanner.scan_all()
+        with self.isolated_root():
+            with (
+                patch(
+                    "opds_catalog.sopdscan.create_scan_executor",
+                    return_value=executor,
+                ),
+                patch(
+                    "opds_catalog.scan_parser.discover_directory",
+                    new=failed_discovery,
+                ),
+            ):
+                scanner.scan_all()
 
         book.refresh_from_db()
         self.assertEqual(book.avail, 2)
@@ -399,14 +424,15 @@ EPUB и помещает в БД)"""
         )
         scanner = opdsScanner()
 
-        with (
-            patch(
-                "opds_catalog.sopdscan.create_scan_executor",
-                side_effect=RuntimeError("executor unavailable"),
-            ),
-            self.assertRaisesRegex(RuntimeError, "executor unavailable"),
-        ):
-            scanner.scan_all()
+        with self.isolated_root():
+            with (
+                patch(
+                    "opds_catalog.sopdscan.create_scan_executor",
+                    side_effect=RuntimeError("executor unavailable"),
+                ),
+                self.assertRaisesRegex(RuntimeError, "executor unavailable"),
+            ):
+                scanner.scan_all()
 
         book.refresh_from_db()
         self.assertEqual(book.avail, 2)
