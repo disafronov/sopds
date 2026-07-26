@@ -98,6 +98,54 @@ test("OPDS selector preserves legacy web navigation", async () => {
   dom.window.close();
 });
 
+test("OPDS selectors preserve zero as a digit", async () => {
+  const digitFeed = `<?xml version="1.0" encoding="utf-8"?>
+  <feed xmlns="http://www.w3.org/2005/Atom">
+    <entry>
+      <id>prefix:0</id>
+      <title>0</title>
+      <link href="/opds/search/items/b/0/" rel="alternate"/>
+      <content type="text">Found: 36 items</content>
+    </entry>
+  </feed>`;
+  for (const kind of ["book", "author", "series"]) {
+    const dom = new JSDOM(
+      `<!doctype html>
+        <table
+          data-opds-selector
+          data-feed-url="/opds/${kind}/3/"
+          data-feed-kind="${kind}"
+          data-kind="${kind}"
+          data-lang-code="3"
+          data-count-label="Total: %(count)s items."
+          data-selector-url="/web/${kind}/"
+          data-search-url="/web/search/${kind}/"
+        ><tbody></tbody></table>
+        <p data-opds-error hidden></p>`,
+      {
+        runScripts: "dangerously",
+        url: `https://sopds.test/web/${kind}/?lang=3`,
+      },
+    );
+    const { window } = dom;
+    window.fetch = async () => ({ok: true, text: async () => digitFeed});
+
+    await loadFrontend(window);
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+
+    const link = window.document.querySelector(".selector-link");
+    assert.equal(link.firstChild.textContent, "0");
+    assert.equal(link.pathname, `/web/search/${kind}/`);
+    assert.equal(link.search, "?searchtype=b&searchterms=0");
+    assert.equal(
+      link.querySelector(".selector-link__count").textContent,
+      "Total: 36 items.",
+    );
+
+    dom.window.close();
+  }
+});
+
 test("genre adapter uses OPDS links and parent metadata", async () => {
   const genreFeed = `<?xml version="1.0" encoding="utf-8"?>
   <feed xmlns="http://www.w3.org/2005/Atom">
