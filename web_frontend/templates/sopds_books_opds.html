@@ -24,7 +24,15 @@
      data-searchterms="{{ opds_adapter.searchterms }}"
      data-searchterms0="{{ opds_adapter.searchterms0 }}"
      data-half-pages="{{ opds_adapter.half_pages }}"
-     data-isbookshelf="{{ opds_adapter.isbookshelf|yesno:'1,' }}">
+     data-isbookshelf="{{ opds_adapter.isbookshelf|yesno:'1,' }}"
+     data-book-name-label="{% trans "Book name" %}"
+     data-authors-label="{% translate "Authors" context "book metadata label" %}"
+     data-series-label="{% translate "Series" context "book metadata label" %}"
+     data-genres-label="{% translate "Genres" context "book metadata label" %}"
+     data-file-label="{% trans "File" %}"
+     data-file-size-label="{% trans "File size" %}"
+     data-file-size-unit="{% trans "KB" %}"
+     data-changes-date-label="{% trans "Changes date" %}">
   <p data-opds-loading>{% trans "Loading..." %}</p>
 </div>
 <div data-opds-pagination data-previous-label="{% trans "Previous page" %}" data-next-label="{% trans "Next page" %}"></div>

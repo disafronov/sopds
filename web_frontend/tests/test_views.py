@@ -8,6 +8,7 @@ from django.http import HttpRequest, HttpResponse, QueryDict
 from django.template.loader import render_to_string
 from django.test import Client
 from django.urls import reverse
+from django.utils.translation import override
 from pytest_mock import MockerFixture
 
 from opds_catalog.models import Genre, Series, lang_menu
@@ -93,6 +94,31 @@ def test_menu_marks_selected_alphabet_group_as_active(current: str) -> None:
     )
 
     assert html.count('class="active"') == 2
+
+
+def test_russian_menu_and_book_metadata_use_distinct_translations() -> None:
+    with override("ru"):
+        menu = render_to_string(
+            "sopds_menu.html",
+            {"alphabet": False, "current": "book"},
+        )
+        books = render_to_string(
+            "sopds_books_opds.html",
+            {
+                "opds_adapter": {
+                    "feed_url": "/opds/search/books/i/5/",
+                    "page_url": "/web/search/books/",
+                },
+                "cache_t": 0,
+            },
+        )
+
+    assert ">Авторы<" in menu
+    assert ">Серии<" in menu
+    assert ">Жанры<" in menu
+    assert 'data-authors-label="Авторы"' in books
+    assert 'data-series-label="Серии"' in books
+    assert 'data-genres-label="Жанры"' in books
 
 
 class TestSearchBooksView:

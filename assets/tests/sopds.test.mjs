@@ -318,24 +318,34 @@ test("entity adapter preserves result links and numeric pagination", async () =>
   dom.window.close();
 });
 
-test("book lists hide annotations and preserve series commas", async () => {
+test("book lists link each series by its stable id", async () => {
   const bookFeed = `<?xml version="1.0" encoding="utf-8"?>
-  <feed xmlns="http://www.w3.org/2005/Atom">
+  <feed xmlns="http://www.w3.org/2005/Atom" xmlns:sopds="urn:sopds:meta">
     <id>urn:test:feed</id>
     <title>Test feed</title>
     <entry>
       <id>book:42</id>
       <title>Fixture book</title>
-      <author><name>Fixture author</name></author>
+      <author><name>Fixture author</name><sopds:id>11</sopds:id></author>
       <link href="/opds/search/books/i/42/" rel="alternate"/>
-      <category term="sf" label="sf"/>
-      <category term="sf_detective" label="sf_detective"/>
-      <content type="text"><![CDATA[<b> Book name: </b>Fixture book<br/><b>Authors: </b>Fixture author<br/><b>Series: </b>Collection, with comma<br/><b>Genres: </b>sf, sf_detective<br/><p class="book">Hidden annotation</p>]]></content>
+      <category term="sf" label="sf" sopds:id="31"/>
+      <category term="sf_detective" label="sf_detective" sopds:id="32"/>
+      <sopds:series id="17">Collection, with comma</sopds:series>
+      <sopds:series id="23">Other collection</sopds:series>
+      <sopds:filename>fixture.fb2</sopds:filename>
+      <sopds:filesize>12</sopds:filesize>
+      <sopds:docdate>2026-07-26</sopds:docdate>
+      <sopds:annotation>Hidden annotation</sopds:annotation>
+      <content type="text">HTML must not be parsed</content>
     </entry>
   </feed>`;
   const dom = new JSDOM(
     `<!doctype html>
-      <div data-opds-books data-feed-url="/opds/search/books/i/42/"></div>`,
+      <div data-opds-books data-feed-url="/opds/search/books/i/42/"
+           data-book-name-label="Book name" data-authors-label="Authors"
+           data-series-label="Series" data-genres-label="Genres"
+           data-file-label="File" data-file-size-label="File size"
+           data-file-size-unit="KB" data-changes-date-label="Changes date"></div>`,
     { runScripts: "dangerously", url: "https://sopds.test/web/search/books/" },
   );
   const { window } = dom;
@@ -345,36 +355,44 @@ test("book lists hide annotations and preserve series commas", async () => {
   await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
 
   const seriesLinks = [...window.document.querySelectorAll('a[href*="searchtype=s"]')];
-  assert.equal(seriesLinks.length, 1);
-  assert.equal(seriesLinks[0].textContent, "Collection, with comma");
-  assert.equal(
-    new URL(seriesLinks[0].href).searchParams.get("searchterms"),
-    "Collection, with comma",
+  assert.deepEqual(
+    seriesLinks.map((link) => link.textContent),
+    ["Collection, with comma", "Other collection"],
+  );
+  assert.deepEqual(
+    seriesLinks.map((link) => new URL(link.href).searchParams.get("searchterms")),
+    ["17", "23"],
   );
   const genreLinks = [...window.document.querySelectorAll('a[href*="searchtype=g"]')];
   assert.deepEqual(genreLinks.map((link) => link.textContent), ["sf", "sf_detective"]);
   assert.deepEqual(
     genreLinks.map((link) => new URL(link.href).searchParams.get("searchterms")),
-    ["sf", "sf_detective"],
+    ["31", "32"],
   );
   assert.equal(window.document.body.textContent.includes("Hidden annotation"), false);
+  assert.equal(window.document.body.textContent.includes("HTML must not be parsed"), false);
 
   dom.window.close();
 });
 
-test("direct book page shows annotation", async () => {
+test("direct book page shows structured XML annotation", async () => {
   const bookFeed = `<?xml version="1.0" encoding="utf-8"?>
-  <feed xmlns="http://www.w3.org/2005/Atom">
+  <feed xmlns="http://www.w3.org/2005/Atom" xmlns:sopds="urn:sopds:meta">
     <entry>
       <id>book:42</id>
       <title>Fixture book</title>
       <link href="/opds/search/books/i/42/" rel="alternate"/>
-      <content type="text"><![CDATA[<b> Book name: </b>Fixture book<br/><p class="book">Visible annotation</p>]]></content>
+      <sopds:annotation>Visible annotation</sopds:annotation>
+      <content type="text">Ignored HTML description</content>
     </entry>
   </feed>`;
   const dom = new JSDOM(
     `<!doctype html>
-      <div data-opds-books data-searchtype="i" data-feed-url="/opds/search/books/i/42/"></div>`,
+      <div data-opds-books data-searchtype="i" data-feed-url="/opds/search/books/i/42/"
+           data-book-name-label="Book name" data-authors-label="Authors"
+           data-series-label="Series" data-genres-label="Genres"
+           data-file-label="File" data-file-size-label="File size"
+           data-file-size-unit="KB" data-changes-date-label="Changes date"></div>`,
     { runScripts: "dangerously", url: "https://sopds.test/web/search/books/" },
   );
   const { window } = dom;
@@ -384,17 +402,18 @@ test("direct book page shows annotation", async () => {
   await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
 
   assert.equal(window.document.body.textContent.includes("Visible annotation"), true);
+  assert.equal(window.document.body.textContent.includes("Ignored HTML description"), false);
   assert.ok(window.document.querySelector(".book-annotation"));
   dom.window.close();
 });
 
-test("footer book card hides annotation", async () => {
+test("footer book card hides structured XML annotation", async () => {
   const bookFeed = `<?xml version="1.0" encoding="utf-8"?>
-  <feed xmlns="http://www.w3.org/2005/Atom">
+  <feed xmlns="http://www.w3.org/2005/Atom" xmlns:sopds="urn:sopds:meta">
     <entry>
       <id>book:42</id>
       <title>Fixture book</title>
-      <content type="text"><![CDATA[<b> Book name: </b>Fixture book<br/><p class="book">Hidden footer annotation</p>]]></content>
+      <sopds:annotation>Hidden footer annotation</sopds:annotation>
     </entry>
   </feed>`;
   const dom = new JSDOM(
@@ -412,13 +431,13 @@ test("footer book card hides annotation", async () => {
   dom.window.close();
 });
 
-test("direct book page omits empty annotation", async () => {
+test("direct book page omits empty structured XML annotation", async () => {
   const bookFeed = `<?xml version="1.0" encoding="utf-8"?>
-  <feed xmlns="http://www.w3.org/2005/Atom">
+  <feed xmlns="http://www.w3.org/2005/Atom" xmlns:sopds="urn:sopds:meta">
     <entry>
       <id>book:42</id>
       <title>Fixture book</title>
-      <content type="text"><![CDATA[<b> Book name: </b>Fixture book<br/><p class="book">  </p>]]></content>
+      <sopds:annotation>  </sopds:annotation>
     </entry>
   </feed>`;
   const dom = new JSDOM(

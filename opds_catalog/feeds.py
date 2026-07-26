@@ -271,7 +271,7 @@ class opdsFeed(Atom1Feed):
             for a in item["authors"]:
                 handler.startElement("author", {})
                 handler.addQuickElement("name", a["full_name"])
-                # handler.addQuickElement("uri", item['author_link'])
+                handler.addQuickElement("sopds:id", str(a["id"]))
                 handler.endElement("author")
                 handler.addQuickElement(
                     "link",
@@ -292,9 +292,29 @@ class opdsFeed(Atom1Feed):
         if item.get("genres") is not None:
             for g in item["genres"]:
                 handler.addQuickElement(
-                    "category", "", {"term": g["subsection"], "label": g["subsection"]}
+                    "category",
+                    "",
+                    {
+                        "term": g["subsection"],
+                        "label": g["subsection"],
+                        "sopds:id": str(g["id"]),
+                    },
                 )
             handler.characters("\n")
+
+        if item.get("series") is not None:
+            for series in item["series"]:
+                handler.addQuickElement(
+                    "sopds:series",
+                    _series_name(series["ser"]),
+                    {"id": str(series["id"])},
+                )
+            handler.characters("\n")
+
+        for name in ("filename", "filesize", "docdate", "annotation"):
+            if item.get(name) is not None:
+                handler.addQuickElement(f"sopds:{name}", str(item[name]))
+        handler.characters("\n")
 
         if item.get("doubles") is not None:
             handler.addQuickElement(
@@ -561,6 +581,13 @@ class CatalogsFeed(AuthFeed):
         return {
             "is_catalog": item["is_catalog"],
             "cat_type": item.get("cat_type"),
+            "authors": item.get("authors"),
+            "genres": item.get("genres"),
+            "series": item.get("series"),
+            "filename": item.get("filename"),
+            "filesize": item.get("filesize"),
+            "docdate": item.get("docdate"),
+            "annotation": item.get("annotation"),
         }
 
     def item_title(self, item: ItemDict) -> str:
@@ -1037,6 +1064,11 @@ class SearchBooksFeed(AuthFeed):
         return {
             "authors": item["authors"],
             "genres": item["genres"],
+            "series": item["series"],
+            "filename": item["filename"],
+            "filesize": item["filesize"],
+            "docdate": item["docdate"],
+            "annotation": item["annotation"],
             "doubles": item["id"] if item["doubles"] > 0 else None,
         }
 

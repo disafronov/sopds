@@ -34,8 +34,22 @@ export function parseFeed(xml) {
             type: link["@_type"] || undefined,
         })),
         catType: Number(text(entry["sopds:cat-type"])),
-        authors: list(entry.author).map((author) => text(author.name)),
-        genres: list(entry.category).map((category) => category["@_term"] || category["@_label"] || ""),
+        authors: list(entry.author).map((author) => ({
+            id: text(author["sopds:id"]),
+            name: text(author.name),
+        })),
+        genres: list(entry.category).map((category) => ({
+            id: category["@_sopds:id"] || "",
+            name: category["@_term"] || category["@_label"] || "",
+        })),
+        series: list(entry["sopds:series"]).map((series) => ({
+            id: series["@_id"] || "",
+            name: text(series),
+        })),
+        filename: text(entry["sopds:filename"]),
+        filesize: text(entry["sopds:filesize"]),
+        docdate: text(entry["sopds:docdate"]),
+        annotation: text(entry["sopds:annotation"]),
     }));
     return {
         page: Number(text(feed["sopds:page"]) || 1),
