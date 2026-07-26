@@ -340,7 +340,8 @@ import {fetchFeed} from "./opds.js";
             const row = card.insertRow();
             const imageCell = row.insertCell();
             imageCell.width = "100";
-            const image = opdsLink(entry, "http://opds-spec.org/thumbnail");
+            const image = opdsLink(entry, "http://opds-spec.org/image/thumbnail")
+                || opdsLink(entry, "http://opds-spec.org/thumbnail");
             if (image) {
                 const img = document.createElement("img");
                 img.className = "thumbnail";
@@ -378,14 +379,11 @@ import {fetchFeed} from "./opds.js";
                     href: searchUrl("g", genre.id),
                 })),
             );
-            appendMetadataLine(textCell, element.dataset.fileLabel, [{
-                text: entry.filename || "",
-            }]);
             appendMetadataLine(textCell, element.dataset.fileSizeLabel, [{
                 text: `${entry.filesize || "0"} ${element.dataset.fileSizeUnit}`,
             }]);
-            appendMetadataLine(textCell, element.dataset.changesDateLabel, [{
-                text: entry.docdate || "",
+            appendMetadataLine(textCell, element.dataset.publicationDateLabel, [{
+                text: entry.issued || "",
             }]);
             if (showAnnotation && entry.annotation) {
                 const annotationRow = card.insertRow();

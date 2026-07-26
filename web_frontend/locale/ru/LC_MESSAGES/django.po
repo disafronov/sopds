@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 15:47+0000\n"
+"POT-Creation-Date: 2026-07-26 16:14+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -70,44 +70,39 @@ msgstr "Жанры"
 
 #: web_frontend/templates/sopds_books_opds.html:32
 #: web_frontend/templates/sopds_footer_book.html:7
-msgid "File"
-msgstr "Файл"
-
-#: web_frontend/templates/sopds_books_opds.html:33
-#: web_frontend/templates/sopds_footer_book.html:8
 msgid "File size"
 msgstr "Размер файла"
 
-#: web_frontend/templates/sopds_books_opds.html:34
-#: web_frontend/templates/sopds_footer_book.html:9
+#: web_frontend/templates/sopds_books_opds.html:33
+#: web_frontend/templates/sopds_footer_book.html:8
 msgid "KB"
 msgstr "Кб."
 
-#: web_frontend/templates/sopds_books_opds.html:35
-#: web_frontend/templates/sopds_footer_book.html:10
-msgid "Changes date"
-msgstr "Дата изменения"
+#: web_frontend/templates/sopds_books_opds.html:34
+#: web_frontend/templates/sopds_footer_book.html:9
+msgid "Publication date"
+msgstr "Дата публикации"
 
-#: web_frontend/templates/sopds_books_opds.html:36
+#: web_frontend/templates/sopds_books_opds.html:35
 #: web_frontend/templates/sopds_catalogs_opds.html:10
 #: web_frontend/templates/sopds_entity_results.html:15
 #: web_frontend/templates/sopds_selector.html:16
 msgid "Loading..."
 msgstr "Загрузка..."
 
-#: web_frontend/templates/sopds_books_opds.html:38
+#: web_frontend/templates/sopds_books_opds.html:37
 #: web_frontend/templates/sopds_catalogs_opds.html:12
 #: web_frontend/templates/sopds_entity_results.html:18
 msgid "Previous page"
 msgstr "Назад"
 
-#: web_frontend/templates/sopds_books_opds.html:38
+#: web_frontend/templates/sopds_books_opds.html:37
 #: web_frontend/templates/sopds_catalogs_opds.html:12
 #: web_frontend/templates/sopds_entity_results.html:19
 msgid "Next page"
 msgstr "Вперед"
 
-#: web_frontend/templates/sopds_books_opds.html:39
+#: web_frontend/templates/sopds_books_opds.html:38
 #: web_frontend/templates/sopds_catalogs_opds.html:13
 #: web_frontend/templates/sopds_entity_results.html:21
 #: web_frontend/templates/sopds_selector.html:21

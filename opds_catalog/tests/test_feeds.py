@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils.translation import gettext as _
+from django.utils.translation import override, pgettext
 
 from opds_catalog import opdsdb
 from opds_catalog.models import Author, Book, Genre, Series
@@ -268,14 +269,31 @@ class feedsTestCase(TestCase):
                     self.assertIn("<id>b:5</id>", content)
                     self.assertIn("<id>b:6</id>", content)
                     self.assertIn("Series: &lt;/b&gt;Unnamed series", content)
+                    self.assertNotIn("Book name:", content)
+                    self.assertNotIn("File: &lt;/b&gt;", content)
+                    self.assertNotIn("Changes date:", content)
                     self.assertIn(
                         f'<sopds:series id="{empty_series.pk}">'
                         "Unnamed series</sopds:series>",
                         content,
                     )
-                    self.assertIn(
-                        "<sopds:filename>262001.fb2</sopds:filename>", content
-                    )
+                    self.assertIn('length="503533"', content)
+                    self.assertNotIn("<sopds:filename>", content)
+                    self.assertNotIn("<sopds:filesize>", content)
+                    self.assertNotIn("<sopds:annotation>", content)
+                    self.assertNotIn("<sopds:id>", content)
+                    self.assertIn("<dcterms:issued>", content)
+                    self.assertNotIn("<sopds:docdate>", content)
+
+                    with override("ru"):
+                        self.assertEqual(
+                            pgettext(
+                                "book metadata label",
+                                "<b>Series: </b>%(series)s<br/>",
+                            )
+                            % {"series": "Серия без названия"},
+                            "<b>Серия: </b>Серия без названия<br/>",
+                        )
 
     def test_GenresFeed(self) -> None:
         c = Client()
