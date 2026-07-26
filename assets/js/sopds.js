@@ -251,9 +251,7 @@ import {fetchFeed} from "./opds.js";
             link.className = "selector-link";
             const image = document.createElement("img");
             image.className = "selector-link__icon";
-            const icon = catalog
-                ? ({1: "zip", 2: "inpx", 3: "zip"}[entry.catType] || "folder")
-                : "text";
+            const icon = catalog ? "folder" : "text";
             image.src = `/static/images/${icon}.png`;
             image.alt = "";
             link.append(image);
