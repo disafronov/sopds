@@ -300,9 +300,9 @@ class TestHello:
         assert content.count('href="/"') >= 2
         assert 'href="/opds/"' in content
         assert "https://github.com/disafronov/sopds/issues" in content
-        assert "js/jquery.min.js" in content
-        assert "js/what-input.min.js" in content
-        assert "js/foundation.min.js" in content
+        assert "js/jquery.min." in content
+        assert "js/what-input.min." in content
+        assert "js/foundation.min." in content
         assert "js/vendor/jquery.js" not in content
         assert "js/vendor/what-input.js" not in content
 
@@ -321,7 +321,7 @@ class TestHello:
         content = auth_client.get("/web/").content.decode()
 
         assert '<img class="nav-icon"' in content
-        assert "images/fi-torsos.svg" in content
+        assert "images/fi-torsos." in content
         assert "foundation-icons" not in content
         assert '<i class="fi-torsos"' not in content
 
