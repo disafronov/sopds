@@ -8,7 +8,7 @@ from django.utils.translation import gettext as _
 from django.utils.translation import override, pgettext
 
 from opds_catalog import opdsdb
-from opds_catalog.models import Author, Book, Genre, Series
+from opds_catalog.models import Author, Book, Catalog, Genre, Series
 
 
 class feedsTestCase(TestCase):
@@ -69,6 +69,27 @@ class feedsTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("books.zip", response.content.decode())
         self.assertIn("The Sanctuary Sparrow", response.content.decode())
+
+    def test_CatalogsFeed_serializes_catalog_types_as_atom_categories(self) -> None:
+        root = Catalog.objects.get(parent=None)
+        catalog_types = {
+            "normal": 0,
+            "archive.zip": 1,
+            "archive.inpx": 2,
+            "archive.inp": 3,
+        }
+        for name, cat_type in catalog_types.items():
+            Catalog.objects.create(
+                parent=root,
+                cat_name=name,
+                path=f"catalog-type-test/{name}",
+                cat_type=cat_type,
+            )
+
+        content = Client().get(reverse("opds:catalogs")).content.decode()
+
+        for cat_type in catalog_types.values():
+            self.assertIn(f'scheme="urn:sopds:catalog-type" term="{cat_type}"', content)
 
     def test_CatalogsFeedTree(self) -> None:
         c = Client()

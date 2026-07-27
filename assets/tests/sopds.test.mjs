@@ -191,6 +191,70 @@ test("OPDS selector links empty-name placeholders to exact empty search", async 
   dom.window.close();
 });
 
+test("catalog icons follow Atom catalog-type categories", async () => {
+  const catalogFeed = `<?xml version="1.0" encoding="utf-8"?>
+  <feed xmlns="http://www.w3.org/2005/Atom">
+    <entry>
+      <id>c:1</id><title>Folder</title>
+      <link href="/opds/catalogs/1/" rel="subsection"/>
+      <category scheme="urn:sopds:catalog-type" term="0"/>
+    </entry>
+    <entry>
+      <id>c:2</id><title>ZIP</title>
+      <link href="/opds/catalogs/2/" rel="subsection"/>
+      <category scheme="urn:sopds:catalog-type" term="1"/>
+    </entry>
+    <entry>
+      <id>c:3</id><title>INPX</title>
+      <link href="/opds/catalogs/3/" rel="subsection"/>
+      <category scheme="urn:sopds:catalog-type" term="2"/>
+    </entry>
+    <entry>
+      <id>c:4</id><title>INP</title>
+      <link href="/opds/catalogs/4/" rel="subsection"/>
+      <category scheme="urn:sopds:catalog-type" term="3"/>
+    </entry>
+    <entry>
+      <id>c:5</id><title>Unknown</title>
+      <link href="/opds/catalogs/5/" rel="subsection"/>
+      <category scheme="urn:sopds:catalog-type" term="invalid"/>
+    </entry>
+    <entry>
+      <id>c:6</id><title>Missing</title>
+      <link href="/opds/catalogs/6/" rel="subsection"/>
+    </entry>
+  </feed>`;
+  const dom = new JSDOM(
+    `<!doctype html>
+      <table class="clickable-rows" data-opds-catalogs
+             data-feed-url="/opds/catalogs/" data-page-url="/web/catalogs/">
+        <tbody></tbody>
+      </table>`,
+    { runScripts: "dangerously", url: "https://sopds.test/web/catalogs/" },
+  );
+  const { window } = dom;
+  window.fetch = async () => ({ok: true, text: async () => catalogFeed});
+
+  await loadFrontend(window);
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+
+  assert.deepEqual(
+    [...window.document.querySelectorAll(".selector-link__icon")].map(
+      (image) => image.getAttribute("src"),
+    ),
+    [
+      "/static/images/folder.png",
+      "/static/images/zip.png",
+      "/static/images/inpx.png",
+      "/static/images/inp.png",
+      "/static/images/folder.png",
+      "/static/images/folder.png",
+    ],
+  );
+
+  dom.window.close();
+});
+
 test("genre adapter uses OPDS links and parent metadata", async () => {
   const genreFeed = `<?xml version="1.0" encoding="utf-8"?>
   <feed xmlns="http://www.w3.org/2005/Atom">
