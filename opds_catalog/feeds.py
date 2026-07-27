@@ -18,7 +18,6 @@ from django.utils.translation import pgettext
 from book_tools.format import mime_detector
 from book_tools.format.mimetype import Mimetype
 from opds_catalog import models, settings
-from opds_catalog.dl import getBookAnnotation
 from opds_catalog.models import (
     Author,
     Book,
@@ -941,12 +940,7 @@ class SearchBooksFeed(AuthFeed):
                 "path": row.catalog.path,
                 "registerdate": row.registerdate,
                 "id": row.id,
-                "annotation": (
-                    row.annotation or getBookAnnotation(row) or ""
-                    if searchtype == "i"
-                    else ""
-                ),
-                "content_url": None,
+                "annotation": row.annotation,
                 "docdate": row.docdate,
                 "format": row.format,
                 "title": row.title,
