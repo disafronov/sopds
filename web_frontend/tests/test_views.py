@@ -3,7 +3,7 @@
 from typing import Any
 
 import pytest
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AnonymousUser, User
 from django.http import HttpRequest, HttpResponse, QueryDict
 from django.template.loader import render_to_string
 from django.test import Client
@@ -113,6 +113,58 @@ def test_menu_marks_bookshelf_active_only_for_bookshelf_view(
     )
 
     assert html.count('class="active"') == int(isbookshelf)
+
+
+@pytest.mark.parametrize("alphabet", [False, True])
+def test_authenticated_menu_places_settings_before_logout(alphabet: bool) -> None:
+    user = User(username="testuser", is_superuser=True)
+
+    html = render_to_string(
+        "sopds_menu.html",
+        {
+            "alphabet": alphabet,
+            "lang_code": 1,
+            "lang_menu": lang_menu,
+            "sopds_auth": True,
+            "user": user,
+        },
+    )
+
+    settings = 'href="/admin/"'
+    logout = 'href="/web/logout/"'
+    assert settings in html
+    assert logout in html
+    assert html.index(settings) < html.index(logout)
+    assert html.count(logout) == 1
+
+
+@pytest.mark.parametrize("alphabet", [False, True])
+def test_anonymous_menu_places_login_at_the_end_without_icon(alphabet: bool) -> None:
+    html = render_to_string(
+        "sopds_menu.html",
+        {
+            "alphabet": alphabet,
+            "lang_code": 1,
+            "lang_menu": lang_menu,
+            "sopds_auth": True,
+            "user": AnonymousUser(),
+        },
+    )
+
+    bookshelf = 'href="/web/search/books/?searchtype=u"'
+    login = 'href="/web/login/"'
+    assert html.index(bookshelf) < html.index(login)
+    assert html.count(login) == 1
+    assert "nav-icon" not in html
+
+
+def test_login_is_not_rendered_in_top_bar() -> None:
+    html = render_to_string(
+        "sopds_top.html",
+        {"sopds_auth": True, "user": AnonymousUser()},
+    )
+
+    assert 'href="/web/login/"' not in html
 
 
 def test_russian_menu_and_book_metadata_use_distinct_translations() -> None:
