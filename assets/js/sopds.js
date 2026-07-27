@@ -304,23 +304,13 @@ import {fetchFeed} from "./opds.js";
         return id ? `/web/details/${id}/` : searchUrl("m", entry.title || "");
     }
 
-    function appendMetadataLine(container, label, values) {
-        if (!values.length) return;
+    function appendBookMetadata(container, className, label, values) {
+        const text = values.filter(Boolean).join(", ");
+        if (!text) return;
         const line = document.createElement("div");
-        const heading = document.createElement("b");
-        heading.textContent = `${label}: `;
-        line.append(heading);
-        values.forEach((value, index) => {
-            if (index) line.append(document.createTextNode(", "));
-            if (value.href) {
-                const link = document.createElement("a");
-                link.href = value.href;
-                link.textContent = value.text;
-                line.append(link);
-            } else {
-                line.append(document.createTextNode(value.text));
-            }
-        });
+        line.className = `book-card__metadata ${className}`;
+        line.setAttribute("aria-label", `${label}: ${text}`);
+        line.textContent = text;
         container.append(line);
     }
 
@@ -490,111 +480,85 @@ import {fetchFeed} from "./opds.js";
     function renderBooks(element, detail, showAnnotation = element.dataset.searchtype === "i") {
         element.replaceChildren();
         detail.entries.forEach((entry) => {
-            const heading = document.createElement("div");
-            heading.className = "large-12 column book-heading";
-            const title = document.createElement("b");
-            const titleLink = document.createElement("a");
-            titleLink.href = bookUrl(entry);
-            titleLink.textContent = entry.title || "";
-            title.append(titleLink);
-            heading.append(title, " ");
-            const downloads = document.createElement("span");
-            downloads.className = "book-downloads";
-            const downloadsLabel = document.createElement("span");
-            downloadsLabel.className = "book-downloads__label";
-            downloadsLabel.textContent = `${element.dataset.downloadLabel || "Download"}:`;
-            downloads.append(downloadsLabel);
-            (entry.links || []).filter((link) => link.rel === "http://opds-spec.org/acquisition/open-access").forEach((link) => {
-                const anchor = document.createElement("a");
-                anchor.href = link.href;
-                anchor.className = "label small book-download-link";
-                anchor.textContent = formatLabel(link);
-                downloads.append(" ", anchor);
-            });
-            heading.append(downloads);
+            const content = document.createElement("div");
+            content.className = "book-result";
+            const card = document.createElement("a");
+            card.className = "book-card book-list-card";
+            card.href = bookUrl(entry);
+            const cover = document.createElement("div");
+            cover.className = "book-card__cover";
+            const image = opdsLink(entry, "http://opds-spec.org/image/thumbnail")
+                || opdsLink(entry, "http://opds-spec.org/thumbnail");
+            if (image) {
+                const img = document.createElement("img");
+                img.className = "book-card__image";
+                img.src = image.href;
+                img.alt = entry.title || "";
+                img.onerror = () => {
+                    const noCover = element.dataset.noCover || "";
+                    if (noCover && img.src !== new URL(noCover, window.location).href) {
+                        img.onerror = null;
+                        img.src = noCover;
+                        return;
+                    }
+                    img.onerror = null;
+                    img.classList.add("book-card__image--fallback");
+                };
+                cover.append(img);
+            } else {
+                cover.classList.add("book-card__cover--empty");
+            }
+            const metadata = document.createElement("div");
+            metadata.className = "book-card__body";
+            const title = document.createElement("h2");
+            title.className = "book-card__title";
+            title.textContent = entry.title || "";
+            metadata.append(title);
+            appendBookMetadata(metadata, "book-card__authors", element.dataset.authorsLabel, (entry.authors || []).map((author) => author.name));
+            appendBookMetadata(metadata, "book-card__genres", element.dataset.genresLabel, (entry.genres || []).map((genre) => genre.name));
+            appendBookMetadata(metadata, "book-card__date", element.dataset.publicationDateLabel, [entry.issued?.trim()]);
+            card.append(cover, metadata);
+
+            const actions = document.createElement("div");
+            actions.className = "book-card__actions";
             if (element.dataset.isbookshelf === "1") {
+                const downloads = (entry.links || []).filter((link) => link.rel === "http://opds-spec.org/acquisition/open-access");
+                downloads.forEach((link) => {
+                    const anchor = document.createElement("a");
+                    anchor.href = link.href;
+                    anchor.className = "label small book-download-link";
+                    anchor.textContent = formatLabel(link);
+                    actions.append(anchor);
+                });
                 const deleteButton = document.createElement("button");
                 deleteButton.type = "button";
                 deleteButton.className = "alert label small bookshelf-delete-trigger";
                 deleteButton.dataset.bookId = String(entry.id || "").split(":").pop();
                 deleteButton.dataset.bookTitle = entry.title || "";
                 deleteButton.textContent = element.dataset.deleteLabel || "Delete";
-                heading.append(" ", deleteButton);
+                actions.append(deleteButton);
             }
-            const content = document.createElement("div");
-            content.className = "large-12 column";
-            const card = document.createElement("table");
-            card.className = "book-card book-list-card";
-            const row = card.insertRow();
-            const imageCell = row.insertCell();
-            imageCell.width = "100";
-            const image = opdsLink(entry, "http://opds-spec.org/image/thumbnail")
-                || opdsLink(entry, "http://opds-spec.org/thumbnail");
-            if (image) {
-                const img = document.createElement("img");
-                img.className = "thumbnail";
-                img.src = image.href;
-                img.alt = entry.title || "";
-                imageCell.append(img);
-            }
-            const textCell = row.insertCell();
-            textCell.style.cssText = "font-size:80%; padding:0rem 1rem;";
-            appendMetadataLine(textCell, element.dataset.bookNameLabel, [{
-                text: entry.title || "",
-                href: bookUrl(entry),
-            }]);
-            appendMetadataLine(
-                textCell,
-                element.dataset.authorsLabel,
-                (entry.authors || []).map((author) => ({
-                    text: author.name,
-                    href: searchUrl("a", author.id),
-                })),
-            );
-            appendMetadataLine(
-                textCell,
-                element.dataset.seriesLabel,
-                (entry.series || []).map((series) => ({
-                    text: series.name,
-                    href: searchUrl("s", series.id),
-                })),
-            );
-            appendMetadataLine(
-                textCell,
-                element.dataset.genresLabel,
-                (entry.genres || []).map((genre) => ({
-                    text: genre.name,
-                    href: searchUrl("g", genre.id),
-                })),
-            );
-            appendMetadataLine(textCell, element.dataset.fileSizeLabel, [{
-                text: `${entry.filesize || "0"} ${element.dataset.fileSizeUnit}`,
-            }]);
-            appendMetadataLine(textCell, element.dataset.publicationDateLabel, [{
-                text: entry.issued || "",
-            }]);
-            if (showAnnotation && entry.annotation) {
-                const annotationRow = card.insertRow();
-                const annotationCell = annotationRow.insertCell();
-                annotationCell.colSpan = 2;
+            content.append(card);
+            if (actions.childElementCount) content.append(actions);
+
+            const appendAnnotation = (annotation) => {
+                if (!annotation) return;
+                const annotationCell = document.createElement("div");
                 annotationCell.className = "book-annotation";
-                annotationCell.innerHTML = entry.annotation;
-            }
+                annotationCell.innerHTML = annotation;
+                content.append(annotationCell);
+            };
+            if (showAnnotation && entry.annotation) appendAnnotation(entry.annotation);
             if (showAnnotation && entry.content?.src) {
                 fetch(entry.content.src, {credentials: "same-origin"})
                     .then((response) => response.ok ? response.text() : "")
                     .then((annotation) => {
                         if (!annotation) return;
-                        const annotationRow = card.insertRow();
-                        const annotationCell = annotationRow.insertCell();
-                        annotationCell.colSpan = 2;
-                        annotationCell.className = "book-annotation";
-                        annotationCell.innerHTML = annotation;
+                        appendAnnotation(annotation);
                     })
                     .catch(() => {});
             }
-            content.append(card);
-            element.append(heading, content);
+            element.append(content);
         });
         renderPagination(element, detail);
     }
