@@ -87,6 +87,7 @@ export function parseFeed(xml) {
             : pageNumber(linkByRel("self")?.href) || 1;
     const lastPage = pageNumber(linkByRel("last")?.href) || currentPage;
     const entries = list(feed.entry).map((entry) => {
+        const categories = list(entry.category);
         const links = list(entry.link).map((link) => ({
             href: link["@_href"] || "",
             rel: link["@_rel"] || "",
@@ -113,6 +114,11 @@ export function parseFeed(xml) {
             filesize: acquisition?.length ? String(Math.floor(acquisition.length / 1000)) : "",
             issued: text(entry["dcterms:issued"]),
             annotation: text(entry.summary),
+            catType: text(
+                categories.find(
+                    (category) => category["@_scheme"] === "urn:sopds:catalog-type",
+                )?.["@_term"],
+            ),
         };
     });
     return {

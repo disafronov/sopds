@@ -38,6 +38,7 @@ ItemDict = dict[str, Any]
 FeedObject = Any
 
 EMPTY_SEARCH_TERM = "__sopds_empty__"
+CATALOG_TYPE_SCHEME = "urn:sopds:catalog-type"
 
 
 def _book_title(value: str) -> str:
@@ -376,6 +377,17 @@ class opdsFeed(Atom1Feed):
                 )
             handler.characters("\n")
 
+        if item.get("is_catalog") and item.get("cat_type") is not None:
+            handler.addQuickElement(
+                "category",
+                "",
+                {
+                    "scheme": CATALOG_TYPE_SCHEME,
+                    "term": str(item["cat_type"]),
+                },
+            )
+            handler.characters("\n")
+
         if item.get("docdate") is not None:
             handler.addQuickElement("dcterms:issued", str(item["docdate"]))
         # if item.get("annotation"):
@@ -573,6 +585,7 @@ class CatalogsFeed(AuthFeed):
                 "title": row.cat_name,
                 "id": row.id,
                 "parent_id": row.parent_id,
+                "cat_type": row.cat_type,
             }
             items.append(p)
 
@@ -634,6 +647,7 @@ class CatalogsFeed(AuthFeed):
             "ser_no": item.get("ser_no"),
             "docdate": item.get("docdate"),
             "annotation": item.get("annotation"),
+            "cat_type": item.get("cat_type"),
         }
 
     def item_title(self, item: ItemDict) -> str:

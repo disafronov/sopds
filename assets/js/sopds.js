@@ -241,6 +241,13 @@ import {fetchFeed} from "./opds.js";
         renderPagination(element, detail);
     }
 
+    const catalogIcons = {
+        "0": "folder",
+        "1": "zip",
+        "2": "inpx",
+        "3": "inp",
+    };
+
     function renderCatalogs(element, detail) {
         const body = element.tBodies[0];
         body.replaceChildren();
@@ -252,7 +259,7 @@ import {fetchFeed} from "./opds.js";
             link.className = "selector-link";
             const image = document.createElement("img");
             image.className = "selector-link__icon";
-            const icon = catalog ? "folder" : "text";
+            const icon = catalog ? (catalogIcons[entry.catType] || "folder") : "text";
             image.src = `/static/images/${icon}.png`;
             image.alt = "";
             link.append(image);
