@@ -13,10 +13,10 @@
 	    {% if user.is_superuser %}
 	    <li><a href="{% url "admin:index" %}">{% trans "Settings" %}</a></li>
 	    {% endif %}
-	    <li><a href="{% url "web:logout" %}">{% trans "Logout" %} ({{ user.username }})</a></li>
+	    <li class="auth-menu-item"><a href="{% url "web:logout" %}">{% trans "Logout" %} ({{ user.username }})</a></li>
 	    {% endif %}
 	    {% if sopds_auth and not user.is_authenticated %}
-	    <li><a href="{% url "web:login" %}">{% trans "Login" %}</a></li>
+	    <li class="auth-menu-item"><a href="{% url "web:login" %}">{% trans "Login" %}</a></li>
 	    {% endif %}
 	  </ul>
 	</div>
@@ -52,10 +52,10 @@
 	    {% if user.is_superuser %}
 	    <li><a href="{% url "admin:index" %}">{% trans "Settings" %}</a></li>
 	    {% endif %}
-	    <li><a href="{% url "web:logout" %}">{% trans "Logout" %} ({{ user.username }})</a></li>
+	    <li class="auth-menu-item"><a href="{% url "web:logout" %}">{% trans "Logout" %} ({{ user.username }})</a></li>
 	    {% endif %}
 	    {% if sopds_auth and not user.is_authenticated %}
-	    <li><a href="{% url "web:login" %}">{% trans "Login" %}</a></li>
+	    <li class="auth-menu-item"><a href="{% url "web:login" %}">{% trans "Login" %}</a></li>
 	    {% endif %}
 	  </ul>
 	</div>
