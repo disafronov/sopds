@@ -385,7 +385,7 @@ test("entity adapter preserves result links and numeric pagination", async () =>
   dom.window.close();
 });
 
-test("book lists link each series by its stable id", async () => {
+test("book results are concise single-link navigation cards", async () => {
   const bookFeed = `<?xml version="1.0" encoding="utf-8"?>
   <feed xmlns="http://www.w3.org/2005/Atom" xmlns:sopds="urn:sopds:meta">
     <id>urn:test:feed</id>
@@ -435,31 +435,76 @@ test("book lists link each series by its stable id", async () => {
   await loadFrontend(window);
   await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
 
-  const seriesLinks = [...window.document.querySelectorAll('a[href*="searchtype=s"]')];
-  assert.deepEqual(
-    seriesLinks.map((link) => link.textContent),
-    ["Collection, with comma [3]", "Other collection"],
-  );
-  assert.deepEqual(
-    seriesLinks.map((link) => new URL(link.href).searchParams.get("searchterms")),
-    ["17", "23"],
-  );
-  const genreLinks = [...window.document.querySelectorAll('a[href*="searchtype=g"]')];
-  assert.deepEqual(genreLinks.map((link) => link.textContent), ["sf", "sf_detective"]);
-  assert.deepEqual(
-    genreLinks.map((link) => new URL(link.href).searchParams.get("searchterms")),
-    ["31", "32"],
-  );
+  const card = window.document.querySelector("a.book-card");
+  assert.equal(card.pathname, "/web/details/42/");
+  assert.equal(card.querySelectorAll("a").length, 0);
+  assert.equal(card.querySelector(".book-card__title").textContent, "Fixture book");
+  assert.equal(card.querySelector(".book-card__authors").textContent, "Fixture author");
+  assert.equal(card.querySelector(".book-card__genres").textContent, "sf, sf_detective");
+  assert.equal(card.querySelector(".book-card__date").textContent, "2026-07-26");
+  assert.equal(card.querySelectorAll(".book-card__metadata").length, 3);
+  assert.equal(window.document.querySelectorAll(".book-card__actions").length, 0);
+  assert.equal(window.document.body.textContent.includes("File size"), false);
+  assert.equal(window.document.body.textContent.includes("Book name"), false);
   assert.equal(window.document.body.textContent.includes("Hidden annotation"), false);
   assert.equal(window.document.body.textContent.includes("HTML must not be parsed"), false);
-  assert.deepEqual(
-    [...window.document.querySelectorAll("a.label.small")].map((link) => link.textContent),
-    ["mobi", "fb2"],
-  );
   assert.equal(
-    window.document.querySelector(".book-card img.thumbnail").getAttribute("src"),
+    window.document.querySelector(".book-card img.book-card__image").getAttribute("src"),
     "/opds/thumb/42/",
   );
+
+  dom.window.close();
+});
+
+test("book result falls back to a fixed empty cover and keeps metadata compact", async () => {
+  const bookFeed = `<?xml version="1.0" encoding="utf-8"?>
+  <feed xmlns="http://www.w3.org/2005/Atom"><entry>
+    <id>book:99</id><title>Very long title that remains safely bounded in the card</title>
+  </entry></feed>`;
+  const dom = new JSDOM(
+    `<!doctype html><div data-opds-books data-feed-url="/books/"
+      data-authors-label="Authors" data-genres-label="Genres"
+      data-publication-date-label="Publication date"></div>`,
+    {runScripts: "dangerously", url: "https://sopds.test/web/search/books/"},
+  );
+  const {window} = dom;
+  window.fetch = async () => ({ok: true, text: async () => bookFeed});
+
+  await loadFrontend(window);
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+
+  const card = window.document.querySelector("a.book-card");
+  assert.equal(card.href, "https://sopds.test/web/details/99/");
+  assert.equal(card.querySelector(".book-card__cover--empty") !== null, true);
+  assert.equal(card.querySelectorAll(".book-card__metadata").length, 0);
+  assert.equal(card.tabIndex, 0);
+  assert.equal(card.matches("a"), true);
+
+  dom.window.close();
+});
+
+test("bookshelf cards preserve downloads and delete controls outside navigation", async () => {
+  const bookFeed = `<?xml version="1.0" encoding="utf-8"?>
+  <feed xmlns="http://www.w3.org/2005/Atom"><entry>
+    <id>book:42</id><title>Bookshelf book</title>
+    <link href="/opds/download/42/0/" rel="http://opds-spec.org/acquisition/open-access" type="application/epub+zip"/>
+  </entry></feed>`;
+  const dom = new JSDOM(
+    `<!doctype html><div data-opds-books data-feed-url="/books/" data-isbookshelf="1"
+      data-download-label="Download" data-delete-label="Delete"></div>`,
+    {runScripts: "dangerously", url: "https://sopds.test/web/search/books/?searchtype=u"},
+  );
+  const {window} = dom;
+  window.fetch = async () => ({ok: true, text: async () => bookFeed});
+
+  await loadFrontend(window);
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+
+  assert.equal(window.document.querySelector("a.book-card").pathname, "/web/details/42/");
+  assert.equal(window.document.querySelectorAll("a.book-card a").length, 0);
+  assert.equal(window.document.querySelector(".book-card__actions a").pathname, "/opds/download/42/0/");
+  assert.equal(window.document.querySelector(".bookshelf-delete-trigger").textContent, "Delete");
+  assert.equal(window.document.querySelectorAll(".book-card").length, 1);
 
   dom.window.close();
 });
