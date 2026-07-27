@@ -12,7 +12,6 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.feedgenerator import Atom1Feed, Enclosure, rfc3339_date
-from django.utils.html import strip_tags
 from django.utils.translation import gettext as _
 from django.utils.translation import pgettext
 
@@ -586,7 +585,7 @@ class CatalogsFeed(AuthFeed):
                 "path": book_row.catalog.path,
                 "registerdate": book_row.registerdate,
                 "id": book_row.id,
-                "annotation": strip_tags(book_row.annotation),
+                "annotation": book_row.annotation,
                 "docdate": book_row.docdate,
                 "format": book_row.format,
                 "title": book_row.title,
