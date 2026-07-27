@@ -84,6 +84,10 @@
   border-top: 1px solid $sopds-menu-bg-active-color;
 }
 
+#main_menu > .sopdsmenu > .auth-menu-item {
+  border-right: 1px solid $sopds-menu-bg-active-color;
+}
+
 .nav-icon {
   display: inline-block;
   width: 1em;
