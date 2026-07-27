@@ -9,6 +9,15 @@
 	    <li {% if current == "genre" %} class="active" {% endif %}><a href="{% url "web:genre" %}">{% trans "Genres" %}</a></li>
 	    <li {% if current == "catalog" %} class="active" {% endif %}><a href="{% url "web:catalog" %}">{% trans "Catalogs" %}</a></li>
 	    <li {% if current == "search" and isbookshelf %} class="active" {% endif %}><a href="{% url "web:searchbooks" %}?searchtype=u">{% trans "Bookshelf" %}</a></li>
+	    {% if sopds_auth and user.is_authenticated %}
+	    {% if user.is_superuser %}
+	    <li><a href="{% url "admin:index" %}">{% trans "Settings" %}</a></li>
+	    {% endif %}
+	    <li><a href="{% url "web:logout" %}">{% trans "Logout" %} ({{ user.username }})</a></li>
+	    {% endif %}
+	    {% if sopds_auth and not user.is_authenticated %}
+	    <li><a href="{% url "web:login" %}">{% trans "Login" %}</a></li>
+	    {% endif %}
 	  </ul>
 	</div>
 {% else %}
@@ -39,6 +48,15 @@
 	    </li>
 	    <li {% if current == "catalog" %} class="active" {% endif %}><a href="{% url "web:catalog" %}">{% trans "Catalogs" %}</a></li>
 	    <li {% if current == "search" and isbookshelf %} class="active" {% endif %}><a href="{% url "web:searchbooks" %}?searchtype=u">{% trans "Bookshelf" %}</a></li>
+	    {% if sopds_auth and user.is_authenticated %}
+	    {% if user.is_superuser %}
+	    <li><a href="{% url "admin:index" %}">{% trans "Settings" %}</a></li>
+	    {% endif %}
+	    <li><a href="{% url "web:logout" %}">{% trans "Logout" %} ({{ user.username }})</a></li>
+	    {% endif %}
+	    {% if sopds_auth and not user.is_authenticated %}
+	    <li><a href="{% url "web:login" %}">{% trans "Login" %}</a></li>
+	    {% endif %}
 	  </ul>
 	</div>
 {% endif %}
