@@ -455,6 +455,9 @@ def hello(request: HttpRequest) -> HttpResponse:
 
 
 def LoginView(request: HttpRequest) -> HttpResponse:
+    if request.user.is_authenticated:
+        return redirect("web:main")
+
     args: dict[str, Any] = {}
     args["breadcrumbs"] = [_("Login")]
     args.update(csrf(request))
