@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-27 20:19+0000\n"
+"POT-Creation-Date: 2026-07-27 21:26+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -27,8 +27,8 @@ msgstr "Скачать"
 
 #: web_frontend/templates/sopds_book_detail.html:10
 #: web_frontend/templates/sopds_footer.html:25
-#: web_frontend/templates/sopds_menu.html:8
-#: web_frontend/templates/sopds_menu.html:24 web_frontend/views.py:233
+#: web_frontend/templates/sopds_menu.html:7
+#: web_frontend/templates/sopds_menu.html:33 web_frontend/views.py:233
 #: web_frontend/views.py:385
 msgid "Authors"
 msgstr "Авторы"
@@ -36,16 +36,16 @@ msgstr "Авторы"
 #: web_frontend/templates/sopds_book_detail.html:11
 #: web_frontend/templates/sopds_footer.html:26
 #: web_frontend/templates/sopds_logo.html:29
-#: web_frontend/templates/sopds_menu.html:9
-#: web_frontend/templates/sopds_menu.html:31 web_frontend/views.py:222
+#: web_frontend/templates/sopds_menu.html:8
+#: web_frontend/templates/sopds_menu.html:40 web_frontend/views.py:222
 #: web_frontend/views.py:397
 msgid "Series"
 msgstr "Серии"
 
 #: web_frontend/templates/sopds_book_detail.html:12
 #: web_frontend/templates/sopds_footer.html:27
-#: web_frontend/templates/sopds_menu.html:10
-#: web_frontend/templates/sopds_menu.html:38 web_frontend/views.py:408
+#: web_frontend/templates/sopds_menu.html:9
+#: web_frontend/templates/sopds_menu.html:47 web_frontend/views.py:408
 msgid "Genres"
 msgstr "Жанры"
 
@@ -193,8 +193,8 @@ msgid "RANDOM BOOK"
 msgstr "СЛУЧАЙНАЯ КНИГА"
 
 #: web_frontend/templates/sopds_footer.html:24
-#: web_frontend/templates/sopds_menu.html:7
-#: web_frontend/templates/sopds_menu.html:17 web_frontend/views.py:152
+#: web_frontend/templates/sopds_menu.html:6
+#: web_frontend/templates/sopds_menu.html:26 web_frontend/views.py:152
 #: web_frontend/views.py:154 web_frontend/views.py:185
 #: web_frontend/views.py:373
 msgid "Books"
@@ -294,20 +294,28 @@ msgstr ""
 "Не удалось определить ваш часовой пояс. Время указано для часового пояса "
 "%(tz)s."
 
-#: web_frontend/templates/sopds_menu.html:6
-#: web_frontend/templates/sopds_menu.html:16 web_frontend/views.py:306
+#: web_frontend/templates/sopds_menu.html:10
+#: web_frontend/templates/sopds_menu.html:49 web_frontend/views.py:306
 msgid "Catalogs"
 msgstr "Каталоги"
 
-#: web_frontend/templates/sopds_top.html:21 web_frontend/views.py:495
-msgid "Logout"
-msgstr "Выход"
+#: web_frontend/templates/sopds_menu.html:11
+#: web_frontend/templates/sopds_menu.html:50 web_frontend/views.py:146
+msgid "Bookshelf"
+msgstr "Книжная полка"
 
-#: web_frontend/templates/sopds_top.html:23
+#: web_frontend/templates/sopds_menu.html:14
+#: web_frontend/templates/sopds_menu.html:53
 msgid "Settings"
 msgstr "Настройки"
 
-#: web_frontend/templates/sopds_top.html:26 web_frontend/views.py:459
+#: web_frontend/templates/sopds_menu.html:16
+#: web_frontend/templates/sopds_menu.html:55 web_frontend/views.py:498
+msgid "Logout"
+msgstr "Выход"
+
+#: web_frontend/templates/sopds_menu.html:19
+#: web_frontend/templates/sopds_menu.html:58 web_frontend/views.py:462
 msgid "Login"
 msgstr "Вход"
 
@@ -334,15 +342,11 @@ msgstr "Поиск по автору"
 msgid "Search by genre"
 msgstr "Поиск по жанру"
 
-#: web_frontend/views.py:146
-msgid "Bookshelf"
-msgstr "Книжная полка"
-
 #: web_frontend/views.py:147
 msgid "Doubles for book"
 msgstr "Дубликаты книги"
 
-#: web_frontend/views.py:148 web_frontend/views.py:510
+#: web_frontend/views.py:148 web_frontend/views.py:513
 #, fuzzy
 #| msgid "Books"
 msgid "Book"
@@ -372,10 +376,10 @@ msgstr "Всего: %(count)s серий."
 msgid "HOME"
 msgstr "ГЛАВНАЯ"
 
-#: web_frontend/views.py:477
+#: web_frontend/views.py:480
 msgid "This account is not active!"
 msgstr "Учетная запись не активна!"
 
-#: web_frontend/views.py:484
+#: web_frontend/views.py:487
 msgid "User does not exist or the password is incorrect!"
 msgstr "Пользователь не существует или введен неправильный пароль!"
