@@ -96,6 +96,25 @@ def test_menu_marks_selected_alphabet_group_as_active(current: str) -> None:
     assert html.count('class="active"') == 2
 
 
+@pytest.mark.parametrize("alphabet", [False, True])
+@pytest.mark.parametrize("isbookshelf", [False, True])
+def test_menu_marks_bookshelf_active_only_for_bookshelf_view(
+    alphabet: bool, isbookshelf: bool
+) -> None:
+    html = render_to_string(
+        "sopds_menu.html",
+        {
+            "alphabet": alphabet,
+            "current": "search",
+            "isbookshelf": isbookshelf,
+            "lang_code": 1,
+            "lang_menu": lang_menu,
+        },
+    )
+
+    assert html.count('class="active"') == int(isbookshelf)
+
+
 def test_russian_menu_and_book_metadata_use_distinct_translations() -> None:
     with override("ru"):
         menu = render_to_string(

@@ -8,7 +8,7 @@
 	    <li {% if current == "series" %} class="active" {% endif %}><a href="{% url "web:series" %}?lang=0">{% trans "Series" %}</a></li>
 	    <li {% if current == "genre" %} class="active" {% endif %}><a href="{% url "web:genre" %}">{% trans "Genres" %}</a></li>
 	    <li {% if current == "catalog" %} class="active" {% endif %}><a href="{% url "web:catalog" %}">{% trans "Catalogs" %}</a></li>
-	    <li {% if current == "search" %} class="active" {% endif %}><a href="{% url "web:searchbooks" %}?searchtype=u">{% trans "Bookshelf" %}</a></li>
+	    <li {% if current == "search" and isbookshelf %} class="active" {% endif %}><a href="{% url "web:searchbooks" %}?searchtype=u">{% trans "Bookshelf" %}</a></li>
 	  </ul>
 	</div>
 {% else %}
@@ -38,7 +38,7 @@
 	    <li {% if current == "genre" %} class="active" {% endif %}><a href="{% url "web:genre" %}">{% trans "Genres" %}</a>
 	    </li>
 	    <li {% if current == "catalog" %} class="active" {% endif %}><a href="{% url "web:catalog" %}">{% trans "Catalogs" %}</a></li>
-	    <li {% if current == "search" %} class="active" {% endif %}><a href="{% url "web:searchbooks" %}?searchtype=u">{% trans "Bookshelf" %}</a></li>
+	    <li {% if current == "search" and isbookshelf %} class="active" {% endif %}><a href="{% url "web:searchbooks" %}?searchtype=u">{% trans "Bookshelf" %}</a></li>
 	  </ul>
 	</div>
 {% endif %}
