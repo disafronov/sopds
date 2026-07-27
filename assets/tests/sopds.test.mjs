@@ -543,3 +543,253 @@ test("direct book page omits empty structured XML annotation", async () => {
   assert.equal(window.document.querySelector(".book-annotation"), null);
   dom.window.close();
 });
+
+test("book detail renders semantic metadata and acquisition links", async () => {
+  const bookFeed = `<?xml version="1.0" encoding="utf-8"?>
+  <feed xmlns="http://www.w3.org/2005/Atom" xmlns:dcterms="http://purl.org/dc/terms/">
+    <entry>
+      <id>book:42</id><title>Detail book</title>
+      <author><name>Author Name</name><uri>/opds/search/books/a/11/</uri></author>
+      <link href="/opds/download/42/0/" rel="http://opds-spec.org/acquisition/open-access"
+            type="application/epub+zip" length="12000"/>
+      <link href="/opds/download/42/1/" rel="http://opds-spec.org/acquisition/open-access"
+            type="application/fb2" length="0"/>
+      <link href="/opds/search/books/s/17/" rel="related" title="Series: Collection"/>
+      <link href="/opds/search/books/g/31/" rel="related" title="Genre: sf"/>
+      <dcterms:issued> </dcterms:issued>
+    </entry>
+  </feed>`;
+  const dom = new JSDOM(
+    `<!doctype html><div data-opds-book-detail data-feed-url="/detail/"
+      data-cover-url="/opds/thumb/" data-no-cover="/static/no-cover.jpg"
+      data-download-label="Download" data-cover-label="Book cover"
+      data-authors-label="Authors" data-series-label="Series" data-genres-label="Genres"
+      data-file-size-label="File size" data-file-size-unit="KB"
+      data-publication-date-label="Date" data-annotation-label="Annotation"></div>`,
+    {runScripts: "dangerously", url: "https://sopds.test/web/details/42/"},
+  );
+  const {window} = dom;
+  window.fetch = async () => ({ok: true, text: async () => bookFeed});
+
+  await loadFrontend(window);
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+
+  assert.equal(window.document.querySelectorAll("article.book-detail h1").length, 1);
+  assert.equal(window.document.querySelector("article.book-detail h1").textContent, "Detail book");
+  assert.equal(window.document.querySelector(".book-detail-cover").className.includes("medium-4"), true);
+  assert.equal(window.document.querySelector(".book-detail-summary").className.includes("large-9"), true);
+  assert.deepEqual(
+    [...window.document.querySelectorAll(".book-detail-downloads a")].map((link) => [link.textContent, link.pathname]),
+    [["epub", "/opds/download/42/0/"], ["fb2", "/opds/download/42/1/"]],
+  );
+  assert.equal(window.document.querySelectorAll(".book-detail-downloads a.button.small").length, 2);
+  assert.equal(window.document.querySelectorAll(".book-detail-metadata dt").length, 4);
+  assert.equal(window.document.body.textContent.includes("0 KB"), false);
+  assert.equal(window.document.body.textContent.includes("Date"), false);
+  assert.equal(window.document.querySelector(".book-detail-annotation"), null);
+  assert.equal(window.document.body.textContent.includes("Annotation"), false);
+  assert.equal(window.document.querySelector('a[href*="searchtype=a"]').search, "?searchtype=a&searchterms=11");
+  assert.equal(window.document.querySelector('a[href*="searchtype=s"]').search, "?searchtype=s&searchterms=17");
+  assert.equal(window.document.querySelector('a[href*="searchtype=g"]').search, "?searchtype=g&searchterms=31");
+
+  dom.window.close();
+});
+
+test("book detail omits annotation section when all annotation sources are empty", async () => {
+  const bookFeed = `<?xml version="1.0" encoding="utf-8"?>
+  <feed xmlns="http://www.w3.org/2005/Atom"><entry><id>book:42</id><title>Empty book</title>
+    <summary>  </summary>
+    <content src="/annotation/42/" type="text/html"><![CDATA[  ]]></content>
+  </entry></feed>`;
+  const dom = new JSDOM(
+    `<!doctype html><div data-opds-book-detail data-feed-url="/detail/"
+      data-annotation-label="Annotation" data-loading-label="Loading"></div>`,
+    {runScripts: "dangerously", url: "https://sopds.test/web/details/42/"},
+  );
+  const {window} = dom;
+  const requests = [];
+  let resolveAnnotation;
+  const annotationResponse = new Promise((resolvePromise) => {
+    resolveAnnotation = resolvePromise;
+  });
+  window.fetch = async (url) => {
+    requests.push(url);
+    return requests.length === 1 ? {ok: true, text: async () => bookFeed} : annotationResponse;
+  };
+
+  await loadFrontend(window);
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+  assert.equal(window.document.querySelector(".book-detail-annotation-loading")?.textContent, "Loading");
+  resolveAnnotation({ok: true, text: async () => "   "});
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+
+  assert.deepEqual(requests, ["/detail/", "/annotation/42/"]);
+  assert.equal(window.document.querySelector(".book-detail-annotation"), null);
+  assert.equal(window.document.body.textContent.includes("Annotation"), false);
+  dom.window.close();
+});
+
+test("book detail treats empty DOM annotation content as absent", async () => {
+  for (const [html, expectedText] of [
+    ["<p></p>", ""],
+    ["&nbsp;", ""],
+    ["<p>Visible annotation</p>", "Visible annotation"],
+  ]) {
+    const bookFeed = `<?xml version="1.0" encoding="utf-8"?>
+    <feed xmlns="http://www.w3.org/2005/Atom"><entry><id>book:42</id><title>Inline</title>
+      <summary><![CDATA[${html}]]></summary>
+    </entry></feed>`;
+    const dom = new JSDOM(
+      `<!doctype html><div data-opds-book-detail data-feed-url="/detail/"
+        data-annotation-label="Annotation"></div>`,
+      {runScripts: "dangerously", url: "https://sopds.test/web/details/42/"},
+    );
+    const {window} = dom;
+    window.fetch = async () => ({ok: true, text: async () => bookFeed});
+
+    await loadFrontend(window);
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+
+    const section = window.document.querySelector(".book-detail-annotation");
+    assert.equal(section?.textContent.replace("Annotation", "").trim() || "", expectedText);
+    assert.equal(Boolean(section), Boolean(expectedText));
+    dom.window.close();
+  }
+});
+
+test("book detail applies DOM annotation check to lazy responses", async () => {
+  for (const [html, expectedText] of [
+    ["<p></p>", ""],
+    ["&nbsp;", ""],
+    ["<p>Visible annotation</p>", "Visible annotation"],
+  ]) {
+    const bookFeed = `<?xml version="1.0" encoding="utf-8"?>
+    <feed xmlns="http://www.w3.org/2005/Atom"><entry><id>book:42</id><title>Lazy</title>
+      <content src="/annotation/42/" type="text/html"/>
+    </entry></feed>`;
+    const dom = new JSDOM(
+      `<!doctype html><div data-opds-book-detail data-feed-url="/detail/"
+        data-annotation-label="Annotation" data-loading-label="Loading"></div>`,
+      {runScripts: "dangerously", url: "https://sopds.test/web/details/42/"},
+    );
+    const {window} = dom;
+    window.fetch = async (url) => url === "/detail/"
+      ? {ok: true, text: async () => bookFeed}
+      : {ok: true, text: async () => html};
+
+    await loadFrontend(window);
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+
+    const section = window.document.querySelector(".book-detail-annotation");
+    assert.equal(section?.textContent.replace("Annotation", "").trim() || "", expectedText);
+    assert.equal(Boolean(section), Boolean(expectedText));
+    dom.window.close();
+  }
+});
+
+test("book detail removes annotation section when lazy annotation fails", async () => {
+  const bookFeed = `<?xml version="1.0" encoding="utf-8"?>
+  <feed xmlns="http://www.w3.org/2005/Atom"><entry><id>book:42</id><title>Unavailable annotation</title>
+    <content src="/annotation/42/" type="text/html"/>
+  </entry></feed>`;
+  const dom = new JSDOM(
+    `<!doctype html><div data-opds-book-detail data-feed-url="/detail/"
+      data-annotation-label="Annotation" data-loading-label="Loading"></div>`,
+    {runScripts: "dangerously", url: "https://sopds.test/web/details/42/"},
+  );
+  const {window} = dom;
+  window.fetch = async (url) => url === "/detail/"
+    ? {ok: true, text: async () => bookFeed}
+    : Promise.reject(new Error("annotation unavailable"));
+
+  await loadFrontend(window);
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+
+  assert.equal(window.document.querySelector(".book-detail-annotation"), null);
+  assert.equal(window.document.body.textContent.includes("Annotation"), false);
+  dom.window.close();
+});
+
+test("book detail prefers inline annotation content before lazy source", async () => {
+  const bookFeed = `<?xml version="1.0" encoding="utf-8"?>
+  <feed xmlns="http://www.w3.org/2005/Atom"><entry><id>book:42</id><title>Annotated</title>
+    <content src="/annotation/42/" type="text/html"><![CDATA[<p>Inline annotation</p>]]></content>
+  </entry></feed>`;
+  const dom = new JSDOM(
+    `<!doctype html><div data-opds-book-detail data-feed-url="/detail/"
+      data-cover-url="/opds/thumb/" data-no-cover="/static/no-cover.jpg"
+      data-annotation-label="Annotation" data-loading-label="Loading"></div>`,
+    {runScripts: "dangerously", url: "https://sopds.test/web/details/42/"},
+  );
+  const {window} = dom;
+  const requests = [];
+  window.fetch = async (url) => {
+    requests.push(url);
+    return {ok: true, text: async () => bookFeed};
+  };
+
+  await loadFrontend(window);
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+
+  assert.equal(requests.length, 1);
+  assert.equal(window.document.querySelector(".book-detail-annotation").textContent.includes("Inline annotation"), true);
+  assert.equal(window.document.querySelector(".book-detail-annotation-loading"), null);
+  dom.window.close();
+});
+
+test("book detail lazily loads annotation and falls back from a broken cover", async () => {
+  const bookFeed = `<?xml version="1.0" encoding="utf-8"?>
+  <feed xmlns="http://www.w3.org/2005/Atom"><entry><id>book:42</id><title>Lazy book</title>
+    <content src="/annotation/42/" type="text/html"/>
+  </entry></feed>`;
+  const dom = new JSDOM(
+    `<!doctype html><div data-opds-book-detail data-feed-url="/detail/"
+      data-cover-url="/opds/thumb/" data-no-cover="/static/no-cover.jpg"
+      data-annotation-label="Annotation" data-loading-label="Loading"></div>`,
+    {runScripts: "dangerously", url: "https://sopds.test/web/details/42/"},
+  );
+  const {window} = dom;
+  const requests = [];
+  window.fetch = async (url) => {
+    requests.push(url);
+    return requests.length === 1
+      ? {ok: true, text: async () => bookFeed}
+      : {ok: true, text: async () => "<p>Lazy annotation</p>"};
+  };
+
+  await loadFrontend(window);
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+  const image = window.document.querySelector(".book-detail-cover__image");
+  image.dispatchEvent(new window.Event("error"));
+  assert.equal(image.getAttribute("src"), "/static/no-cover.jpg");
+  assert.equal(typeof image.onerror, "object");
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+
+  assert.deepEqual(requests, ["/detail/", "/annotation/42/"]);
+  assert.equal(window.document.querySelector(".book-detail-annotation").textContent.includes("Lazy annotation"), true);
+  dom.window.close();
+});
+
+test("book detail keeps a visible localized error callout when feed fails", async () => {
+  const dom = new JSDOM(
+    `<!doctype html><div data-opds-book-detail data-feed-url="/detail/"
+      data-loading-label="Loading" data-error-label="Book unavailable">
+      <div data-opds-loading>Loading</div><div data-opds-error hidden role="alert">Book unavailable</div>
+    </div>`,
+    {runScripts: "dangerously", url: "https://sopds.test/web/details/42/"},
+  );
+  const {window} = dom;
+  window.fetch = async () => ({ok: false, text: async () => ""});
+
+  await loadFrontend(window);
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+
+  const error = window.document.querySelector("[data-opds-error]");
+  assert.equal(error.hidden, false);
+  assert.equal(error.getAttribute("role"), "alert");
+  assert.equal(error.textContent, "Book unavailable");
+  assert.equal(window.document.querySelector("[data-opds-loading]").hidden, true);
+  dom.window.close();
+});
