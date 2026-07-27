@@ -144,24 +144,24 @@ class TestAnnotationView:
     def test_returns_annotation_from_source(self, mocker: MockerFixture) -> None:
         book = mocker.MagicMock(annotation="")
         mocker.patch.object(Book.objects, "get", return_value=book)
-        mocker.patch.object(
-            dl, "getBookAnnotation", return_value="<p>Source annotation</p>"
-        )
+        mocker.patch.object(dl, "getBookAnnotation", return_value="Source annotation")
 
         response = dl.Annotation(HttpRequest(), 5)
 
         assert response.status_code == 200
         assert response.content.decode() == "Source annotation"
-        assert response["Content-Type"] == "text/plain; charset=utf-8"
+        assert response["Content-Type"] == "text/html; charset=utf-8"
 
-    def test_falls_back_to_stored_annotation(self, mocker: MockerFixture) -> None:
+    def test_returns_empty_when_no_annotation(self, mocker: MockerFixture) -> None:
         book = mocker.MagicMock(annotation="Stored annotation")
         mocker.patch.object(Book.objects, "get", return_value=book)
         mocker.patch.object(dl, "getBookAnnotation", return_value=None)
 
         response = dl.Annotation(HttpRequest(), 5)
 
-        assert response.content.decode() == "Stored annotation"
+        assert response.status_code == 200
+        assert response.content.decode() == ""
+        assert response["Content-Type"] == "text/html; charset=utf-8"
 
 
 class TestGetFileDataZip:
@@ -287,8 +287,9 @@ class TestCoverView(_ViewTestBase):
                 "django_settings",
                 _cfg(SOPDS_ROOT_LIB="/lib"),
             ):
-                with pytest.raises(Http404):
-                    dl.Cover(self._request(), 1)
+                response = dl.Cover(self._request(), 1)
+        assert response.status_code == 307
+        assert "nocover" in response["Location"]
 
 
 @pytest.mark.django_db
@@ -460,11 +461,13 @@ class TestCoverEdgeCases:
             dl.Cover(request, 999, False)
 
     @pytest.mark.django_db
-    def test_404_when_cover_extraction_fails(self, mocker: MockerFixture) -> None:
+    def test_cover_extraction_failure_returns_nocover(
+        self, mocker: MockerFixture
+    ) -> None:
         from opds_catalog import dl
 
         mock_book = mocker.MagicMock()
-        mock_book.catalog.cat_type = "fb2"
+        mock_book.catalog.cat_type = opdsdb.CAT_NORMAL
         mock_book.format = "fb2"
         mock_book.catalog.path = "/tmp/book.fb2"
 
@@ -475,5 +478,6 @@ class TestCoverEdgeCases:
         mocker.patch("opds_catalog.dl.os.path.exists", return_value=False)
 
         request = mocker.MagicMock()
-        with pytest.raises(Http404):
-            dl.Cover(request, 1, False)
+        response = dl.Cover(request, 1, False)
+        assert response.status_code == 307
+        assert "nocover" in response["Location"]
