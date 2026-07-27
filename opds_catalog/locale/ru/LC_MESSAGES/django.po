@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-27 03:59+0000\n"
+"POT-Creation-Date: 2026-07-27 04:08+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -141,92 +141,92 @@ msgstr "дубликаты скрыты"
 msgid "doubles show"
 msgstr "дубликаты показаны"
 
-#: opds_catalog/feeds.py:1089
+#: opds_catalog/feeds.py:1088
 #, python-format
 msgid "<b>Doubles count: </b>%(doubles)s<br/>"
 msgstr "<b>Число дубликатов: </b>%(doubles)s<br/>"
 
-#: opds_catalog/feeds.py:1101
+#: opds_catalog/feeds.py:1100
 msgid "Series by authors select"
 msgstr "Выбор серий у автора"
 
-#: opds_catalog/feeds.py:1129
+#: opds_catalog/feeds.py:1128
 msgid "Books by series"
 msgstr "Книги по сериям"
 
-#: opds_catalog/feeds.py:1131
+#: opds_catalog/feeds.py:1130
 msgid "Books by author and series"
 msgstr "Книги по авторам и сериям"
 
-#: opds_catalog/feeds.py:1135
+#: opds_catalog/feeds.py:1134
 msgid "Books outside series"
 msgstr "Книги вне серий"
 
-#: opds_catalog/feeds.py:1137
+#: opds_catalog/feeds.py:1136
 msgid "Books by author outside series"
 msgstr "Книги автора вне серий"
 
-#: opds_catalog/feeds.py:1141
+#: opds_catalog/feeds.py:1140
 msgid "Books by alphabet"
 msgstr "Книги по алфавиту"
 
-#: opds_catalog/feeds.py:1143
+#: opds_catalog/feeds.py:1142
 msgid "Books by author alphabetical order"
 msgstr "Книги автора в алфавитном порядке"
 
-#: opds_catalog/feeds.py:1195
+#: opds_catalog/feeds.py:1194
 msgid "Authors found"
 msgstr "Найдены авторы"
 
-#: opds_catalog/feeds.py:1273 opds_catalog/feeds.py:1383
+#: opds_catalog/feeds.py:1272 opds_catalog/feeds.py:1382
 #, python-format
 msgid "Books count: %s"
 msgstr "Всего: %s книг"
 
-#: opds_catalog/feeds.py:1298
+#: opds_catalog/feeds.py:1297
 msgid "Series found"
 msgstr "Найдены серии"
 
-#: opds_catalog/feeds.py:1417
+#: opds_catalog/feeds.py:1416
 msgid "Select language"
 msgstr "Выбор алфавита"
 
-#: opds_catalog/feeds.py:1465
+#: opds_catalog/feeds.py:1464
 msgid "Select books by substring"
 msgstr "Поиск книг по подстроке"
 
-#: opds_catalog/feeds.py:1520 opds_catalog/feeds.py:1793
+#: opds_catalog/feeds.py:1519 opds_catalog/feeds.py:1792
 #, python-format
 msgid "Found: %s books"
 msgstr "Найдено %s книг"
 
-#: opds_catalog/feeds.py:1556
+#: opds_catalog/feeds.py:1555
 msgid "Select authors by substring"
 msgstr "Поиск авторов по подстроке"
 
-#: opds_catalog/feeds.py:1614
+#: opds_catalog/feeds.py:1613
 #, python-format
 msgid "Found: %s authors"
 msgstr "Найдено %s авторов"
 
-#: opds_catalog/feeds.py:1650
+#: opds_catalog/feeds.py:1649
 msgid "Select series by substring"
 msgstr "Поиск серий по подстроке"
 
-#: opds_catalog/feeds.py:1705
+#: opds_catalog/feeds.py:1704
 #, python-format
 msgid "Found: %s series"
 msgstr "Найдено %s серий"
 
-#: opds_catalog/feeds.py:1743
+#: opds_catalog/feeds.py:1742
 #, python-format
 msgid "Select genres (%s)"
 msgstr "Выбор жанра (%s)"
 
-#: opds_catalog/feeds.py:1743
+#: opds_catalog/feeds.py:1742
 msgid "section"
 msgstr "секция"
 
-#: opds_catalog/feeds.py:1743
+#: opds_catalog/feeds.py:1742
 msgid "subsection"
 msgstr "подсекция"

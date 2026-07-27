@@ -1079,7 +1079,6 @@ class SearchBooksFeed(AuthFeed):
             "ser_no": item["ser_no"],
             "docdate": item["docdate"],
             "annotation": item["annotation"],
-            "content_url": item["content_url"],
             "doubles": item["id"] if item["doubles"] > 0 else None,
         }
 
