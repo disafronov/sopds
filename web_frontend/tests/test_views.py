@@ -136,6 +136,7 @@ def test_authenticated_menu_places_settings_before_logout(alphabet: bool) -> Non
     assert logout in html
     assert html.index(settings) < html.index(logout)
     assert html.count(logout) == 1
+    assert html.count('class="auth-menu-item"') == 1
 
 
 @pytest.mark.parametrize("alphabet", [False, True])
@@ -155,6 +156,7 @@ def test_anonymous_menu_places_login_at_the_end_without_icon(alphabet: bool) -> 
     login = 'href="/web/login/"'
     assert html.index(bookshelf) < html.index(login)
     assert html.count(login) == 1
+    assert html.count('class="auth-menu-item"') == 1
     assert "nav-icon" not in html
 
 
@@ -304,10 +306,26 @@ class TestSearchBooksView:
 class TestLoginView:
     """Tests for LoginView()."""
 
-    def test_get_login_page(self, db: Any, client: Client) -> None:
+    def test_anonymous_user_can_get_login_page(self, db: Any, client: Client) -> None:
         response = client.get("/web/login/")
-        # Either 200 (login page) or redirect to login
-        assert response.status_code in (200, 302)
+        assert response.status_code == 200
+
+    @pytest.mark.parametrize("method", ["get", "post"])
+    def test_authenticated_user_is_redirected_from_login(
+        self, db: Any, auth_client: Client, method: str
+    ) -> None:
+        request = getattr(auth_client, method)
+        response = (
+            request(
+                "/web/login/",
+                {"username": "ignored", "password": "ignored"},
+            )
+            if method == "post"
+            else request("/web/login/")
+        )
+
+        assert response.status_code == 302
+        assert response["Location"] == reverse("web:main")
 
     def test_post_invalid_credentials(self, db: Any, client: Client) -> None:
         response = client.post("/web/login/", {"username": "nope", "password": "wrong"})
