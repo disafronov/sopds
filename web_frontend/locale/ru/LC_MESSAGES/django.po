@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-27 21:26+0000\n"
+"POT-Creation-Date: 2026-07-28 12:59+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -35,9 +35,10 @@ msgstr "Авторы"
 
 #: web_frontend/templates/sopds_book_detail.html:11
 #: web_frontend/templates/sopds_footer.html:26
-#: web_frontend/templates/sopds_logo.html:29
+#: web_frontend/templates/sopds_logo.html:27
 #: web_frontend/templates/sopds_menu.html:8
-#: web_frontend/templates/sopds_menu.html:40 web_frontend/views.py:222
+#: web_frontend/templates/sopds_menu.html:40
+#: web_frontend/templates/sopds_top.html:39 web_frontend/views.py:222
 #: web_frontend/views.py:397
 msgid "Series"
 msgstr "Серии"
@@ -208,15 +209,15 @@ msgstr "Последнее сканирование:"
 msgid "Never"
 msgstr "Никогда"
 
-#: web_frontend/templates/sopds_hello.html:8
+#: web_frontend/templates/sopds_hello.html:12
 msgid "Hello"
 msgstr "Здравствуйте"
 
-#: web_frontend/templates/sopds_hello.html:8
+#: web_frontend/templates/sopds_hello.html:12
 msgid "Guest"
 msgstr "Гость"
 
-#: web_frontend/templates/sopds_hello.html:11
+#: web_frontend/templates/sopds_hello.html:15
 msgid ""
 "Simple OPDS Catalog is a free self-hosted application for creating an "
 "electronic OPDS book catalog."
@@ -224,7 +225,7 @@ msgstr ""
 "Simple OPDS Catalog — бесплатное self-hosted-приложение для создания "
 "электронного каталога книг OPDS."
 
-#: web_frontend/templates/sopds_hello.html:16
+#: web_frontend/templates/sopds_hello.html:20
 msgid ""
 "OPDS (Open Publication Distribution System) lets you access your library "
 "over the Internet from e-book readers, tablets, smartphones, and other "
@@ -234,11 +235,11 @@ msgstr ""
 "библиотеке через Интернет с электронных книг, планшетов, смартфонов и других "
 "устройств."
 
-#: web_frontend/templates/sopds_hello.html:23
+#: web_frontend/templates/sopds_hello.html:27
 msgid "OPDS catalog address to add to your reading app:"
 msgstr "Адрес OPDS-каталога для добавления в приложение для чтения:"
 
-#: web_frontend/templates/sopds_hello.html:28
+#: web_frontend/templates/sopds_hello.html:32
 msgid "Report bugs and request features on GitHub Issues."
 msgstr "Сообщайте об ошибках и предлагайте новые функции в GitHub Issues."
 
@@ -262,20 +263,24 @@ msgstr "Введите пароль"
 msgid "Log in"
 msgstr "Вход"
 
-#: web_frontend/templates/sopds_logo.html:14 web_frontend/views.py:150
+#: web_frontend/templates/sopds_logo.html:12
+#: web_frontend/templates/sopds_top.html:24 web_frontend/views.py:150
 #: web_frontend/views.py:260
 msgid "Search"
 msgstr "Найти"
 
-#: web_frontend/templates/sopds_logo.html:26
+#: web_frontend/templates/sopds_logo.html:24
+#: web_frontend/templates/sopds_top.html:36
 msgid "Choose Search Type:"
 msgstr "Выберите тип поиска:"
 
-#: web_frontend/templates/sopds_logo.html:27
+#: web_frontend/templates/sopds_logo.html:25
+#: web_frontend/templates/sopds_top.html:37
 msgid "Title"
 msgstr "Название"
 
-#: web_frontend/templates/sopds_logo.html:28
+#: web_frontend/templates/sopds_logo.html:26
+#: web_frontend/templates/sopds_top.html:38
 msgid "Author"
 msgstr "Автор"
 
@@ -287,7 +292,7 @@ msgstr ""
 "Включите JavaScript в браузере, чтобы использовать веб-клиент OPDS. Лента "
 "OPDS также доступна по адресу /opds/."
 
-#: web_frontend/templates/sopds_main.html:43
+#: web_frontend/templates/sopds_main.html:38
 #, python-format
 msgid "Your timezone could not be detected. Times are displayed in %(tz)s."
 msgstr ""

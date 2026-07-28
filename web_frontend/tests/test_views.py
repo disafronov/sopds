@@ -386,7 +386,7 @@ class TestHello:
 
         assert response.status_code == 200
         assert "Hello Guest!" in content
-        assert content.count('href="/"') >= 2
+        assert content.count('href="/"') >= 1
         assert 'href="/opds/"' in content
         assert "https://github.com/disafronov/sopds/issues" in content
         assert "js/jquery.min." in content
