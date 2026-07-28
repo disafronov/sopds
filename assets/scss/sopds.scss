@@ -51,11 +51,41 @@
 
 .top-bar {
 @extend .top-bar;
+
+  &.top-bar--search {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
   ul.menu {
     a { color : $sopds-title-color; }
     a:hover { color: $sopds-hover-color; }
   }
   .title-bar-title { color : $sopds-title-color; }
+}
+
+.top-bar--search .top-bar-title {
+  float: none;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.top-bar--search .top-bar-right {
+  float: none;
+  margin-left: auto;
+  flex: 1;
+  min-width: 0;
+}
+
+.top-bar-search .input-group {
+  margin-bottom: 0;
+}
+
+.top-bar-search .input-group-field {
+  min-width: 0;
+  max-width: none;
 }
 
 .sopdsbg {
