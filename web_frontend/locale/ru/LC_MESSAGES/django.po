@@ -3,12 +3,11 @@
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-28 14:35+0000\n"
+"POT-Creation-Date: 2026-07-28 16:15+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -58,35 +57,29 @@ msgstr "Размер файла"
 
 #: web_frontend/templates/sopds_book_detail.html:14
 msgid "Kb"
-msgstr ""
+msgstr "Кб"
 
 #: web_frontend/templates/sopds_book_detail.html:15
 msgid "Date"
-msgstr ""
+msgstr "Дата"
 
 #: web_frontend/templates/sopds_book_detail.html:16
 msgid "Annotation"
-msgstr ""
+msgstr "Аннотация"
 
 #: web_frontend/templates/sopds_book_detail.html:17
-#, fuzzy
-#| msgid "Book name"
 msgid "Book cover"
-msgstr "Название"
+msgstr "Обложка"
 
 #: web_frontend/templates/sopds_book_detail.html:18
 #: web_frontend/templates/sopds_book_detail.html:22
-#, fuzzy
-#| msgid "Loading..."
 msgid "Loading…"
-msgstr "Загрузка..."
+msgstr "Загрузка…"
 
 #: web_frontend/templates/sopds_book_detail.html:19
 #: web_frontend/templates/sopds_book_detail.html:25
-#, fuzzy
-#| msgid "Unable to load the catalog."
 msgid "Unable to load book details."
-msgstr "Не удалось загрузить каталог."
+msgstr "Не удалось загрузить информацию о книге."
 
 #: web_frontend/templates/sopds_books_opds.html:6
 msgid "Confirm the deletion of the book to your bookshelf."
@@ -338,10 +331,8 @@ msgid "Search by series"
 msgstr "Поиск по серии"
 
 #: web_frontend/views.py:144
-#, fuzzy
-#| msgid "Search by author"
 msgid "Search by author and series"
-msgstr "Поиск по автору"
+msgstr "Поиск по автору и серии"
 
 #: web_frontend/views.py:145
 msgid "Search by genre"
@@ -352,10 +343,8 @@ msgid "Doubles for book"
 msgstr "Дубликаты книги"
 
 #: web_frontend/views.py:148 web_frontend/views.py:513
-#, fuzzy
-#| msgid "Books"
 msgid "Book"
-msgstr "Книги"
+msgstr "Книга"
 
 #: web_frontend/views.py:281 web_frontend/views.py:372
 #: web_frontend/views.py:416
