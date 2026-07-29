@@ -280,6 +280,7 @@ test("OPDS selector links empty-name placeholders to exact empty search", async 
 test("catalog icons follow Atom catalog-type categories", async () => {
   const catalogFeed = `<?xml version="1.0" encoding="utf-8"?>
   <feed xmlns="http://www.w3.org/2005/Atom">
+    <title>SimpleOPDS | By catalog | books/archive.zip</title>
     <entry>
       <id>c:1</id><title>Folder</title>
       <link href="/opds/catalogs/1/" rel="subsection"/>
@@ -316,7 +317,8 @@ test("catalog icons follow Atom catalog-type categories", async () => {
   </feed>`;
   const dom = new JSDOM(
     `<!doctype html>
-      <table class="clickable-rows" data-opds-catalogs
+      <ul class="breadcrumbs"><li>Catalogs</li></ul>
+      <table class="clickable-rows" data-opds-catalogs data-cat-id="1"
              data-feed-url="/opds/catalogs/" data-page-url="/web/catalogs/">
         <tbody></tbody>
       </table>`,
@@ -345,6 +347,10 @@ test("catalog icons follow Atom catalog-type categories", async () => {
   assert.equal(
     window.document.querySelectorAll(".selector-link")[6].href,
     "https://sopds.test/web/details/7/",
+  );
+  assert.equal(
+    window.document.querySelector("[data-opds-catalog-path]").textContent,
+    "books/archive.zip",
   );
 
   dom.window.close();

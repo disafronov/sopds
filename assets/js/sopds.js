@@ -391,9 +391,22 @@ import {createOpdsClient} from "./opds.js";
         "3": "inp",
     };
 
+    function renderCatalogBreadcrumb(element, detail) {
+        if (!element.dataset.catId) return;
+        const breadcrumbs = document.querySelector(".breadcrumbs");
+        const path = String(detail.title || "").split("|").at(-1)?.trim();
+        if (!breadcrumbs || !path) return;
+        breadcrumbs.querySelector("[data-opds-catalog-path]")?.remove();
+        const item = document.createElement("li");
+        item.dataset.opdsCatalogPath = "";
+        item.textContent = path;
+        breadcrumbs.append(item);
+    }
+
     function renderCatalogs(element, detail) {
         const body = element.tBodies[0];
         body.replaceChildren();
+        renderCatalogBreadcrumb(element, detail);
         detail.entries.forEach((entry) => {
             const row = body.insertRow();
             const catalog = opdsLink(entry, "subsection");
