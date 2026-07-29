@@ -35,7 +35,6 @@ async function readClient() {
 }
 
 async function loadFrontend(window) {
-  window.jQuery = () => ({foundation() {}});
   window.eval(await readClient());
 }
 

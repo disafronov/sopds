@@ -2,7 +2,7 @@
 {% load i18n static %}
 
 {% block body %}
-<div id="DeleteBookModal" class="reveal small text-center" data-reveal data-cover-url="{% url "opds:covertmpl" %}">
+<dialog id="DeleteBookModal" class="sopds-dialog" data-cover-url="{% url "opds:covertmpl" %}">
   <h5 id="DeleteBookModalTitle">{% trans "Confirm the deletion of the book to your bookshelf." %}</h5>
   <table>
     <tr>
@@ -15,22 +15,22 @@
     <input type="hidden" name="book" id="DeleteBook_book">
     <p class="text-center">
       <button type="submit" class="alert button">{% trans "Delete" %}</button>
-      &nbsp;&nbsp;&nbsp;<a class="secondary button" data-close>{% trans "Cancel" %}</a>
+      <button class="secondary button" type="button" data-dialog-close>{% trans "Cancel" %}</button>
     </p>
   </form>
-</div>
+</dialog>
 {% if isbookshelf %}
-<div id="ConfirmModal" class="reveal small text-center" data-reveal>
+<dialog id="ConfirmModal" class="sopds-dialog">
   <h5 id="ConfirmModalTitle">{% trans "Confirm to clear your bookshelf." %}</h5>
   <form method="post" action="{% url "web:bsclear" %}">
     {% csrf_token %}
     <p class="text-center">
       <button type="submit" class="alert button">{% trans "Clear" %}</button>
-      &nbsp;&nbsp;&nbsp;<a class="secondary button" data-close>{% trans "Cancel" %}</a>
+      <button class="secondary button" type="button" data-dialog-close>{% trans "Cancel" %}</button>
     </p>
   </form>
-</div>
-<a class="alert button bookshelf-clear-trigger" data-open="ConfirmModal">{% trans "Clear bookshelf" %}</a>
+</dialog>
+<button class="alert button bookshelf-clear-trigger" type="button" data-dialog-open="ConfirmModal">{% trans "Clear bookshelf" %}</button>
 {% endif %}
 
 {% include "sopds_pagination.html" %}

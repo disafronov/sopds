@@ -389,11 +389,10 @@ class TestHello:
         assert content.count('href="/"') >= 1
         assert 'href="/opds/"' in content
         assert "https://github.com/disafronov/sopds/issues" in content
-        assert "js/jquery.min." in content
-        assert "js/what-input.min." in content
-        assert "js/foundation.min." in content
-        assert "js/vendor/jquery.js" not in content
-        assert "js/vendor/what-input.js" not in content
+        assert "js/sopds.min." in content
+        assert "js/jquery.min." not in content
+        assert "js/what-input.min." not in content
+        assert "js/foundation.min." not in content
 
         client.force_login(user)
         auth_content = client.get("/web/").content.decode()
