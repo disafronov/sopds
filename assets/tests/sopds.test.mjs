@@ -309,6 +309,10 @@ test("catalog icons follow Atom catalog-type categories", async () => {
       <id>c:6</id><title>Missing</title>
       <link href="/opds/catalogs/6/" rel="subsection"/>
     </entry>
+    <entry>
+      <id>b:7</id><title>Catalog book</title>
+      <link href="/opds/download/7/0/" rel="http://opds-spec.org/acquisition/open-access"/>
+    </entry>
   </feed>`;
   const dom = new JSDOM(
     `<!doctype html>
@@ -335,7 +339,12 @@ test("catalog icons follow Atom catalog-type categories", async () => {
       "/static/images/inp.png",
       "/static/images/folder.png",
       "/static/images/folder.png",
+      "/static/images/text.png",
     ],
+  );
+  assert.equal(
+    window.document.querySelectorAll(".selector-link")[6].href,
+    "https://sopds.test/web/details/7/",
   );
 
   dom.window.close();
