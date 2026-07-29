@@ -7,6 +7,16 @@ import {createOpdsClient} from "./opds.js";
         fetch: (...args) => window.fetch(...args),
     });
 
+    async function fetchAnnotation(url) {
+        const response = await window.fetch(url, {
+            cache: "no-store",
+            credentials: "same-origin",
+            headers: {Accept: "text/html"},
+        });
+        if (!response.ok) throw new Error(`Annotation request failed: ${response.status}`);
+        return response.text();
+    }
+
     function pageNumber(href) {
         if (!href) return 0;
         const url = new URL(href, window.location);
@@ -32,6 +42,47 @@ import {createOpdsClient} from "./opds.js";
             page,
             pages: pageNumber(linkByRel("last")?.href) || page,
         };
+    }
+
+    const annotationTags = new Set([
+        "a", "b", "blockquote", "br", "code", "div", "em", "h1", "h2", "h3",
+        "h4", "h5", "h6", "hr", "i", "img", "li", "ol", "p", "pre", "span",
+        "strong", "sub", "sup", "table", "tbody", "td", "th", "thead", "tr", "ul",
+    ]);
+
+    function safeAnnotationUrl(value) {
+        return /^\s*(?:javascript|vbscript):/iu.test(value) ? null : value;
+    }
+
+    function annotationContent(value, type = "text/plain") {
+        if (typeof value !== "string") return null;
+        const content = document.createElement("div");
+        if (type === "text/html" || type === "application/xhtml+xml") {
+            content.innerHTML = value;
+            content.querySelectorAll("script, style, iframe, object, embed, link, meta, base").forEach((node) => node.remove());
+            content.querySelectorAll("*").forEach((node) => {
+                if (!annotationTags.has(node.localName)) {
+                    node.replaceWith(...node.childNodes);
+                    return;
+                }
+                [...node.attributes].forEach((attribute) => {
+                    const {name, value: attributeValue} = attribute;
+                    if (["class", "dir", "lang", "title"].includes(name)) return;
+                    if (name === "href" && node.localName === "a") {
+                        if (safeAnnotationUrl(attributeValue)) return;
+                    }
+                    if (name === "src" && node.localName === "img") {
+                        if (safeAnnotationUrl(attributeValue)) return;
+                    }
+                    if (name === "alt" && node.localName === "img") return;
+                    node.removeAttribute(name);
+                });
+            });
+        } else {
+            content.textContent = value;
+        }
+        const text = content.textContent.replace(/\u00a0/gu, " ").trim();
+        return text || content.querySelector("img") ? content : null;
     }
 
     async function loadOPDS(element) {
@@ -501,16 +552,11 @@ import {createOpdsClient} from "./opds.js";
         row.append(metaCol);
         article.append(row);
 
-        const parseAnnotation = (html) => {
-            if (typeof html !== "string") return null;
-            const content = document.createElement("div");
-            content.innerHTML = html;
-            const text = content.textContent.replace(/\u00a0/gu, " ").trim();
-            const media = content.querySelector("img, audio, video, iframe, embed, object");
-            return text || media ? content : null;
-        };
-        const annotation = [entry.summary, entry.content?.value]
-            .map(parseAnnotation)
+        const annotation = [
+            {value: entry.summary, type: "text/html"},
+            entry.content,
+        ]
+            .map((content) => annotationContent(content?.value, content?.type))
             .find(Boolean);
         const addAnnotation = (content) => {
             const section = document.createElement("section");
@@ -534,9 +580,9 @@ import {createOpdsClient} from "./opds.js";
             placeholder.textContent = element.dataset.loadingLabel || "Loading…";
             section.append(placeholder);
             article.append(section);
-            opds.fetchLinkedContent(entry.content.src)
+            fetchAnnotation(entry.content.src)
                 .then((annotation) => {
-                    const content = parseAnnotation(annotation);
+                    const content = annotationContent(annotation, entry.content.type);
                     if (content) {
                         placeholder.replaceWith(content);
                     } else section.remove();
@@ -611,19 +657,25 @@ import {createOpdsClient} from "./opds.js";
             content.append(card);
             if (actions.childElementCount) content.append(actions);
 
-            const appendAnnotation = (annotation) => {
+            const appendAnnotation = (value, type) => {
+                const annotation = annotationContent(value, type);
                 if (!annotation) return;
                 const annotationCell = document.createElement("div");
                 annotationCell.className = "book-annotation";
-                annotationCell.innerHTML = annotation;
+                annotationCell.append(annotation);
                 content.append(annotationCell);
             };
-            if (showAnnotation && entry.summary) appendAnnotation(entry.summary);
-            if (showAnnotation && entry.content?.src) {
-                opds.fetchLinkedContent(entry.content.src)
+            if (showAnnotation) {
+                const annotation = [
+                    {value: entry.summary, type: "text/html"},
+                    entry.content,
+                ].find((item) => annotationContent(item?.value, item?.type));
+                if (annotation) appendAnnotation(annotation.value, annotation.type);
+            }
+            if (showAnnotation && !entry.summary && !entry.content?.value && entry.content?.src) {
+                fetchAnnotation(entry.content.src)
                     .then((annotation) => {
-                        if (!annotation) return;
-                        appendAnnotation(annotation);
+                        appendAnnotation(annotation, entry.content.type);
                     })
                     .catch(() => {});
             }
