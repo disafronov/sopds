@@ -5,11 +5,37 @@ import {createOpdsClient} from "./opds.js";
 
     const opds = createOpdsClient({
         fetch: (...args) => window.fetch(...args),
-        baseUrl: window.location.href,
     });
 
+    function pageNumber(href) {
+        if (!href) return 0;
+        const url = new URL(href, window.location);
+        const queryPage = Number(url.searchParams.get("page"));
+        if (queryPage > 0) return queryPage;
+        const finalSegment = url.pathname.split("/").filter(Boolean).at(-1);
+        return /^\d+$/u.test(finalSegment || "") ? Number(finalSegment) : 1;
+    }
+
+    function withPagination(detail) {
+        const linkByRel = (...relations) => detail.links.find(
+            (link) => relations.includes(link.rel),
+        );
+        const previousPage = pageNumber(linkByRel("previous", "prev")?.href);
+        const nextPage = pageNumber(linkByRel("next")?.href);
+        const page = previousPage
+            ? previousPage + 1
+            : nextPage
+                ? Math.max(1, nextPage - 1)
+                : pageNumber(linkByRel("self")?.href) || 1;
+        return {
+            ...detail,
+            page,
+            pages: pageNumber(linkByRel("last")?.href) || page,
+        };
+    }
+
     async function loadOPDS(element) {
-        const detail = await opds.fetchFeed(element.dataset.feedUrl);
+        const detail = withPagination(await opds.fetchFeed(element.dataset.feedUrl));
         const CustomEventClass = element.ownerDocument.defaultView.CustomEvent;
         element.dispatchEvent(new CustomEventClass("sopds:feed", {detail}));
     }
@@ -144,6 +170,36 @@ import {createOpdsClient} from "./opds.js";
         return (entry.links || []).find((link) => link.rel === rel);
     }
 
+    function pathParts(href) {
+        return new URL(href, window.location).pathname.split("/").filter(Boolean);
+    }
+
+    function relatedEntities(entry, kind) {
+        return (entry.links || [])
+            .filter((link) => link.rel === "related" && pathParts(link.href).at(-2) === kind)
+            .map((link) => ({
+                id: pathParts(link.href).at(-1) || "",
+                name: (link.title || "").replace(/^[^:]+:\s*/u, ""),
+            }));
+    }
+
+    function authorId(author) {
+        return author.uri ? pathParts(author.uri).at(-1) || "" : "";
+    }
+
+    function fileSize(entry) {
+        const acquisition = (entry.links || []).find(
+            (link) => link.rel.startsWith("http://opds-spec.org/acquisition"),
+        );
+        return acquisition?.length ? String(Math.floor(acquisition.length / 1000)) : "";
+    }
+
+    function catalogType(entry) {
+        return (entry.categories || []).find(
+            (category) => category.scheme === "urn:sopds:catalog-type",
+        )?.term || "";
+    }
+
     function pageUrl(element, page) {
         const url = new URL(element.dataset.pageUrl, window.location);
         if (element.dataset.mode === "catalogs" && element.dataset.catId) {
@@ -202,8 +258,6 @@ import {createOpdsClient} from "./opds.js";
         detail.entries.forEach((entry) => {
             const row = body.insertRow();
             const cell = row.insertCell();
-            const link = document.createElement("a");
-            link.className = "selector-link";
             const title = entry.title || "";
             const href = (entry.links || []).find((item) => ["subsection", "alternate"].includes(item.rel))?.href || "";
             let url;
@@ -235,12 +289,19 @@ import {createOpdsClient} from "./opds.js";
                     );
                 }
             }
-            link.href = `${url.pathname}${url.search}`;
+            const targetUrl = `${url.pathname}${url.search}`;
+            const current = new URL(targetUrl, window.location).href === window.location.href;
+            const link = document.createElement(current ? "span" : "a");
+            link.className = "selector-link";
+            if (current) {
+                link.classList.add("selector-link--current");
+                link.setAttribute("aria-current", "page");
+            }
+            else link.href = targetUrl;
             link.append(document.createTextNode(title), " ");
             const count = document.createElement("span");
             count.className = "selector-link__count";
-            const match = (entry.content?.value || "").match(/\d+/u);
-            count.textContent = (element.dataset.countLabel || "").replace("%(count)s", match ? match[0] : "");
+            count.textContent = entry.content?.value || "";
             link.append(count);
             cell.append(link);
         });
@@ -274,7 +335,7 @@ import {createOpdsClient} from "./opds.js";
             link.className = "selector-link";
             const image = document.createElement("img");
             image.className = "selector-link__icon";
-            const icon = catalog ? (catalogIcons[entry.catType] || "folder") : "text";
+            const icon = catalog ? (catalogIcons[catalogType(entry)] || "folder") : "text";
             image.src = `/static/images/${icon}.png`;
             image.alt = "";
             link.append(image);
@@ -413,19 +474,19 @@ import {createOpdsClient} from "./opds.js";
         metadata.className = "book-detail-metadata";
         appendLine(
             element.dataset.authorsLabel || "Authors",
-            (entry.authors || []).map((author) => ({text: author.name, href: searchUrl("a", author.id)})),
+            (entry.authors || []).map((author) => ({text: author.name, href: searchUrl("a", authorId(author))})),
         );
         appendLine(
             element.dataset.seriesLabel || "Series",
-            (entry.series || []).map((series) => ({text: series.name, href: searchUrl("s", series.id)})),
+            relatedEntities(entry, "s").map((series) => ({text: series.name, href: searchUrl("s", series.id)})),
         );
         appendLine(
             element.dataset.genresLabel || "Genres",
-            (entry.genres || []).map((genre) => ({text: genre.name, href: searchUrl("g", genre.id)})),
+            relatedEntities(entry, "g").map((genre) => ({text: genre.name, href: searchUrl("g", genre.id)})),
         );
-        if (entry.filesize) {
+        if (fileSize(entry)) {
             appendLine(element.dataset.fileSizeLabel || "File size", [
-                {text: `${entry.filesize} ${element.dataset.fileSizeUnit || "Kb"}`},
+                {text: `${fileSize(entry)} ${element.dataset.fileSizeUnit || "Kb"}`},
             ]);
         }
         if (entry.issued?.trim()) {
@@ -443,7 +504,7 @@ import {createOpdsClient} from "./opds.js";
             const media = content.querySelector("img, audio, video, iframe, embed, object");
             return text || media ? content : null;
         };
-        const annotation = [entry.annotation, entry.content?.value]
+        const annotation = [entry.summary, entry.content?.value]
             .map(parseAnnotation)
             .find(Boolean);
         const addAnnotation = (content) => {
@@ -519,7 +580,7 @@ import {createOpdsClient} from "./opds.js";
             title.textContent = entry.title || "";
             metadata.append(title);
             appendBookMetadata(metadata, "book-card__authors", element.dataset.authorsLabel, (entry.authors || []).map((author) => author.name));
-            appendBookMetadata(metadata, "book-card__genres", element.dataset.genresLabel, (entry.genres || []).map((genre) => genre.name));
+            appendBookMetadata(metadata, "book-card__genres", element.dataset.genresLabel, relatedEntities(entry, "g").map((genre) => genre.name));
             appendBookMetadata(metadata, "book-card__date", element.dataset.publicationDateLabel, [entry.issued?.trim()]);
             card.append(cover, metadata);
 
@@ -552,7 +613,7 @@ import {createOpdsClient} from "./opds.js";
                 annotationCell.innerHTML = annotation;
                 content.append(annotationCell);
             };
-            if (showAnnotation && entry.annotation) appendAnnotation(entry.annotation);
+            if (showAnnotation && entry.summary) appendAnnotation(entry.summary);
             if (showAnnotation && entry.content?.src) {
                 opds.fetchLinkedContent(entry.content.src)
                     .then((annotation) => {

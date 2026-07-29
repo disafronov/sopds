@@ -12,23 +12,24 @@ const feed = `<?xml version="1.0" encoding="utf-8"?>
     <content type="text/html">&lt;p&gt;Annotation &amp;amp; details&lt;/p&gt;</content>
     <link href="/opds/search/books/s/17/" rel="related" title="Series: Test series"/>
     <link href="/opds/search/books/g/31/" rel="related" title="Genre: Test genre"/>
+    <category scheme="urn:sopds:catalog-type" term="2"/>
   </entry>
 </feed>`;
 
 test("OPDS parser is independent from browser globals", () => {
-  const parsed = parseFeed(feed, {baseUrl: "https://sopds.test/web/"});
+  const parsed = parseFeed(feed);
 
-  assert.equal(parsed.page, 3);
-  assert.equal(parsed.pages, 8);
   assert.equal(parsed.entries[0].content.value, "<p>Annotation &amp; details</p>");
-  assert.deepEqual(parsed.entries[0].series, [{id: "17", name: "Test series"}]);
-  assert.deepEqual(parsed.entries[0].genres, [{id: "31", name: "Test genre"}]);
+  assert.deepEqual(parsed.entries[0].links.slice(-2), [
+    {href: "/opds/search/books/s/17/", rel: "related", type: undefined, title: "Series: Test series", length: 0},
+    {href: "/opds/search/books/g/31/", rel: "related", type: undefined, title: "Genre: Test genre", length: 0},
+  ]);
+  assert.deepEqual(parsed.entries[0].categories, [{term: "2", scheme: "urn:sopds:catalog-type", label: undefined}]);
 });
 
-test("OPDS client receives its transport and base URL explicitly", async () => {
+test("OPDS client receives its transport explicitly", async () => {
   const requests = [];
   const client = createOpdsClient({
-    baseUrl: "https://sopds.test/web/",
     fetch: async (url, options) => {
       requests.push({url, options});
       return {ok: true, text: async () => feed};
