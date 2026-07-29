@@ -731,8 +731,9 @@ test("bookshelf cards preserve downloads and delete controls outside navigation"
 
   assert.equal(window.document.querySelector("a.book-card").pathname, "/web/details/42/");
   assert.equal(window.document.querySelectorAll("a.book-card a").length, 0);
-  assert.equal(window.document.querySelector(".book-card__actions a").pathname, "/opds/download/42/0/");
+  assert.equal(window.document.querySelectorAll(".book-download-link").length, 0);
   assert.equal(window.document.querySelector(".bookshelf-delete-trigger").textContent, "Delete");
+  assert.equal(window.document.querySelector(".bookshelf-delete-trigger").parentElement.className, "book-result book-result--bookshelf");
   assert.equal(window.document.querySelectorAll(".book-card").length, 1);
 
   dom.window.close();
