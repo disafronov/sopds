@@ -351,6 +351,10 @@
   margin-bottom: 0.5rem;
 }
 
+.book-detail-annotation p:last-child {
+  margin-bottom: 0;
+}
+
 @media screen and (max-width: 39.9375em) {
   .book-detail-cover {
     max-width: 18rem;

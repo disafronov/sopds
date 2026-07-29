@@ -924,6 +924,7 @@ test("book detail treats empty DOM annotation content as absent", async () => {
     ["<p></p>", ""],
     ["&nbsp;", ""],
     ["<p>Visible annotation</p>", "Visible annotation"],
+    ["<p>Visible annotation</p><p></p>", "Visible annotation"],
   ]) {
     const bookFeed = `<?xml version="1.0" encoding="utf-8"?>
     <feed xmlns="http://www.w3.org/2005/Atom"><entry><id>book:42</id><title>Inline</title>
