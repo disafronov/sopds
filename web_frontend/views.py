@@ -222,7 +222,7 @@ def SearchSeriesView(request: HttpRequest) -> HttpResponse:
         title=_("Series"),
         opds_route="searchseries",
     )
-    return render(request, "sopds_entity_results.html", args)
+    return render(request, "sopds_results.html", args)
 
 
 @vary_on_headers("HTTP_ACCEPT_LANGUAGE")
@@ -233,7 +233,7 @@ def SearchAuthorsView(request: HttpRequest) -> HttpResponse:
         title=_("Authors"),
         opds_route="searchauthors",
     )
-    return render(request, "sopds_entity_results.html", args)
+    return render(request, "sopds_results.html", args)
 
 
 def _search_entities_context(
@@ -373,7 +373,7 @@ def BooksView(request: HttpRequest) -> HttpResponse:
         title=_("Books"),
         opds_route="books",
     )
-    return render(request, "sopds_selectbook.html", args)
+    return render(request, "sopds_selector.html", args)
 
 
 @vary_on_headers("HTTP_ACCEPT_LANGUAGE")
@@ -385,7 +385,7 @@ def AuthorsView(request: HttpRequest) -> HttpResponse:
         title=_("Authors"),
         opds_route="authors",
     )
-    return render(request, "sopds_selectauthor.html", args)
+    return render(request, "sopds_selector.html", args)
 
 
 @vary_on_headers("HTTP_ACCEPT_LANGUAGE")
@@ -397,7 +397,7 @@ def SeriesView(request: HttpRequest) -> HttpResponse:
         title=_("Series"),
         opds_route="series",
     )
-    return render(request, "sopds_selectseries.html", args)
+    return render(request, "sopds_selector.html", args)
 
 
 @vary_on_headers("HTTP_ACCEPT_LANGUAGE")
@@ -419,7 +419,7 @@ def GenresView(request: HttpRequest) -> HttpResponse:
         },
     }
 
-    return render(request, "sopds_selectgenres.html", args)
+    return render(request, "sopds_selector.html", args)
 
 
 @vary_on_headers("HTTP_ACCEPT_LANGUAGE")
