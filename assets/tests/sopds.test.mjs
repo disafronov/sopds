@@ -18,6 +18,7 @@ test("OPDS transport stays in the client module", async () => {
   assert.match(client, /export function createOpdsClient/u);
   assert.doesNotMatch(client, /\b(?:window|document)\b/u);
   assert.doesNotMatch(client, /new URL/u);
+  assert.doesNotMatch(client, /text\/html/u);
   assert.match(frontend, /from "\.\/opds\.js"/u);
   assert.match(frontend, /fetch: \(\.\.\.args\) => window\.fetch\(\.\.\.args\)/u);
   assert.doesNotMatch(frontend, /XMLParser|DOMParser/u);
@@ -624,6 +625,45 @@ test("direct book page shows structured XML annotation", async () => {
   assert.equal(window.document.body.textContent.includes("Ignored HTML description"), false);
   assert.ok(window.document.querySelector(".book-annotation"));
   dom.window.close();
+});
+
+test("book annotations respect the OPDS content type and sanitize HTML", async () => {
+  const plainFeed = `<?xml version="1.0" encoding="utf-8"?>
+  <feed xmlns="http://www.w3.org/2005/Atom"><entry><id>book:1</id><title>Plain</title>
+    <content type="text">&lt;strong&gt;Literal text&lt;/strong&gt;</content>
+  </entry></feed>`;
+  const htmlFeed = `<?xml version="1.0" encoding="utf-8"?>
+  <feed xmlns="http://www.w3.org/2005/Atom"><entry><id>book:2</id><title>HTML</title>
+    <content type="text/html"><![CDATA[<p>Safe <strong>annotation</strong></p><img src="/cover.jpg" onerror="bad()"><a href="/reference">reference</a><a href="javascript:bad()">link</a><script>bad()</script>]]></content>
+  </entry></feed>`;
+
+  for (const [feedSource, plain] of [[plainFeed, true], [htmlFeed, false]]) {
+    const dom = new JSDOM(
+      `<!doctype html><div data-opds-book-detail data-feed-url="/detail/"
+        data-annotation-label="Annotation"></div>`,
+      {runScripts: "dangerously", url: "https://sopds.test/web/details/42/"},
+    );
+    const {window} = dom;
+    window.fetch = async () => ({ok: true, text: async () => feedSource});
+
+    await loadFrontend(window);
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+
+    const annotation = window.document.querySelector(".book-detail-annotation");
+    assert.ok(annotation);
+    if (plain) {
+      assert.equal(annotation.textContent.includes("<strong>Literal text</strong>"), true);
+      assert.equal(annotation.querySelector("strong"), null);
+    } else {
+      assert.equal(annotation.querySelector("strong")?.textContent, "annotation");
+      assert.equal(annotation.querySelector("img")?.getAttribute("src"), "/cover.jpg");
+      assert.equal(annotation.querySelector("img")?.hasAttribute("onerror"), false);
+      assert.equal(annotation.querySelector('a[href="/reference"]')?.textContent, "reference");
+      assert.equal(annotation.querySelector('a[href^="javascript:"]'), null);
+      assert.equal(annotation.querySelector("script"), null);
+    }
+    dom.window.close();
+  }
 });
 
 test("footer book card hides structured XML annotation", async () => {

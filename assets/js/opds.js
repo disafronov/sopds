@@ -76,22 +76,17 @@ export function createOpdsClient({fetch: request}) {
         throw new TypeError("createOpdsClient requires a fetch implementation");
     }
 
-    async function fetchResource(url, accept) {
+    async function fetchFeed(url) {
         const response = await request(url, {
             cache: "no-store",
             credentials: "same-origin",
-            headers: {Accept: accept},
+            headers: {Accept: "application/atom+xml"},
         });
         if (!response.ok) throw new Error(`OPDS request failed: ${response.status}`);
-        return response.text();
+        return parseFeed(await response.text());
     }
 
     return {
-        async fetchFeed(url) {
-            return parseFeed(await fetchResource(url, "application/atom+xml"));
-        },
-        async fetchLinkedContent(url) {
-            return fetchResource(url, "text/html");
-        },
+        fetchFeed,
     };
 }
