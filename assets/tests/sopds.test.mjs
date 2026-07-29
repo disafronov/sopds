@@ -393,7 +393,7 @@ test("genre adapter uses OPDS links and parent metadata", async () => {
   dom.window.close();
 });
 
-test("entity adapter preserves result links and numeric pagination", async () => {
+test("entity adapter follows OPDS pagination links", async () => {
   const entityFeed = `<?xml version="1.0" encoding="utf-8"?>
   <feed xmlns="http://www.w3.org/2005/Atom" xmlns:sopds="urn:sopds:meta">
     <id>urn:test:feed</id>
@@ -412,6 +412,11 @@ test("entity adapter preserves result links and numeric pagination", async () =>
   </feed>`;
   const dom = new JSDOM(
     `<!doctype html>
+      <div data-opds-pagination
+           data-first-label="First"
+           data-previous-label="Previous"
+           data-next-label="Next"
+           data-last-label="Last"></div>
       <table
         data-opds-selector
         data-feed-url="/opds/search/authors/m/Test/2/"
@@ -425,8 +430,10 @@ test("entity adapter preserves result links and numeric pagination", async () =>
         data-half-pages="3"
       ><tbody></tbody></table>
       <div data-opds-pagination
-           data-previous-label="Previous page"
-           data-next-label="Next page"></div>
+           data-first-label="First"
+           data-previous-label="Previous"
+           data-next-label="Next"
+           data-last-label="Last"></div>
       <p data-opds-error hidden></p>`,
     {
       runScripts: "dangerously",
@@ -451,22 +458,54 @@ test("entity adapter preserves result links and numeric pagination", async () =>
     "Books count: 7",
   );
 
-  const pagination = window.document.querySelector(".pagination");
+  const pagination = window.document.querySelector(".opds-pagination");
+  assert.equal(window.document.querySelectorAll(".opds-pagination").length, 2);
   assert.equal(pagination.querySelector(".current").textContent, "2");
-  assert.equal(
-    pagination.querySelector(".pagination-previous a").search,
-    "?searchtype=m&searchterms=Test&page=1",
-  );
+  assert.equal(pagination.querySelector(".pagination-first a").search, "?searchtype=m&searchterms=Test&page=1");
+  assert.equal(pagination.querySelector(".pagination-first a").dataset.page, "1");
+  assert.equal(pagination.querySelector(".pagination-first a").textContent, "1");
+  assert.equal(pagination.querySelector(".pagination-first a").getAttribute("aria-label"), "First");
+  assert.equal(pagination.querySelector(".pagination-previous"), null);
   assert.equal(
     pagination.querySelector(".pagination-next a").search,
     "?searchtype=m&searchterms=Test&page=3",
   );
-  assert.deepEqual(
-    [...pagination.querySelectorAll("li")].slice(1, -1).map(
-      (item) => item.textContent,
-    ),
-    ["1", "2", "3", "4", "5"],
+  assert.equal(pagination.querySelector(".pagination-next a").dataset.page, "3");
+  assert.equal(pagination.querySelector(".pagination-next a").textContent, "3");
+  assert.equal(pagination.querySelector(".pagination-last a").search, "?searchtype=m&searchterms=Test&page=5");
+
+  dom.window.close();
+});
+
+test("single-page OPDS feeds do not show pagination links", async () => {
+  const dom = new JSDOM(
+    `<!doctype html>
+      <div data-opds-pagination
+           data-first-label="First"
+           data-previous-label="Previous"
+           data-next-label="Next"
+           data-last-label="Last"></div>
+      <table data-opds-selector data-feed-url="/opds/search/books/u/0/">
+        <tbody></tbody>
+      </table>`,
+    {runScripts: "dangerously", url: "https://sopds.test/web/search/books/?searchtype=u"},
   );
+  const {window} = dom;
+  window.fetch = async () => ({
+    ok: true,
+    text: async () => `<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom">
+      <link href="/opds/search/books/u/0/" rel="self"/>
+      <link href="/opds/search/books/u/0/1/" rel="first"/>
+      <link href="/opds/search/books/u/0/1/" rel="last"/>
+    </feed>`,
+  });
+
+  await loadFrontend(window);
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+
+  const pagination = window.document.querySelector("[data-opds-pagination]");
+  assert.equal(pagination.hidden, true);
+  assert.equal(pagination.children.length, 0);
 
   dom.window.close();
 });

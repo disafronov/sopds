@@ -35,6 +35,7 @@
 <a class="alert button small" data-open="ConfirmModal">{% trans "Clear bookshelf" %}</a>
 {% endif %}
 
+{% include "sopds_pagination.html" %}
 <div
   class="opds-books"
   data-opds-books
@@ -58,11 +59,7 @@
 >
   <p data-opds-loading>{% trans "Loading..." %}</p>
 </div>
-<div
-  data-opds-pagination
-  data-previous-label="{% trans "Previous page" %}"
-  data-next-label="{% trans "Next page" %}"
-></div>
+{% include "sopds_pagination.html" %}
 <p class="callout alert" data-opds-error hidden>
   {% trans "Unable to load the catalog." %}
 </p>
