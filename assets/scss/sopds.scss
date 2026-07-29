@@ -94,7 +94,7 @@ button {
 
 .button {
   display: inline-flex;
-  min-height: 2.5rem;
+  min-height: 2.75rem;
   align-items: center;
   justify-content: center;
   padding: 0.65rem 1rem;
@@ -142,6 +142,7 @@ button {
 .input-group-field {
   width: 100%;
   min-width: 0;
+  height: 2.75rem;
   margin: 0;
   padding: 0.5rem;
   border: 1px solid $medium-gray;
@@ -372,7 +373,7 @@ td {
   button {
     display: block;
     width: 100%;
-    padding: 0.75rem 1rem;
+    padding: 0.625rem 1rem;
     border: 0;
     background: transparent;
     color: $sopds-menu-color;
@@ -443,8 +444,8 @@ td {
 
 .menu-icon {
   position: relative;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 2.75rem;
+  height: 2.75rem;
   margin-right: 0.5rem;
   border: 1px solid $sopds-bg-color;
   background: $sopds-bg-color;
@@ -523,7 +524,7 @@ td {
 }
 
 .selector-link__icon {
-  width: 32px;
+  width: 2rem;
   margin-right: 0.5rem;
   vertical-align: middle;
 }
@@ -537,7 +538,7 @@ td {
   margin-top: 1rem;
   padding: 0.625rem;
   border: 1px solid #cacaca;
-  border-radius: 4px;
+  border-radius: 0.25rem;
   background: $white;
   color: $body-font-color;
   text-decoration: none;
@@ -557,7 +558,7 @@ td {
   width: 5rem;
   height: 8rem;
   overflow: hidden;
-  border-radius: 3px;
+  border-radius: 0.1875rem;
   background: $light-gray;
 }
 
@@ -651,7 +652,7 @@ td {
 }
 
 .book-detail {
-  border-radius: 4px;
+  border-radius: 0.25rem;
   overflow-wrap: anywhere;
 }
 
@@ -681,7 +682,7 @@ td {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  border-radius: 4px;
+  border-radius: 0.25rem;
 }
 
 .book-detail-summary h1 {
@@ -732,7 +733,7 @@ td {
   #main_menu {
     position: absolute;
     z-index: 10;
-    top: 3.5rem;
+    top: 3.75rem;
     right: 0.5rem;
     left: 0.5rem;
     width: auto;
@@ -752,7 +753,7 @@ td {
   }
 
   .book-detail-downloads .button {
-    min-height: 44px;
+    min-height: 2.75rem;
     flex: 1 1 auto;
   }
 
@@ -762,33 +763,33 @@ td {
   }
 
   .top-bar-title .menu-icon {
-    width: 42px;
-    height: 42px;
+    width: 2.75rem;
+    height: 2.75rem;
     margin-right: 0;
   }
 
   .top-bar-title .menu-icon::after {
-    top: 26px;
-    left: 8px;
-    width: 24px;
+    top: 1.6875rem;
+    left: 0.5rem;
+    width: 1.5rem;
   }
 
   .top-bar-title .menu-icon::before {
-    top: 10px;
-    left: 8px;
-    width: 24px;
-    box-shadow: 0 8px $white;
+    top: 0.6875rem;
+    left: 0.5rem;
+    width: 1.5rem;
+    box-shadow: 0 0.5rem $white;
   }
 
   #main_menu .sopdsmenu a,
   .top-bar-right .menu a {
     display: flex;
-    min-height: 44px;
+    min-height: 2.75rem;
     align-items: center;
   }
 
   .clickable-rows tbody td {
-    height: 56px;
+    height: 3.5rem;
   }
 
   .breadcrumbs {
@@ -799,22 +800,22 @@ td {
 
   .breadcrumbs li {
     display: flex;
-    min-height: 44px;
+    min-height: 2.75rem;
     align-items: center;
     font-size: 0.875rem;
   }
 
   .breadcrumbs a {
     display: inline-flex;
-    min-height: 44px;
+    min-height: 2.75rem;
     align-items: center;
   }
 
   .pagination a,
   .pagination .current {
     display: inline-flex;
-    min-width: 44px;
-    min-height: 44px;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
     align-items: center;
     justify-content: center;
   }
