@@ -471,6 +471,95 @@ test("entity adapter preserves result links and numeric pagination", async () =>
   dom.window.close();
 });
 
+test("series adapter follows the OPDS subsection link instead of its entry id", async () => {
+  const dom = new JSDOM(
+    `<!doctype html><table
+      data-opds-selector data-feed-url="/opds/search/series/m/Test/"
+      data-mode="entity" data-entity="series" data-search-url="/web/search/books/"
+    ><tbody></tbody></table>`,
+    {runScripts: "dangerously", url: "https://sopds.test/web/search/series/?searchterms=Test"},
+  );
+  const {window} = dom;
+  window.fetch = async () => ({
+    ok: true,
+    text: async () => `<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom"><entry>
+      <id>a:1263</id><title>Series</title>
+      <link href="/opds/search/books/s/1263/" rel="subsection"/>
+    </entry></feed>`,
+  });
+
+  await loadFrontend(window);
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+
+  assert.equal(
+    window.document.querySelector(".selector-link").search,
+    "?searchtype=s&searchterms=1263",
+  );
+  dom.window.close();
+});
+
+test("author-series OPDS links keep both identifiers", async () => {
+  const dom = new JSDOM(
+    `<!doctype html><table
+      data-opds-selector data-feed-url="/opds/search/series/a/7/"
+      data-mode="entity" data-entity="series" data-search-url="/web/search/books/"
+    ><tbody></tbody></table>`,
+    {runScripts: "dangerously", url: "https://sopds.test/web/search/series/?searchterms=7"},
+  );
+  const {window} = dom;
+  window.fetch = async () => ({
+    ok: true,
+    text: async () => `<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom"><entry>
+      <id>a:9</id><title>Series</title>
+      <link href="/opds/search/books/as/7/9/" rel="subsection"/>
+    </entry></feed>`,
+  });
+
+  await loadFrontend(window);
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+
+  assert.equal(
+    window.document.querySelector(".selector-link").search,
+    "?searchtype=as&searchterms=7&searchterms0=9",
+  );
+  dom.window.close();
+});
+
+test("entity searches preserve digits, punctuation, and trailing spaces from OPDS links", async () => {
+  const dom = new JSDOM(
+    `<!doctype html><table
+      data-opds-selector data-feed-url="/opds/search/authors/b/%23%20/"
+      data-mode="entity" data-entity="author" data-search-url="/web/search/books/"
+    ><tbody></tbody></table>`,
+    {runScripts: "dangerously", url: "https://sopds.test/web/search/authors/"},
+  );
+  const {window} = dom;
+  window.fetch = async () => ({
+    ok: true,
+    text: async () => `<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom">
+      <entry><title># </title><link href="/opds/search/authors/b/%23%20/" rel="subsection"/></entry>
+      <entry><title>2024</title><link href="/opds/search/authors/e/2024/" rel="subsection"/></entry>
+      <entry><title>C++</title><link href="/opds/search/series/b/C%2B%2B/" rel="subsection"/></entry>
+      <entry><title>«</title><link href="/opds/search/series/b/%C2%AB/" rel="subsection"/></entry>
+    </feed>`,
+  });
+
+  await loadFrontend(window);
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+
+  const links = [...window.document.querySelectorAll(".selector-link")].map((link) => new URL(link.href));
+  assert.deepEqual(
+    links.map(({pathname, searchParams}) => [pathname, searchParams.get("searchtype"), searchParams.get("searchterms")]),
+    [
+      ["/web/search/authors/", "b", "# "],
+      ["/web/search/authors/", "e", "2024"],
+      ["/web/search/series/", "b", "C++"],
+      ["/web/search/series/", "b", "«"],
+    ],
+  );
+  dom.window.close();
+});
+
 test("book results are concise single-link navigation cards", async () => {
   const bookFeed = `<?xml version="1.0" encoding="utf-8"?>
   <feed xmlns="http://www.w3.org/2005/Atom" xmlns:sopds="urn:sopds:meta">

@@ -222,20 +222,66 @@ import {createOpdsClient} from "./opds.js";
     }
 
     function pathParts(href) {
-        return new URL(href, window.location).pathname.split("/").filter(Boolean);
+        return new URL(href, window.location).pathname
+            .split("/")
+            .filter(Boolean)
+            .map((part) => decodeURIComponent(part));
+    }
+
+    function webSearchUrl(searchtype, searchterms, searchterms0) {
+        const url = new URL("/web/search/books/", window.location);
+        url.searchParams.set("searchtype", searchtype);
+        url.searchParams.set("searchterms", searchterms);
+        if (searchterms0 !== undefined) url.searchParams.set("searchterms0", searchterms0);
+        return `${url.pathname}${url.search}`;
+    }
+
+    function webHref(link, element) {
+        if (!link?.href) return "";
+        const parts = pathParts(link.href);
+        if (parts[0] !== "opds") return link.href;
+        const [, resource, ...rest] = parts;
+        if (["books", "authors", "series"].includes(resource)) {
+            const selectorUrl = element?.dataset.selectorUrl || `/web/${resource.slice(0, -1)}/`;
+            const url = new URL(selectorUrl, window.location);
+            if (rest[0] !== undefined) url.searchParams.set("lang", rest[0]);
+            if (rest.length > 1) url.searchParams.set("chars", rest.slice(1).join("/"));
+            return `${url.pathname}${url.search}`;
+        }
+        if (resource === "genres") {
+            const url = new URL(element?.dataset.selectorUrl || "/web/genre/", window.location);
+            if (rest[0] !== undefined) url.searchParams.set("section", rest[0]);
+            return `${url.pathname}${url.search}`;
+        }
+        if (resource === "catalogs") {
+            const url = new URL(element?.dataset.pageUrl || "/web/catalogs/", window.location);
+            if (rest[0] !== undefined) url.searchParams.set("cat", rest[0]);
+            return `${url.pathname}${url.search}`;
+        }
+        if (resource !== "search") return link.href;
+        const [entity, searchtype, ...terms] = rest;
+        if (entity === "books") {
+            if (searchtype === "as" && terms.length === 1) return webSearchUrl("a", terms[0]);
+            return webSearchUrl(searchtype, terms[0] || "", terms[1]);
+        }
+        const searchUrl = entity === "authors"
+            ? "/web/search/authors/"
+            : entity === "series"
+                ? "/web/search/series/"
+                : element?.dataset.searchUrl || "/web/search/books/";
+        const url = new URL(searchUrl, window.location);
+        url.searchParams.set("searchtype", searchtype || "m");
+        url.searchParams.set("searchterms", terms[0] || "");
+        return `${url.pathname}${url.search}`;
     }
 
     function relatedEntities(entry, kind) {
         return (entry.links || [])
             .filter((link) => link.rel === "related" && pathParts(link.href).at(-2) === kind)
             .map((link) => ({
-                id: pathParts(link.href).at(-1) || "",
                 name: (link.title || "").replace(/^[^:]+:\s*/u, ""),
+                href: webHref(link),
             }));
-    }
-
-    function authorId(author) {
-        return author.uri ? pathParts(author.uri).at(-1) || "" : "";
     }
 
     function fileSize(entry) {
@@ -310,47 +356,16 @@ import {createOpdsClient} from "./opds.js";
             const row = body.insertRow();
             const cell = row.insertCell();
             const title = entry.title || "";
-            const href = (entry.links || []).find((item) => ["subsection", "alternate"].includes(item.rel))?.href || "";
-            let url;
-            if (element.dataset.mode === "genre") {
-                const pathParts = new URL(href, window.location).pathname.split("/").filter(Boolean);
-                url = new URL(pathParts[1] === "genres" ? element.dataset.selectorUrl : element.dataset.searchUrl, window.location);
-                if (pathParts[1] === "genres") url.searchParams.set("section", pathParts[2]);
-                else {
-                    url.searchParams.set("searchtype", "g");
-                    url.searchParams.set("searchterms", pathParts.at(-1));
-                }
-            } else if (element.dataset.mode === "entity") {
-                url = new URL(element.dataset.searchUrl, window.location);
-                url.searchParams.set("searchtype", element.dataset.entity === "author" ? "a" : "s");
-                url.searchParams.set("searchterms", (entry.id || "").split(":").pop());
-            } else {
-                const kindPath = `/opds/${element.dataset.feedKind}/`;
-                if (href.startsWith(kindPath)) {
-                    url = new URL(element.dataset.selectorUrl, window.location);
-                    url.searchParams.set("lang", element.dataset.langCode);
-                    url.searchParams.set("chars", title);
-                } else {
-                    url = new URL(element.dataset.searchUrl, window.location);
-                    const searchPath = new URL(href, window.location).pathname.split("/").filter(Boolean);
-                    const searchType = searchPath[3];
-                    const emptySearch = searchType === "e" && searchPath.at(-1) === "__sopds_empty__";
-                    url.searchParams.set("searchtype", ["b", "e"].includes(searchType) ? searchType : "b");
-                    url.searchParams.set(
-                        "searchterms",
-                        emptySearch ? "__sopds_empty__" : title,
-                    );
-                }
-            }
-            const targetUrl = `${url.pathname}${url.search}`;
-            const current = new URL(targetUrl, window.location).href === window.location.href;
+            const opdsNavigation = (entry.links || []).find((item) => ["subsection", "alternate"].includes(item.rel));
+            const targetUrl = webHref(opdsNavigation, element);
+            const current = targetUrl && new URL(targetUrl, window.location).href === window.location.href;
             const link = document.createElement(current ? "span" : "a");
             link.className = "selector-link";
             if (current) {
                 link.classList.add("selector-link--current");
                 link.setAttribute("aria-current", "page");
             }
-            else link.href = targetUrl;
+            else if (targetUrl) link.href = targetUrl;
             const titleNode = document.createElement("span");
             titleNode.className = "selector-link__title";
             titleNode.textContent = title;
@@ -395,14 +410,7 @@ import {createOpdsClient} from "./opds.js";
             image.src = `/static/images/${icon}.png`;
             image.alt = "";
             link.append(image);
-            const url = new URL(element.dataset.pageUrl, window.location);
-            if (catalog) url.searchParams.set("cat", catalog.href.split("/").filter(Boolean).pop());
-            else {
-                url.pathname = "/web/search/books/";
-                url.searchParams.set("searchtype", "i");
-                url.searchParams.set("searchterms", (entry.id || "").split(":").pop());
-            }
-            link.href = `${url.pathname}${url.search}`;
+            link.href = webHref(catalog, element);
             link.append(document.createTextNode(entry.title || ""));
             cell.append(link);
             row.addEventListener("click", (event) => {
@@ -414,16 +422,9 @@ import {createOpdsClient} from "./opds.js";
         renderPagination(element, detail);
     }
 
-    function searchUrl(type, id) {
-        const url = new URL("/web/search/books/", window.location);
-        url.searchParams.set("searchtype", type);
-        url.searchParams.set("searchterms", String(id).trim().replace(/\s+/gu, " "));
-        return `${url.pathname}${url.search}`;
-    }
-
     function bookUrl(entry) {
         const id = String(entry.id || "").split(":").pop();
-        return id ? `/web/details/${id}/` : searchUrl("m", entry.title || "");
+        return id ? `/web/details/${id}/` : "";
     }
 
     function appendBookMetadata(container, className, label, values) {
@@ -530,15 +531,15 @@ import {createOpdsClient} from "./opds.js";
         metadata.className = "book-detail-metadata";
         appendLine(
             element.dataset.authorsLabel || "Authors",
-            (entry.authors || []).map((author) => ({text: author.name, href: searchUrl("a", authorId(author))})),
+            (entry.authors || []).map((author) => ({text: author.name, href: webHref({href: author.uri})})),
         );
         appendLine(
             element.dataset.seriesLabel || "Series",
-            relatedEntities(entry, "s").map((series) => ({text: series.name, href: searchUrl("s", series.id)})),
+            relatedEntities(entry, "s").map((series) => ({text: series.name, href: series.href})),
         );
         appendLine(
             element.dataset.genresLabel || "Genres",
-            relatedEntities(entry, "g").map((genre) => ({text: genre.name, href: searchUrl("g", genre.id)})),
+            relatedEntities(entry, "g").map((genre) => ({text: genre.name, href: genre.href})),
         );
         if (fileSize(entry)) {
             appendLine(element.dataset.fileSizeLabel || "File size", [

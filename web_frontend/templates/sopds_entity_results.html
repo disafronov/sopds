@@ -1,4 +1,8 @@
+{% extends "sopds_main.html" %}
 {% load i18n static %}
+
+{% block body %}
+{% if opds_adapter %}
 <table
   class="selector-table clickable-rows"
   data-opds-selector
@@ -20,3 +24,5 @@
 <p class="callout alert" data-opds-error hidden>
   {% trans "Unable to load the catalog." %}
 </p>
+{% endif %}
+{% endblock %}
