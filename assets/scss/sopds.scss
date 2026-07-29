@@ -434,7 +434,7 @@ td {
   z-index: 10;
   display: block;
   min-width: 12rem;
-  top: 3rem;
+  top: 100%;
   left: -1px;
 }
 
@@ -1020,6 +1020,33 @@ td {
   #main_menu > .sopdsmenu > li + li {
     border-top: 0;
     border-left: 1px solid $sopds-menu-bg-active-color;
+  }
+
+  #main_menu > .sopdsmenu > li > a,
+  #main_menu > .sopdsmenu > li > button {
+    display: flex;
+    min-height: 2.75rem;
+    align-items: center;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  #main_menu .sopdsmenu__submenu a {
+    display: flex;
+    min-height: 2.75rem;
+    align-items: center;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .search-dropdown {
+    margin-top: 0;
+  }
+
+  .search-dropdown__option {
+    min-height: 2.75rem;
+    padding-top: 0;
+    padding-bottom: 0;
   }
 
   .sopdsmenu__submenu-toggle::after {
