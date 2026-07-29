@@ -503,6 +503,60 @@ td {
   padding: 0;
 }
 
+.selector-table [data-opds-loading] td {
+  height: 50vh;
+  padding: 1rem;
+  border: 0;
+  color: transparent;
+  font-size: 0;
+  text-align: center;
+}
+
+.opds-books > [data-opds-loading] {
+  display: grid;
+  min-height: 50vh;
+  margin: 1rem;
+  padding: 0;
+  color: transparent;
+  font-size: 0;
+  place-items: center;
+  text-align: center;
+}
+
+.selector-table [data-opds-loading] td::before,
+.opds-books > [data-opds-loading]::before,
+.book-detail-loading::before {
+  position: fixed;
+  z-index: 100;
+  top: 50%;
+  left: 50%;
+  display: block;
+  width: 8rem;
+  height: 8rem;
+  margin: -4rem;
+  border: 0.6rem solid $light-gray;
+  border-top-color: $sopds-bg-color;
+  border-radius: 50%;
+  animation: sopds-loading-spin 0.8s linear infinite;
+  content: "";
+}
+
+.selector-table [data-opds-loading] td::after,
+.opds-books > [data-opds-loading]::after,
+.book-detail-loading::after {
+  position: fixed;
+  z-index: 99;
+  inset: 0;
+  background: rgba($white, 0.8);
+  content: "";
+}
+
+@keyframes sopds-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .selector-link {
   display: block;
   padding: 0.5rem 0.625rem 0.625rem;
@@ -654,6 +708,18 @@ td {
 .book-detail {
   border-radius: 0.25rem;
   overflow-wrap: anywhere;
+}
+
+.book-detail-loading {
+  display: grid;
+  min-height: 50vh;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  place-items: center;
+  color: transparent;
+  font-size: 0;
+  text-align: center;
 }
 
 .book-detail-row {
