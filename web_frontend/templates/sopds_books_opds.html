@@ -2,7 +2,7 @@
 {% load i18n static %}
 
 {% block body %}
-<div id="DeleteBookModal" class="reveal tiny text-center" data-reveal data-cover-url="{% url "opds:covertmpl" %}">
+<div id="DeleteBookModal" class="reveal small text-center" data-reveal data-cover-url="{% url "opds:covertmpl" %}">
   <h5 id="DeleteBookModalTitle">{% trans "Confirm the deletion of the book to your bookshelf." %}</h5>
   <table>
     <tr>
@@ -18,10 +18,9 @@
       &nbsp;&nbsp;&nbsp;<a class="secondary button" data-close>{% trans "Cancel" %}</a>
     </p>
   </form>
-  <button class="close-button" data-close aria-label="Close modal" type="button"><span aria-hidden="true">&times;</span></button>
 </div>
 {% if isbookshelf %}
-<div id="ConfirmModal" class="reveal tiny text-center" data-reveal>
+<div id="ConfirmModal" class="reveal small text-center" data-reveal>
   <h5 id="ConfirmModalTitle">{% trans "Confirm to clear your bookshelf." %}</h5>
   <form method="post" action="{% url "web:bsclear" %}">
     {% csrf_token %}
@@ -30,7 +29,6 @@
       &nbsp;&nbsp;&nbsp;<a class="secondary button" data-close>{% trans "Cancel" %}</a>
     </p>
   </form>
-  <button class="close-button" data-close aria-label="Close modal" type="button"><span aria-hidden="true">&times;</span></button>
 </div>
 <a class="alert button bookshelf-clear-trigger" data-open="ConfirmModal">{% trans "Clear bookshelf" %}</a>
 {% endif %}
