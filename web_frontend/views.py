@@ -1,4 +1,3 @@
-from random import randint
 from typing import Any, cast
 
 from constance import config
@@ -13,12 +12,10 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 from django.views.decorators.vary import vary_on_headers
 
-from opds_catalog import models, settings
+from opds_catalog import settings
 from opds_catalog.feeds import EMPTY_SEARCH_TERM
 from opds_catalog.models import (
     Author,
-    Book,
-    Counter,
     Genre,
     Series,
     bookshelf,
@@ -39,48 +36,7 @@ def sopds_processor(request: HttpRequest) -> dict[str, Any]:
     if config.SOPDS_ALPHABET_MENU:
         args["lang_menu"] = lang_menu
 
-    if config.SOPDS_AUTH:
-        user = request.user
-        if user.is_authenticated:
-            latest_bookshelf_entry = (
-                bookshelf.objects.filter(user=user)
-                .select_related("book")
-                .prefetch_related(
-                    "book__authors", "book__genres", "book__bseries_set__ser"
-                )
-                .order_by("-readtime")
-                .first()
-            )
-            args["last_bookshelf_book"] = (
-                _footer_book_data(latest_bookshelf_entry.book)
-                if latest_bookshelf_entry
-                else None
-            )
-
-    books_count = Counter.objects.get_counter(models.counter_allbooks)
-    if books_count:
-        random_id = randint(1, books_count)
-        try:
-            random_book = Book.objects.prefetch_related(
-                "authors", "genres", "bseries_set__ser"
-            ).all()[random_id - 1 : random_id][0]
-        except Book.DoesNotExist:
-            random_book = None
-    else:
-        random_book = None
-
-    args["random_book"] = _footer_book_data(random_book) if random_book else None
-    stats: dict[str, Any] = {d["name"]: d["value"] for d in Counter.obj.all().values()}
-    stats["lastscan_date"] = Counter.objects.get_lastscan()
-    args["stats"] = stats
-
     return args
-
-
-def _footer_book_data(book: Book) -> dict[str, Any]:
-    """Pass only the book ID; the browser loads metadata through OPDS."""
-
-    return {"id": book.id}
 
 
 # Create your views here.

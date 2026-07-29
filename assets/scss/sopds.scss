@@ -299,41 +299,6 @@
   color: $sopds-menu-color;
 }
 
-.footer-book-card,
-.footer-book-card tbody {
-  background: transparent;
-}
-
-.footer-stats {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem 1.5rem;
-  font-size: 90%;
-}
-
-.footer-stats__grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem 1.5rem;
-}
-
-.footer-stats__date {
-  margin: 0;
-}
-
-.footer-stats-row {
-  clear: both;
-  padding-top: 0.75rem;
-  border-top: 1px solid #cacaca;
-}
-
-.footer-book-column--random {
-  padding-top: 0.75rem;
-  border-top: 1px solid #cacaca;
-}
-
 .book-detail {
   border-radius: 4px;
   overflow-wrap: anywhere;
@@ -448,14 +413,6 @@
     min-height: 44px;
     align-items: center;
     justify-content: center;
-  }
-}
-
-@media screen and (min-width: 64em) {
-  .footer-book-column--random {
-    padding-top: 0;
-    border-top: 0;
-    border-left: 1px solid #cacaca;
   }
 }
 
