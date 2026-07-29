@@ -17,6 +17,7 @@ test("OPDS transport stays in the client module", async () => {
 
   assert.match(client, /export function createOpdsClient/u);
   assert.doesNotMatch(client, /\b(?:window|document)\b/u);
+  assert.doesNotMatch(client, /new URL/u);
   assert.match(frontend, /from "\.\/opds\.js"/u);
   assert.match(frontend, /fetch: \(\.\.\.args\) => window\.fetch\(\.\.\.args\)/u);
   assert.doesNotMatch(frontend, /XMLParser|DOMParser/u);
@@ -102,12 +103,43 @@ test("OPDS selector preserves legacy web navigation", async () => {
   assert.equal(links[1].search, "?searchtype=b&searchterms=AB");
   assert.equal(
     links[0].querySelector(".selector-link__count").textContent,
-    "Total: 30 books.",
+    "Found: 30 books",
   );
   assert.equal(
     links[1].querySelector(".selector-link__count").textContent,
-    "Total: 2 books.",
+    "Found: 2 books",
   );
+
+  dom.window.close();
+});
+
+test("OPDS selector marks the current subsection without a self link", async () => {
+  const dom = new JSDOM(
+    `<!doctype html>
+      <table
+        data-opds-selector
+        data-feed-url="/opds/books/1/"
+        data-feed-kind="books"
+        data-lang-code="1"
+        data-selector-url="/web/book/"
+        data-search-url="/web/search/books/"
+      ><tbody></tbody></table>`,
+    {
+      runScripts: "dangerously",
+      url: "https://sopds.test/web/book/?lang=1&chars=A",
+    },
+  );
+  const {window} = dom;
+  window.fetch = async () => ({ok: true, text: async () => feed});
+
+  await loadFrontend(window);
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+
+  const selected = window.document.querySelector(".selector-link--current");
+  assert.equal(selected.tagName, "SPAN");
+  assert.equal(selected.getAttribute("aria-current"), "page");
+  assert.equal(selected.hasAttribute("href"), false);
+  assert.equal(window.document.querySelectorAll(".selector-link[href]").length, 1);
 
   dom.window.close();
 });
@@ -153,7 +185,7 @@ test("OPDS selectors preserve zero as a digit", async () => {
     assert.equal(link.search, "?searchtype=b&searchterms=0");
     assert.equal(
       link.querySelector(".selector-link__count").textContent,
-      "Total: 36 items.",
+      "Found: 36 items",
     );
 
     dom.window.close();
@@ -195,7 +227,7 @@ test("OPDS selector links empty-name placeholders to exact empty search", async 
   await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
 
   const link = window.document.querySelector(".selector-link");
-  assert.equal(link.textContent, "Untitled Total: 6 books.");
+  assert.equal(link.textContent, "Untitled Found: 6 books");
   assert.equal(link.pathname, "/web/search/books/");
   assert.equal(
     link.search,
@@ -376,7 +408,7 @@ test("entity adapter preserves result links and numeric pagination", async () =>
   assert.equal(result.firstChild.textContent, "Test Author");
   assert.equal(
     result.querySelector(".selector-link__count").textContent,
-    "Total: 7 books.",
+    "Books count: 7",
   );
 
   const pagination = window.document.querySelector(".pagination");
