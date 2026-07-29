@@ -829,6 +829,11 @@ td {
   white-space: nowrap;
 }
 
+.selector-table + [data-opds-pagination],
+.opds-books + [data-opds-pagination] {
+  margin-top: 1rem;
+}
+
 [data-opds-pagination] .opds-pagination {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
