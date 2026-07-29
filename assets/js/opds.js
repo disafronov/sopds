@@ -3,6 +3,7 @@ import { XMLParser } from "fast-xml-parser";
 const parser = new XMLParser({
     ignoreAttributes: false,
     stopNodes: ["feed.entry.content"],
+    trimValues: false,
 });
 const contentParser = new XMLParser({
     ignoreAttributes: false,
