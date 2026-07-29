@@ -28,7 +28,7 @@ test("native controls preserve the web client interactions", async () => {
           <input id="author" name="searchtype" type="radio" data-search-url="/web/search/authors/" data-placeholder="Search by author">
           <button id="search-submit" type="submit">Search</button>
           <button class="search-dropdown-toggle" type="button" aria-controls="search-dropdown" aria-expanded="false">Toggle</button>
-          <div id="search-dropdown" hidden></div>
+        <div id="search-dropdown"></div>
         </form>
         <button class="menu-icon" type="button" aria-controls="main_menu" aria-expanded="false">Menu</button>
         <nav id="main_menu"><ul class="sopdsmenu">
@@ -80,22 +80,31 @@ test("native controls preserve the web client interactions", async () => {
 
   const dropdownToggle = window.document.querySelector(".search-dropdown-toggle");
   dropdownToggle.click();
-  assert.equal(window.document.querySelector("#search-dropdown").hidden, false);
+  assert.equal(window.document.querySelector("#search-dropdown").classList.contains("is-open"), true);
   assert.equal(dropdownToggle.getAttribute("aria-expanded"), "true");
 
   window.document.querySelector(".menu-icon").click();
   assert.equal(window.document.querySelector("#main_menu").classList.contains("is-open"), true);
-  assert.equal(window.document.querySelector("#search-dropdown").hidden, true);
+  assert.equal(window.document.querySelector("#search-dropdown").classList.contains("is-open"), false);
 
   dropdownToggle.click();
-  assert.equal(window.document.querySelector("#search-dropdown").hidden, false);
+  assert.equal(window.document.querySelector("#search-dropdown").classList.contains("is-open"), true);
   assert.equal(window.document.querySelector("#main_menu").classList.contains("is-open"), false);
 
   window.document.body.click();
-  assert.equal(window.document.querySelector("#search-dropdown").hidden, true);
+  assert.equal(window.document.querySelector("#search-dropdown").classList.contains("is-open"), false);
   assert.equal(window.document.querySelector("#main_menu").classList.contains("is-open"), false);
 
   const [booksToggle, authorsToggle] = window.document.querySelectorAll(".sopdsmenu__submenu-toggle");
+  dropdownToggle.click();
+  booksToggle.click();
+  assert.equal(window.document.querySelector("#search-dropdown").classList.contains("is-open"), false);
+  assert.equal(booksToggle.closest("li").classList.contains("is-open"), true);
+  dropdownToggle.click();
+  assert.equal(window.document.querySelector("#search-dropdown").classList.contains("is-open"), true);
+  assert.equal(booksToggle.closest("li").classList.contains("is-open"), false);
+
+  window.document.body.click();
   booksToggle.click();
   assert.equal(booksToggle.closest("li").classList.contains("is-open"), true);
   authorsToggle.click();

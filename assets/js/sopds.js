@@ -252,11 +252,15 @@ import {createOpdsClient} from "./opds.js";
         modal.showModal();
     });
 
+    document.querySelector(".search-dropdown-toggle")?.addEventListener("pointerenter", function() {
+        if (window.matchMedia("(min-width: 40em)").matches) closeMainMenu();
+    });
+
     function closeSearchDropdown() {
         const dropdown = document.getElementById("search-dropdown");
         const toggle = document.querySelector(".search-dropdown-toggle");
         if (!dropdown || !toggle) return;
-        dropdown.hidden = true;
+        dropdown.classList.remove("is-open");
         toggle.setAttribute("aria-expanded", "false");
     }
 
@@ -266,14 +270,18 @@ import {createOpdsClient} from "./opds.js";
         if (!menu || !toggle) return;
         menu.classList.remove("is-open");
         toggle.setAttribute("aria-expanded", "false");
+        menu.querySelectorAll(".sopdsmenu__submenu-toggle").forEach((submenuToggle) => {
+            submenuToggle.closest("li")?.classList.remove("is-open");
+            submenuToggle.setAttribute("aria-expanded", "false");
+        });
     }
 
     function toggleSearchDropdown(toggle) {
         const dropdown = document.getElementById(toggle.getAttribute("aria-controls"));
         if (!dropdown) return;
-        if (dropdown.hidden) closeMainMenu();
-        dropdown.hidden = !dropdown.hidden;
-        toggle.setAttribute("aria-expanded", String(!dropdown.hidden));
+        const isOpen = dropdown.classList.toggle("is-open");
+        if (isOpen) closeMainMenu();
+        toggle.setAttribute("aria-expanded", String(isOpen));
     }
 
     document.addEventListener("keydown", function(event) {
