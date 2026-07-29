@@ -874,6 +874,14 @@ test("book detail renders semantic metadata and acquisition links", async () => 
   );
   assert.equal(window.document.querySelectorAll(".book-detail-downloads a.button.small").length, 2);
   assert.equal(window.document.querySelectorAll(".book-detail-metadata dt").length, 4);
+  assert.deepEqual(
+    [...window.document.querySelectorAll(".book-detail-summary > *")].map((node) => node.className || node.localName),
+    ["h1", "book-detail-metadata", "book-detail-downloads"],
+  );
+  assert.deepEqual(
+    [...window.document.querySelectorAll(".book-detail-metadata dt")].map((term) => term.textContent),
+    ["Authors", "Series", "Genres", "File size"],
+  );
   assert.equal(window.document.body.textContent.includes("0 KB"), false);
   assert.equal(window.document.body.textContent.includes("Date"), false);
   assert.equal(window.document.querySelector(".book-detail-annotation"), null);

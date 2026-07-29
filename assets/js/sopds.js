@@ -509,23 +509,7 @@ import {createOpdsClient} from "./opds.js";
         title.textContent = entry.title || "";
         metaCol.append(title);
 
-        const downloads = (entry.links || []).filter((link) => link.rel === "http://opds-spec.org/acquisition/open-access");
-        if (downloads.length) {
-            const downloadsDiv = document.createElement("div");
-            downloadsDiv.className = "book-detail-downloads";
-            downloadsDiv.setAttribute("role", "group");
-            downloadsDiv.setAttribute("aria-label", element.dataset.downloadLabel || "Download");
-            downloads.forEach((link) => {
-                const anchor = document.createElement("a");
-                anchor.href = link.href;
-                anchor.className = "button small book-download-link";
-                anchor.textContent = formatLabel(link);
-                downloadsDiv.append(anchor);
-            });
-            metaCol.append(downloadsDiv);
-        }
-
-        function appendLine(labelText, items) {
+        function appendLine(metadata, labelText, items) {
             if (!items.length) return;
             const term = document.createElement("dt");
             term.textContent = labelText;
@@ -547,26 +531,45 @@ import {createOpdsClient} from "./opds.js";
         const metadata = document.createElement("dl");
         metadata.className = "book-detail-metadata";
         appendLine(
+            metadata,
             element.dataset.authorsLabel || "Authors",
             (entry.authors || []).map((author) => ({text: author.name, href: webHref({href: author.uri})})),
         );
         appendLine(
+            metadata,
             element.dataset.seriesLabel || "Series",
             relatedEntities(entry, "s").map((series) => ({text: series.name, href: series.href})),
         );
         appendLine(
+            metadata,
             element.dataset.genresLabel || "Genres",
             relatedEntities(entry, "g").map((genre) => ({text: genre.name, href: genre.href})),
         );
+        if (entry.issued?.trim()) {
+            appendLine(metadata, element.dataset.publicationDateLabel || "Date", [{text: entry.issued}]);
+        }
         if (fileSize(entry)) {
-            appendLine(element.dataset.fileSizeLabel || "File size", [
+            appendLine(metadata, element.dataset.fileSizeLabel || "File size", [
                 {text: `${fileSize(entry)} ${element.dataset.fileSizeUnit || "Kb"}`},
             ]);
         }
-        if (entry.issued?.trim()) {
-            appendLine(element.dataset.publicationDateLabel || "Date", [{text: entry.issued}]);
-        }
         metaCol.append(metadata);
+
+        const downloads = (entry.links || []).filter((link) => link.rel === "http://opds-spec.org/acquisition/open-access");
+        if (downloads.length) {
+            const downloadsDiv = document.createElement("div");
+            downloadsDiv.className = "book-detail-downloads";
+            downloadsDiv.setAttribute("role", "group");
+            downloadsDiv.setAttribute("aria-label", element.dataset.downloadLabel || "Download");
+            downloads.forEach((link) => {
+                const anchor = document.createElement("a");
+                anchor.href = link.href;
+                anchor.className = "button small book-download-link";
+                anchor.textContent = formatLabel(link);
+                downloadsDiv.append(anchor);
+            });
+            metaCol.append(downloadsDiv);
+        }
         row.append(metaCol);
         article.append(row);
 
