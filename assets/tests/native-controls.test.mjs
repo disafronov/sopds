@@ -24,8 +24,8 @@ test("native controls preserve the web client interactions", async () => {
       <html><body>
         <form id="searchform">
           <input id="main_searchbox" minlength="3" required>
-          <input id="title" name="searchtype" type="radio" data-search-url="/web/search/books/" checked>
-          <input id="author" name="searchtype" type="radio" data-search-url="/web/search/authors/">
+          <input id="title" name="searchtype" type="radio" data-search-url="/web/search/books/" data-placeholder="Search by title" checked>
+          <input id="author" name="searchtype" type="radio" data-search-url="/web/search/authors/" data-placeholder="Search by author">
           <button id="search-submit" type="submit">Search</button>
           <button class="search-dropdown-toggle" type="button" aria-controls="search-dropdown" aria-expanded="false">Toggle</button>
           <div id="search-dropdown" hidden></div>

@@ -162,7 +162,7 @@ import {createOpdsClient} from "./opds.js";
         }
 
         form.action = selected.dataset.searchUrl;
-        searchBox.placeholder = `Search by ${selected.id}`;
+        searchBox.placeholder = selected.dataset.placeholder || searchBox.placeholder;
         closeSearchDropdown();
     }
 

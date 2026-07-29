@@ -201,6 +201,7 @@ def _search_entities_context(
 ) -> dict[str, Any]:
     args: dict[str, Any] = {}
     args.update(csrf(request))
+    args["searchobject"] = entity
     if not request.GET:
         return args
 
@@ -304,6 +305,12 @@ def _selector_context(
 
     return {
         "current": current,
+        "searchobject": {
+            "book": "title",
+            "author": "author",
+            "series": "series",
+            "genre": "genre",
+        }.get(current, "title"),
         "lang_code": lang_code,
         "breadcrumbs": [title, _("Select"), lang_menu[lang_code], chars],
         "cache_id": f"{current}:{lang_code}:{chars}",
@@ -363,6 +370,7 @@ def GenresView(request: HttpRequest) -> HttpResponse:
     args: dict[str, Any] = {
         "breadcrumbs": [_("Genres"), _("Select")],
         "current": "genre",
+        "searchobject": "genre",
         "parent_id": section_id,
         "cache_id": f"genre:{section_id}",
         "cache_t": config.SOPDS_CACHE_TIME,
