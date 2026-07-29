@@ -583,6 +583,17 @@ td {
   vertical-align: middle;
 }
 
+[data-opds-catalogs] .selector-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+[data-opds-catalogs] .selector-link__icon {
+  flex: 0 0 2rem;
+  margin-right: 0;
+}
+
 .book-list-card {
   display: flex;
   width: 100%;
