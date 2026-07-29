@@ -419,6 +419,11 @@
 @media screen and (min-width: 40em) {
   #main_menu > .sopdsmenu {
     flex-direction: row;
+    justify-content: center;
+  }
+
+  #main_menu > .sopdsmenu > li:first-child {
+    border-left: 1px solid $sopds-menu-bg-active-color;
   }
 
   #main_menu > .sopdsmenu > li + li {
