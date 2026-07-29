@@ -4,11 +4,13 @@ const parser = new XMLParser({
     ignoreAttributes: false,
     stopNodes: ["feed.entry.content"],
     trimValues: false,
+    parseTagValue: false,
 });
 const contentParser = new XMLParser({
     ignoreAttributes: false,
     htmlEntities: true,
     trimValues: false,
+    parseTagValue: false,
 });
 
 function list(value) {

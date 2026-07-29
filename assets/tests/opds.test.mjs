@@ -27,6 +27,15 @@ test("OPDS parser is independent from browser globals", () => {
   assert.deepEqual(parsed.entries[0].categories, [{term: "2", scheme: "urn:sopds:catalog-type", label: undefined}]);
 });
 
+test("OPDS parser preserves leading zeroes in text values", () => {
+  const parsed = parseFeed(`<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom">
+    <entry><id>series:7</id><title>02</title><content type="text">007</content></entry>
+  </feed>`);
+
+  assert.equal(parsed.entries[0].title, "02");
+  assert.equal(parsed.entries[0].content.value, "007");
+});
+
 test("OPDS client receives its transport explicitly", async () => {
   const requests = [];
   const client = createOpdsClient({
