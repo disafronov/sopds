@@ -416,6 +416,59 @@
   }
 }
 
+[data-opds-pagination] {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  white-space: nowrap;
+}
+
+[data-opds-pagination] .opds-pagination {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  column-gap: 0.5rem;
+  width: 100%;
+  margin-bottom: 0;
+  font-size: 0.875rem;
+}
+
+[data-opds-pagination] .opds-pagination a,
+[data-opds-pagination] .opds-pagination .current {
+  display: inline-flex;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: $global-radius;
+}
+
+[data-opds-pagination] .opds-pagination .current {
+  padding: 0;
+  background: $sopds-bg-color;
+  color: $sopds-menu-color;
+}
+
+[data-opds-pagination] .opds-pagination__before,
+[data-opds-pagination] .opds-pagination__after {
+  display: flex;
+  gap: 0.5rem;
+}
+
+[data-opds-pagination] .opds-pagination__before {
+  justify-content: flex-end;
+}
+
+[data-opds-pagination] .opds-pagination__after {
+  justify-content: flex-start;
+}
+
+[data-opds-pagination] .pagination-previous a::before,
+[data-opds-pagination] .pagination-next a::after {
+  content: none;
+}
+
 @media screen and (min-width: 40em) {
   #main_menu > .sopdsmenu {
     flex-direction: row;

@@ -2,6 +2,7 @@
 {% load i18n static %}
 
 {% block body %}
+{% include "sopds_pagination.html" %}
 <table
   class="selector-table clickable-rows"
   data-opds-selector
@@ -20,6 +21,7 @@
     </tr>
   </tbody>
 </table>
+{% include "sopds_pagination.html" %}
 <p class="callout alert" data-opds-error hidden>
   {% trans "Unable to load the catalog." %}
 </p>
