@@ -645,27 +645,18 @@ import {createOpdsClient} from "./opds.js";
             appendBookMetadata(metadata, "book-card__date", element.dataset.publicationDateLabel, [entry.issued?.trim()]);
             card.append(cover, metadata);
 
-            const actions = document.createElement("div");
-            actions.className = "book-card__actions";
             if (element.dataset.isbookshelf === "1") {
-                const downloads = (entry.links || []).filter((link) => link.rel === "http://opds-spec.org/acquisition/open-access");
-                downloads.forEach((link) => {
-                    const anchor = document.createElement("a");
-                    anchor.href = link.href;
-                    anchor.className = "label small book-download-link";
-                    anchor.textContent = formatLabel(link);
-                    actions.append(anchor);
-                });
+                content.classList.add("book-result--bookshelf");
                 const deleteButton = document.createElement("button");
                 deleteButton.type = "button";
-                deleteButton.className = "alert label small bookshelf-delete-trigger";
+                deleteButton.className = "bookshelf-delete-trigger";
                 deleteButton.dataset.bookId = String(entry.id || "").split(":").pop();
                 deleteButton.dataset.bookTitle = entry.title || "";
                 deleteButton.textContent = element.dataset.deleteLabel || "Delete";
-                actions.append(deleteButton);
+                content.append(card, deleteButton);
+            } else {
+                content.append(card);
             }
-            content.append(card);
-            if (actions.childElementCount) content.append(actions);
 
             const appendAnnotation = (value, type) => {
                 const annotation = annotationContent(value, type);
