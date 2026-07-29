@@ -70,6 +70,7 @@ export function parseFeed(xml) {
     return {
         entries,
         links: feedLinks,
+        title: text(feed.title),
     };
 }
 

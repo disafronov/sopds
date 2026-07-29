@@ -5,6 +5,7 @@ import {createOpdsClient, parseFeed} from "../js/opds.js";
 
 const feed = `<?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Test catalog</title>
   <link href="/opds/search/books/a/test/?page=3" rel="self"/>
   <link href="/opds/search/books/a/test/?page=8" rel="last"/>
   <entry>
@@ -19,6 +20,7 @@ const feed = `<?xml version="1.0" encoding="utf-8"?>
 test("OPDS parser is independent from browser globals", () => {
   const parsed = parseFeed(feed);
 
+  assert.equal(parsed.title, "Test catalog");
   assert.equal(parsed.entries[0].content.value, "<p>Annotation &amp; details</p>");
   assert.deepEqual(parsed.entries[0].links.slice(-2), [
     {href: "/opds/search/books/s/17/", rel: "related", type: undefined, title: "Series: Test series", length: 0},
