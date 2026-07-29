@@ -222,7 +222,7 @@ def SearchSeriesView(request: HttpRequest) -> HttpResponse:
         title=_("Series"),
         opds_route="searchseries",
     )
-    return render(request, "sopds_series.html", args)
+    return render(request, "sopds_entity_results.html", args)
 
 
 @vary_on_headers("HTTP_ACCEPT_LANGUAGE")
@@ -233,7 +233,7 @@ def SearchAuthorsView(request: HttpRequest) -> HttpResponse:
         title=_("Authors"),
         opds_route="searchauthors",
     )
-    return render(request, "sopds_authors.html", args)
+    return render(request, "sopds_entity_results.html", args)
 
 
 def _search_entities_context(
@@ -258,7 +258,7 @@ def _search_entities_context(
             "searchobject": entity,
             "current": "search",
             "breadcrumbs": [title, _("Search"), searchterms],
-            "cache_id": f"{searchterms}:{searchtype}:{page_num}",
+            "cache_id": f"{entity}:{searchterms}:{searchtype}:{page_num}",
             "cache_t": config.SOPDS_CACHE_TIME,
         }
     )
