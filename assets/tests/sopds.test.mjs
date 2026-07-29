@@ -144,6 +144,45 @@ test("OPDS selector marks the current subsection without a self link", async () 
   dom.window.close();
 });
 
+test("OPDS selector keeps trailing spaces in subsection titles", async () => {
+  const dom = new JSDOM(
+    `<!doctype html>
+      <table
+        data-opds-selector
+        data-feed-url="/opds/books/1/A/"
+        data-feed-kind="books"
+        data-lang-code="1"
+        data-selector-url="/web/book/"
+        data-search-url="/web/search/books/"
+      ><tbody></tbody></table>`,
+    {
+      runScripts: "dangerously",
+      url: "https://sopds.test/web/book/?lang=1&chars=A",
+    },
+  );
+  const { window } = dom;
+  window.fetch = async () => ({
+    ok: true,
+    text: async () => `<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom">
+      <entry><title>A</title><link href="/opds/search/books/e/A/" rel="subsection"/></entry>
+      <entry><title>A </title><link href="/opds/books/1/A%20/" rel="subsection"/></entry>
+      <entry><title>A"</title><link href="/opds/search/books/b/A%22/" rel="subsection"/></entry>
+    </feed>`,
+  });
+
+  await loadFrontend(window);
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+
+  const titles = [...window.document.querySelectorAll(".selector-link__title")];
+  assert.deepEqual(titles.map((title) => title.textContent), ["A", "A ", "A\""]);
+  assert.equal(
+    window.document.querySelector(".selector-link").search,
+    "?searchtype=e&searchterms=A",
+  );
+
+  dom.window.close();
+});
+
 test("OPDS selectors preserve zero as a digit", async () => {
   const digitFeed = `<?xml version="1.0" encoding="utf-8"?>
   <feed xmlns="http://www.w3.org/2005/Atom">
