@@ -796,6 +796,13 @@ td {
 }
 
 @media screen and (max-width: 39.9375em) {
+  .opds-books,
+  .book-detail {
+    width: calc(100% + 1.25rem);
+    margin-right: -0.625rem;
+    margin-left: -0.625rem;
+  }
+
   #main_menu {
     position: absolute;
     z-index: 10;
