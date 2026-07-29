@@ -406,7 +406,7 @@ import {createOpdsClient} from "./opds.js";
             image.src = `/static/images/${icon}.png`;
             image.alt = "";
             link.append(image);
-            link.href = webHref(catalog, element);
+            link.href = catalog ? webHref(catalog, element) : bookUrl(entry);
             link.append(document.createTextNode(entry.title || ""));
             cell.append(link);
             row.addEventListener("click", (event) => {
