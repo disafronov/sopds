@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-29 17:39+0000\n"
+"POT-Creation-Date: 2026-07-29 17:40+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -25,7 +25,6 @@ msgid "Download"
 msgstr "Скачать"
 
 #: web_frontend/templates/sopds_book_detail.html:10
-#: web_frontend/templates/sopds_footer.html:27
 #: web_frontend/templates/sopds_menu.html:7
 #: web_frontend/templates/sopds_menu.html:35 web_frontend/views.py:233
 #: web_frontend/views.py:385
@@ -33,7 +32,6 @@ msgid "Authors"
 msgstr "Авторы"
 
 #: web_frontend/templates/sopds_book_detail.html:11
-#: web_frontend/templates/sopds_footer.html:28
 #: web_frontend/templates/sopds_menu.html:8
 #: web_frontend/templates/sopds_menu.html:43
 #: web_frontend/templates/sopds_top.html:38 web_frontend/views.py:222
@@ -42,7 +40,6 @@ msgid "Series"
 msgstr "Серии"
 
 #: web_frontend/templates/sopds_book_detail.html:12
-#: web_frontend/templates/sopds_footer.html:29
 #: web_frontend/templates/sopds_menu.html:9
 #: web_frontend/templates/sopds_menu.html:50 web_frontend/views.py:408
 msgid "Genres"
@@ -50,7 +47,6 @@ msgstr "Жанры"
 
 #: web_frontend/templates/sopds_book_detail.html:13
 #: web_frontend/templates/sopds_books_opds.html:52
-#: web_frontend/templates/sopds_footer_book.html:9
 msgid "File size"
 msgstr "Размер файла"
 
@@ -107,35 +103,29 @@ msgid "Clear bookshelf"
 msgstr "Очистить книжную полку"
 
 #: web_frontend/templates/sopds_books_opds.html:48
-#: web_frontend/templates/sopds_footer_book.html:5
 msgid "Book name"
 msgstr "Название"
 
 #: web_frontend/templates/sopds_books_opds.html:49
-#: web_frontend/templates/sopds_footer_book.html:6
 msgctxt "book metadata label"
 msgid "Authors"
 msgstr "Авторы"
 
 #: web_frontend/templates/sopds_books_opds.html:50
-#: web_frontend/templates/sopds_footer_book.html:7
 msgctxt "book metadata label"
 msgid "Series"
 msgstr "Серии"
 
 #: web_frontend/templates/sopds_books_opds.html:51
-#: web_frontend/templates/sopds_footer_book.html:8
 msgctxt "book metadata label"
 msgid "Genres"
 msgstr "Жанры"
 
 #: web_frontend/templates/sopds_books_opds.html:53
-#: web_frontend/templates/sopds_footer_book.html:10
 msgid "KB"
 msgstr "Кб."
 
 #: web_frontend/templates/sopds_books_opds.html:54
-#: web_frontend/templates/sopds_footer_book.html:11
 msgid "Publication date"
 msgstr "Дата публикации"
 
@@ -168,38 +158,6 @@ msgstr "Не удалось загрузить каталог."
 #: web_frontend/templates/sopds_breadcrumbs.html:3
 msgid "You are here:"
 msgstr "Вы здесь:"
-
-#: web_frontend/templates/sopds_footer.html:6
-msgid "BOOKSHELF"
-msgstr "КНИЖНАЯ ПОЛКА"
-
-#: web_frontend/templates/sopds_footer.html:12
-msgid ""
-"Bookshelf is available only SimpleOPDS Catalog mode with activated user "
-"authorization."
-msgstr ""
-"Книжная полка доступна только в режиме работы SimpleOPDS Catalog со "
-"включенной авторизацией пользователей."
-
-#: web_frontend/templates/sopds_footer.html:17
-msgid "RANDOM BOOK"
-msgstr "СЛУЧАЙНАЯ КНИГА"
-
-#: web_frontend/templates/sopds_footer.html:26
-#: web_frontend/templates/sopds_menu.html:6
-#: web_frontend/templates/sopds_menu.html:27 web_frontend/views.py:152
-#: web_frontend/views.py:154 web_frontend/views.py:185
-#: web_frontend/views.py:373
-msgid "Books"
-msgstr "Книги"
-
-#: web_frontend/templates/sopds_footer.html:31
-msgid "Last scan:"
-msgstr "Последнее сканирование:"
-
-#: web_frontend/templates/sopds_footer.html:32
-msgid "Never"
-msgstr "Никогда"
 
 #: web_frontend/templates/sopds_hello.html:12
 msgid "Hello"
@@ -269,6 +227,13 @@ msgid "Your timezone could not be detected. Times are displayed in %(tz)s."
 msgstr ""
 "Не удалось определить ваш часовой пояс. Время указано для часового пояса "
 "%(tz)s."
+
+#: web_frontend/templates/sopds_menu.html:6
+#: web_frontend/templates/sopds_menu.html:27 web_frontend/views.py:152
+#: web_frontend/views.py:154 web_frontend/views.py:185
+#: web_frontend/views.py:373
+msgid "Books"
+msgstr "Книги"
 
 #: web_frontend/templates/sopds_menu.html:10
 #: web_frontend/templates/sopds_menu.html:51 web_frontend/views.py:306
