@@ -873,6 +873,16 @@ td {
   content: none;
 }
 
+[data-opds-pagination] .pagination-first + .pagination-previous {
+  padding-left: 0.5rem;
+  border-left: 1px solid $light-gray;
+}
+
+[data-opds-pagination] .pagination-next + .pagination-last {
+  padding-left: 0.5rem;
+  border-left: 1px solid $light-gray;
+}
+
 @media screen and (min-width: 40em) {
   .book-detail-row > .book-detail-summary {
     padding-left: 1rem;
