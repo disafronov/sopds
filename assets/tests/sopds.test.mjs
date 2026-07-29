@@ -15,11 +15,10 @@ test("OPDS transport stays in the client module", async () => {
     readFile(resolve(frontendRoot, "js/sopds.js"), "utf8"),
   ]);
 
-  assert.match(client, /export async function fetchFeed/u);
-  assert.match(client, /export async function fetchContent/u);
-  assert.doesNotMatch(client, /querySelector|addEventListener|jQuery/u);
+  assert.match(client, /export function createOpdsClient/u);
+  assert.doesNotMatch(client, /\b(?:window|document)\b/u);
   assert.match(frontend, /from "\.\/opds\.js"/u);
-  assert.doesNotMatch(frontend, /\bfetch\s*\(/u);
+  assert.match(frontend, /fetch: \(\.\.\.args\) => window\.fetch\(\.\.\.args\)/u);
   assert.doesNotMatch(frontend, /XMLParser|DOMParser/u);
 });
 
