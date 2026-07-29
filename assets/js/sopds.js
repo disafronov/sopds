@@ -1,4 +1,4 @@
-import {fetchFeed} from "./opds.js";
+import {fetchContent, fetchFeed} from "./opds.js";
 
 (function($) {
     "use strict";
@@ -463,8 +463,7 @@ import {fetchFeed} from "./opds.js";
             placeholder.textContent = element.dataset.loadingLabel || "Loading…";
             section.append(placeholder);
             article.append(section);
-            fetch(entry.content.src, {credentials: "same-origin"})
-                .then((response) => response.ok ? response.text() : "")
+            fetchContent(entry.content.src)
                 .then((annotation) => {
                     const content = parseAnnotation(annotation);
                     if (content) {
@@ -550,8 +549,7 @@ import {fetchFeed} from "./opds.js";
             };
             if (showAnnotation && entry.annotation) appendAnnotation(entry.annotation);
             if (showAnnotation && entry.content?.src) {
-                fetch(entry.content.src, {credentials: "same-origin"})
-                    .then((response) => response.ok ? response.text() : "")
+                fetchContent(entry.content.src)
                     .then((annotation) => {
                         if (!annotation) return;
                         appendAnnotation(annotation);

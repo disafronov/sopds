@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { build } from "esbuild";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -7,6 +8,20 @@ import { fileURLToPath } from "node:url";
 import { JSDOM } from "jsdom";
 
 const frontendRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+
+test("OPDS transport stays in the client module", async () => {
+  const [client, frontend] = await Promise.all([
+    readFile(resolve(frontendRoot, "js/opds.js"), "utf8"),
+    readFile(resolve(frontendRoot, "js/sopds.js"), "utf8"),
+  ]);
+
+  assert.match(client, /export async function fetchFeed/u);
+  assert.match(client, /export async function fetchContent/u);
+  assert.doesNotMatch(client, /querySelector|addEventListener|jQuery/u);
+  assert.match(frontend, /from "\.\/opds\.js"/u);
+  assert.doesNotMatch(frontend, /\bfetch\s*\(/u);
+  assert.doesNotMatch(frontend, /XMLParser|DOMParser/u);
+});
 
 async function readClient() {
   const result = await build({

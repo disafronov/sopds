@@ -129,12 +129,20 @@ export function parseFeed(xml) {
     };
 }
 
-export async function fetchFeed(url) {
+async function fetchResource(url, accept) {
     const response = await fetch(url, {
         cache: "no-store",
         credentials: "same-origin",
-        headers: {Accept: "application/atom+xml"},
+        headers: {Accept: accept},
     });
     if (!response.ok) throw new Error(`OPDS request failed: ${response.status}`);
-    return parseFeed(await response.text());
+    return response.text();
+}
+
+export async function fetchFeed(url) {
+    return parseFeed(await fetchResource(url, "application/atom+xml"));
+}
+
+export async function fetchContent(url) {
+    return fetchResource(url, "text/html");
 }
