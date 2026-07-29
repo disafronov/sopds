@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-28 16:15+0000\n"
+"POT-Creation-Date: 2026-07-29 17:02+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -34,7 +34,6 @@ msgstr "Авторы"
 
 #: web_frontend/templates/sopds_book_detail.html:11
 #: web_frontend/templates/sopds_footer.html:26
-#: web_frontend/templates/sopds_logo.html:27
 #: web_frontend/templates/sopds_menu.html:8
 #: web_frontend/templates/sopds_menu.html:40
 #: web_frontend/templates/sopds_top.html:39 web_frontend/views.py:222
@@ -142,26 +141,26 @@ msgstr "Дата публикации"
 
 #: web_frontend/templates/sopds_books_opds.html:38
 #: web_frontend/templates/sopds_catalogs_opds.html:10
-#: web_frontend/templates/sopds_entity_results.html:15
+#: web_frontend/templates/sopds_entity_results.html:19
 #: web_frontend/templates/sopds_selector.html:16
 msgid "Loading..."
 msgstr "Загрузка..."
 
 #: web_frontend/templates/sopds_books_opds.html:40
 #: web_frontend/templates/sopds_catalogs_opds.html:12
-#: web_frontend/templates/sopds_entity_results.html:18
+#: web_frontend/templates/sopds_entity_results.html:22
 msgid "Previous page"
 msgstr "Назад"
 
 #: web_frontend/templates/sopds_books_opds.html:40
 #: web_frontend/templates/sopds_catalogs_opds.html:12
-#: web_frontend/templates/sopds_entity_results.html:19
+#: web_frontend/templates/sopds_entity_results.html:23
 msgid "Next page"
 msgstr "Вперед"
 
 #: web_frontend/templates/sopds_books_opds.html:41
 #: web_frontend/templates/sopds_catalogs_opds.html:13
-#: web_frontend/templates/sopds_entity_results.html:21
+#: web_frontend/templates/sopds_entity_results.html:25
 #: web_frontend/templates/sopds_selector.html:21
 msgid "Unable to load the catalog."
 msgstr "Не удалось загрузить каталог."
@@ -256,27 +255,6 @@ msgstr "Введите пароль"
 msgid "Log in"
 msgstr "Вход"
 
-#: web_frontend/templates/sopds_logo.html:12
-#: web_frontend/templates/sopds_top.html:24 web_frontend/views.py:150
-#: web_frontend/views.py:260
-msgid "Search"
-msgstr "Найти"
-
-#: web_frontend/templates/sopds_logo.html:24
-#: web_frontend/templates/sopds_top.html:36
-msgid "Choose Search Type:"
-msgstr "Выберите тип поиска:"
-
-#: web_frontend/templates/sopds_logo.html:25
-#: web_frontend/templates/sopds_top.html:37
-msgid "Title"
-msgstr "Название"
-
-#: web_frontend/templates/sopds_logo.html:26
-#: web_frontend/templates/sopds_top.html:38
-msgid "Author"
-msgstr "Автор"
-
 #: web_frontend/templates/sopds_main.html:20
 msgid ""
 "Enable JavaScript in your browser to use the web OPDS client. The OPDS feed "
@@ -316,6 +294,23 @@ msgstr "Выход"
 #: web_frontend/templates/sopds_menu.html:58 web_frontend/views.py:462
 msgid "Login"
 msgstr "Вход"
+
+#: web_frontend/templates/sopds_top.html:24 web_frontend/views.py:150
+#: web_frontend/views.py:260
+msgid "Search"
+msgstr "Найти"
+
+#: web_frontend/templates/sopds_top.html:36
+msgid "Choose Search Type:"
+msgstr "Выберите тип поиска:"
+
+#: web_frontend/templates/sopds_top.html:37
+msgid "Title"
+msgstr "Название"
+
+#: web_frontend/templates/sopds_top.html:38
+msgid "Author"
+msgstr "Автор"
 
 #: web_frontend/views.py:139 web_frontend/views.py:140
 #: web_frontend/views.py:141
