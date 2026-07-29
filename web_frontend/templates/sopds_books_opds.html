@@ -14,8 +14,8 @@
     {% csrf_token %}
     <input type="hidden" name="book" id="DeleteBook_book">
     <p class="text-center">
-      <button type="submit" class="secondary button">{% trans "Delete" %}</button>
-      &nbsp;&nbsp;&nbsp;<a class="close button" data-close>{% trans "Cancel" %}</a>
+      <button type="submit" class="alert button">{% trans "Delete" %}</button>
+      &nbsp;&nbsp;&nbsp;<a class="secondary button" data-close>{% trans "Cancel" %}</a>
     </p>
   </form>
   <button class="close-button" data-close aria-label="Close modal" type="button"><span aria-hidden="true">&times;</span></button>
@@ -26,13 +26,13 @@
   <form method="post" action="{% url "web:bsclear" %}">
     {% csrf_token %}
     <p class="text-center">
-      <button type="submit" class="secondary button">{% trans "Clear" %}</button>
-      &nbsp;&nbsp;&nbsp;<a class="close button" data-close>{% trans "Cancel" %}</a>
+      <button type="submit" class="alert button">{% trans "Clear" %}</button>
+      &nbsp;&nbsp;&nbsp;<a class="secondary button" data-close>{% trans "Cancel" %}</a>
     </p>
   </form>
   <button class="close-button" data-close aria-label="Close modal" type="button"><span aria-hidden="true">&times;</span></button>
 </div>
-<a class="alert button small" data-open="ConfirmModal">{% trans "Clear bookshelf" %}</a>
+<a class="alert button bookshelf-clear-trigger" data-open="ConfirmModal">{% trans "Clear bookshelf" %}</a>
 {% endif %}
 
 {% include "sopds_pagination.html" %}

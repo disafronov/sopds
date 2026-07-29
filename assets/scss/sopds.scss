@@ -277,6 +277,16 @@
   color: $sopds-menu-color;
 }
 
+.bookshelf-clear-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
 .book-detail {
   border-radius: 4px;
   overflow-wrap: anywhere;
