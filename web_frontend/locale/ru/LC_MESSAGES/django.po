@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-29 18:09+0000\n"
+"POT-Creation-Date: 2026-07-29 19:53+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -20,7 +20,7 @@ msgstr ""
 "(n%100>=11 && n%100<=14)? 2 : 3);\n"
 
 #: web_frontend/templates/sopds_book_detail.html:9
-#: web_frontend/templates/sopds_books_opds.html:57
+#: web_frontend/templates/sopds_books_opds.html:55
 msgid "Download"
 msgstr "Скачать"
 
@@ -46,7 +46,7 @@ msgid "Genres"
 msgstr "Жанры"
 
 #: web_frontend/templates/sopds_book_detail.html:13
-#: web_frontend/templates/sopds_books_opds.html:53
+#: web_frontend/templates/sopds_books_opds.html:51
 msgid "File size"
 msgstr "Размер файла"
 
@@ -81,62 +81,62 @@ msgid "Confirm the deletion of the book to your bookshelf."
 msgstr "Подтвердите удаление книги с Вашей книжной полки."
 
 #: web_frontend/templates/sopds_books_opds.html:17
-#: web_frontend/templates/sopds_books_opds.html:58
+#: web_frontend/templates/sopds_books_opds.html:56
 msgid "Delete"
 msgstr "Удалить"
 
 #: web_frontend/templates/sopds_books_opds.html:18
-#: web_frontend/templates/sopds_books_opds.html:30
+#: web_frontend/templates/sopds_books_opds.html:29
 msgid "Cancel"
 msgstr "Отмена"
 
-#: web_frontend/templates/sopds_books_opds.html:25
+#: web_frontend/templates/sopds_books_opds.html:24
 msgid "Confirm to clear your bookshelf."
 msgstr "Подтвердите очистку Вашей книжной полки."
 
-#: web_frontend/templates/sopds_books_opds.html:29
+#: web_frontend/templates/sopds_books_opds.html:28
 msgid "Clear"
 msgstr "Очистить"
 
-#: web_frontend/templates/sopds_books_opds.html:35
+#: web_frontend/templates/sopds_books_opds.html:33
 msgid "Clear bookshelf"
 msgstr "Очистить книжную полку"
 
-#: web_frontend/templates/sopds_books_opds.html:49
+#: web_frontend/templates/sopds_books_opds.html:47
 msgid "Book name"
 msgstr "Название"
 
-#: web_frontend/templates/sopds_books_opds.html:50
+#: web_frontend/templates/sopds_books_opds.html:48
 msgctxt "book metadata label"
 msgid "Authors"
 msgstr "Авторы"
 
-#: web_frontend/templates/sopds_books_opds.html:51
+#: web_frontend/templates/sopds_books_opds.html:49
 msgctxt "book metadata label"
 msgid "Series"
 msgstr "Серии"
 
-#: web_frontend/templates/sopds_books_opds.html:52
+#: web_frontend/templates/sopds_books_opds.html:50
 msgctxt "book metadata label"
 msgid "Genres"
 msgstr "Жанры"
 
-#: web_frontend/templates/sopds_books_opds.html:54
+#: web_frontend/templates/sopds_books_opds.html:52
 msgid "KB"
 msgstr "Кб."
 
-#: web_frontend/templates/sopds_books_opds.html:55
+#: web_frontend/templates/sopds_books_opds.html:53
 msgid "Publication date"
 msgstr "Дата публикации"
 
-#: web_frontend/templates/sopds_books_opds.html:60
+#: web_frontend/templates/sopds_books_opds.html:58
 #: web_frontend/templates/sopds_catalogs_opds.html:16
 #: web_frontend/templates/sopds_results.html:22
 #: web_frontend/templates/sopds_selector.html:20
 msgid "Loading..."
 msgstr "Загрузка..."
 
-#: web_frontend/templates/sopds_books_opds.html:64
+#: web_frontend/templates/sopds_books_opds.html:62
 #: web_frontend/templates/sopds_catalogs_opds.html:22
 #: web_frontend/templates/sopds_results.html:28
 #: web_frontend/templates/sopds_selector.html:26
