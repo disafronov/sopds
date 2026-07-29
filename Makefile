@@ -95,7 +95,7 @@ locale: ## Make and compile locale messages
 	DATABASE_URL=$(TOOLING_DATABASE_URL) DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py compilemessages --ignore=".venv/*"
 
 collectstatic: ## Collect static assets for local serving
-	DATABASE_URL=$(TOOLING_DATABASE_URL) DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py collectstatic --noinput
+	DATABASE_URL=$(TOOLING_DATABASE_URL) DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py collectstatic --clear --noinput
 
 makemigrations: ## Create new migrations
 	@echo "Creating migrations..."

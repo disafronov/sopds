@@ -14,6 +14,7 @@ RUN --mount=type=bind,source=assets/package.json,target=package.json \
     --mount=type=bind,source=assets/scss,target=scss \
     --mount=type=bind,source=assets/js,target=js \
     --mount=type=bind,source=assets/scripts,target=scripts \
+    rm -rf /home/node/app/web_frontend/static && \
     mkdir -p /home/node/app/web_frontend/static/css /home/node/app/web_frontend/static/js && \
     npm run build
 
@@ -93,7 +94,7 @@ RUN export DJANGO_SECRET_KEY=unsafe-secret-key-for-tooling \
         DATABASE_URL=postgresql://unused:unused@localhost/unused \
         DJANGO_DEBUG=False && \
     python3 manage.py compilemessages && \
-    python3 manage.py collectstatic --noinput && \
+    python3 manage.py collectstatic --clear --noinput && \
     rm -rf assets web_frontend/static
 
 ##########################
