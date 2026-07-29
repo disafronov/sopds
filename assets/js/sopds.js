@@ -281,8 +281,10 @@ import {createOpdsClient} from "./opds.js";
                     url.searchParams.set("chars", title);
                 } else {
                     url = new URL(element.dataset.searchUrl, window.location);
-                    const emptySearch = href.includes("/e/__sopds_empty__/");
-                    url.searchParams.set("searchtype", emptySearch ? "e" : "b");
+                    const searchPath = new URL(href, window.location).pathname.split("/").filter(Boolean);
+                    const searchType = searchPath[3];
+                    const emptySearch = searchType === "e" && searchPath.at(-1) === "__sopds_empty__";
+                    url.searchParams.set("searchtype", ["b", "e"].includes(searchType) ? searchType : "b");
                     url.searchParams.set(
                         "searchterms",
                         emptySearch ? "__sopds_empty__" : title,
@@ -298,7 +300,10 @@ import {createOpdsClient} from "./opds.js";
                 link.setAttribute("aria-current", "page");
             }
             else link.href = targetUrl;
-            link.append(document.createTextNode(title), " ");
+            const titleNode = document.createElement("span");
+            titleNode.className = "selector-link__title";
+            titleNode.textContent = title;
+            link.append(titleNode, " ");
             const count = document.createElement("span");
             count.className = "selector-link__count";
             count.textContent = entry.content?.value || "";
