@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-29 20:00+0000\n"
+"POT-Creation-Date: 2026-07-29 21:58+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -27,21 +27,20 @@ msgstr "Скачать"
 #: web_frontend/templates/sopds_book_detail.html:10
 #: web_frontend/templates/sopds_menu.html:7
 #: web_frontend/templates/sopds_menu.html:35 web_frontend/views.py:189
-#: web_frontend/views.py:341
+#: web_frontend/views.py:348
 msgid "Authors"
 msgstr "Авторы"
 
 #: web_frontend/templates/sopds_book_detail.html:11
 #: web_frontend/templates/sopds_menu.html:8
-#: web_frontend/templates/sopds_menu.html:43
-#: web_frontend/templates/sopds_top.html:45 web_frontend/views.py:178
-#: web_frontend/views.py:353
+#: web_frontend/templates/sopds_menu.html:43 web_frontend/views.py:178
+#: web_frontend/views.py:360
 msgid "Series"
 msgstr "Серии"
 
 #: web_frontend/templates/sopds_book_detail.html:12
 #: web_frontend/templates/sopds_menu.html:9
-#: web_frontend/templates/sopds_menu.html:50 web_frontend/views.py:364
+#: web_frontend/templates/sopds_menu.html:50 web_frontend/views.py:371
 msgid "Genres"
 msgstr "Жанры"
 
@@ -130,14 +129,14 @@ msgid "Publication date"
 msgstr "Дата публикации"
 
 #: web_frontend/templates/sopds_books_opds.html:58
-#: web_frontend/templates/sopds_catalogs_opds.html:16
+#: web_frontend/templates/sopds_catalogs_opds.html:17
 #: web_frontend/templates/sopds_results.html:22
 #: web_frontend/templates/sopds_selector.html:20
 msgid "Loading..."
 msgstr "Загрузка..."
 
 #: web_frontend/templates/sopds_books_opds.html:62
-#: web_frontend/templates/sopds_catalogs_opds.html:22
+#: web_frontend/templates/sopds_catalogs_opds.html:23
 #: web_frontend/templates/sopds_results.html:28
 #: web_frontend/templates/sopds_selector.html:26
 msgid "Unable to load the catalog."
@@ -224,12 +223,12 @@ msgstr "Основная навигация"
 #: web_frontend/templates/sopds_menu.html:6
 #: web_frontend/templates/sopds_menu.html:27 web_frontend/views.py:108
 #: web_frontend/views.py:110 web_frontend/views.py:141
-#: web_frontend/views.py:329
+#: web_frontend/views.py:336
 msgid "Books"
 msgstr "Книги"
 
 #: web_frontend/templates/sopds_menu.html:10
-#: web_frontend/templates/sopds_menu.html:51 web_frontend/views.py:262
+#: web_frontend/templates/sopds_menu.html:51 web_frontend/views.py:263
 msgid "Catalogs"
 msgstr "Каталоги"
 
@@ -244,12 +243,12 @@ msgid "Settings"
 msgstr "Настройки"
 
 #: web_frontend/templates/sopds_menu.html:16
-#: web_frontend/templates/sopds_menu.html:57 web_frontend/views.py:454
+#: web_frontend/templates/sopds_menu.html:57 web_frontend/views.py:462
 msgid "Logout"
 msgstr "Выход"
 
 #: web_frontend/templates/sopds_menu.html:19
-#: web_frontend/templates/sopds_menu.html:60 web_frontend/views.py:418
+#: web_frontend/templates/sopds_menu.html:60 web_frontend/views.py:426
 msgid "Login"
 msgstr "Вход"
 
@@ -273,83 +272,100 @@ msgstr "Последняя"
 msgid "Toggle navigation"
 msgstr "Открыть или закрыть навигацию"
 
-#: web_frontend/templates/sopds_top.html:25 web_frontend/views.py:106
-#: web_frontend/views.py:216
-msgid "Search"
-msgstr "Найти"
-
-#: web_frontend/templates/sopds_top.html:34
-msgid "Choose search type"
-msgstr "Выберите тип поиска:"
-
-#: web_frontend/templates/sopds_top.html:42
-msgid "Choose Search Type:"
-msgstr "Выберите тип поиска:"
-
-#: web_frontend/templates/sopds_top.html:43
-msgid "Title"
-msgstr "Название"
-
-#: web_frontend/templates/sopds_top.html:44
-msgid "Author"
-msgstr "Автор"
-
-#: web_frontend/views.py:95 web_frontend/views.py:96 web_frontend/views.py:97
-msgid "Search by title"
-msgstr "Поиск по наименованию"
-
-#: web_frontend/views.py:98
+#: web_frontend/templates/sopds_top.html:26
+#: web_frontend/templates/sopds_top.html:52 web_frontend/views.py:98
 msgid "Search by author"
 msgstr "Поиск по автору"
 
-#: web_frontend/views.py:99
+#: web_frontend/templates/sopds_top.html:26
+#: web_frontend/templates/sopds_top.html:53 web_frontend/views.py:99
 msgid "Search by series"
 msgstr "Поиск по серии"
 
-#: web_frontend/views.py:100
+#: web_frontend/templates/sopds_top.html:26
+#: web_frontend/templates/sopds_top.html:54 web_frontend/views.py:101
+msgid "Search by genre"
+msgstr "Поиск по жанру"
+
+#: web_frontend/templates/sopds_top.html:26 web_frontend/views.py:100
 msgid "Search by author and series"
 msgstr "Поиск по автору и серии"
 
-#: web_frontend/views.py:101
-msgid "Search by genre"
-msgstr "Поиск по жанру"
+#: web_frontend/templates/sopds_top.html:26
+#: web_frontend/templates/sopds_top.html:51 web_frontend/views.py:95
+#: web_frontend/views.py:96 web_frontend/views.py:97
+msgid "Search by title"
+msgstr "Поиск по названию"
+
+#: web_frontend/templates/sopds_top.html:33 web_frontend/views.py:106
+#: web_frontend/views.py:217
+msgid "Search"
+msgstr "Найти"
+
+#: web_frontend/templates/sopds_top.html:42
+msgid "Choose search type"
+msgstr "Выберите тип поиска:"
+
+#: web_frontend/templates/sopds_top.html:50
+msgid "Choose Search Type:"
+msgstr "Выберите тип поиска:"
+
+#: web_frontend/templates/sopds_top.html:51
+msgctxt "search option"
+msgid "Title"
+msgstr "Название"
+
+#: web_frontend/templates/sopds_top.html:52
+msgctxt "search option"
+msgid "Author"
+msgstr "Автор"
+
+#: web_frontend/templates/sopds_top.html:53
+msgctxt "search option"
+msgid "Series"
+msgstr "Серия"
+
+#: web_frontend/templates/sopds_top.html:54
+msgctxt "search option"
+msgid "Genre"
+msgstr "Жанр"
 
 #: web_frontend/views.py:103
 msgid "Doubles for book"
 msgstr "Дубликаты книги"
 
-#: web_frontend/views.py:104 web_frontend/views.py:469
+#: web_frontend/views.py:104 web_frontend/views.py:477
 msgid "Book"
 msgstr "Книга"
 
-#: web_frontend/views.py:237 web_frontend/views.py:328
-#: web_frontend/views.py:372
+#: web_frontend/views.py:238 web_frontend/views.py:335
+#: web_frontend/views.py:380
 #, python-format
 msgid "Total: %(count)s books."
 msgstr "Всего: %(count)s книг."
 
-#: web_frontend/views.py:308 web_frontend/views.py:364
+#: web_frontend/views.py:315 web_frontend/views.py:371
 msgid "Select"
 msgstr "Выбор"
 
-#: web_frontend/views.py:340
+#: web_frontend/views.py:347
 #, python-format
 msgid "Total: %(count)s authors."
 msgstr "Всего: %(count)s авторов."
 
-#: web_frontend/views.py:352
+#: web_frontend/views.py:359
 #, python-format
 msgid "Total: %(count)s series."
 msgstr "Всего: %(count)s серий."
 
-#: web_frontend/views.py:409
+#: web_frontend/views.py:417
 msgid "HOME"
 msgstr "ГЛАВНАЯ"
 
-#: web_frontend/views.py:436
+#: web_frontend/views.py:444
 msgid "This account is not active!"
 msgstr "Учетная запись не активна!"
 
-#: web_frontend/views.py:443
+#: web_frontend/views.py:451
 msgid "User does not exist or the password is incorrect!"
 msgstr "Пользователь не существует или введен неправильный пароль!"
