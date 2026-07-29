@@ -1,11 +1,14 @@
 {% load i18n %}
-<div data-opds-footer-book data-book-id="{{ book.id }}"
-     data-book-name-label="{% trans "Book name" %}"
-     data-authors-label="{% translate "Authors" context "book metadata label" %}"
-     data-series-label="{% translate "Series" context "book metadata label" %}"
-     data-genres-label="{% translate "Genres" context "book metadata label" %}"
-     data-file-size-label="{% trans "File size" %}"
-     data-file-size-unit="{% trans "KB" %}"
-     data-publication-date-label="{% trans "Publication date" %}">
-    <p data-opds-loading>Loading...</p>
+<div
+  data-opds-footer-book
+  data-book-id="{{ book.id }}"
+  data-book-name-label="{% trans "Book name" %}"
+  data-authors-label="{% translate "Authors" context "book metadata label" %}"
+  data-series-label="{% translate "Series" context "book metadata label" %}"
+  data-genres-label="{% translate "Genres" context "book metadata label" %}"
+  data-file-size-label="{% trans "File size" %}"
+  data-file-size-unit="{% trans "KB" %}"
+  data-publication-date-label="{% trans "Publication date" %}"
+>
+  <p data-opds-loading>Loading...</p>
 </div>

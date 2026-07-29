@@ -16,7 +16,11 @@
   data-searchterms="{{ opds_adapter.searchterms }}"
   data-half-pages="{{ opds_adapter.half_pages }}"
 >
-  <tbody><tr data-opds-loading><td>{% trans "Loading..." %}</td></tr></tbody>
+  <tbody>
+    <tr data-opds-loading>
+      <td>{% trans "Loading..." %}</td>
+    </tr>
+  </tbody>
 </table>
 <div data-opds-pagination
      data-previous-label="{% trans "Previous page" %}"

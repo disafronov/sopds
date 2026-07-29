@@ -570,7 +570,7 @@ def test_entity_search_views_adapt_public_opds_feeds(
     response = getattr(views, view)(request)
 
     assert response.status_code == 200
-    assert template_name == "sopds_entity_results.html"
+    assert template_name == "sopds_results.html"
     none.assert_not_called()
     assert rendered["cache_id"] == f"{entity}:name:m:2"
     assert rendered["opds_adapter"]["feed_url"] == feed_url
@@ -780,10 +780,13 @@ def test_selector_views_adapt_public_opds_feeds(
     from web_frontend import views
 
     rendered: dict[str, Any] = {}
+    template_name = ""
 
     def capture_render(
         request: HttpRequest, template: str, context: dict[str, Any]
     ) -> HttpResponse:
+        nonlocal template_name
+        template_name = template
         rendered.update(context)
         return HttpResponse("ok")
 
@@ -796,6 +799,7 @@ def test_selector_views_adapt_public_opds_feeds(
     response = getattr(views, view)(request)
 
     assert response.status_code == 200
+    assert template_name == "sopds_selector.html"
     raw.assert_not_called()
     assert rendered["current"] == view_name
     assert rendered["opds_adapter"]["feed_url"] == feed_url
@@ -849,10 +853,13 @@ class TestGenresView:
         from web_frontend import views
 
         rendered: dict[str, Any] = {}
+        template_name = ""
 
         def capture_render(
             request: HttpRequest, template: str, context: dict[str, Any]
         ) -> HttpResponse:
+            nonlocal template_name
+            template_name = template
             rendered.update(context)
             return HttpResponse("ok")
 
@@ -866,6 +873,7 @@ class TestGenresView:
         response = views.GenresView(request)
 
         assert response.status_code == 200
+        assert template_name == "sopds_selector.html"
         get.assert_not_called()
         filter_genres.assert_not_called()
         assert rendered["opds_adapter"]["feed_url"] == "/opds/genres/232/"
