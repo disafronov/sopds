@@ -122,27 +122,6 @@ import {createOpdsClient} from "./opds.js";
         });
     });
 
-    async function loadFooterBook(element) {
-        const bookId = element.dataset.bookId;
-        const detail = await opds.fetchFeed(`/opds/search/books/i/${bookId}/`);
-        const rendered = document.createElement("div");
-        for (const [name, value] of Object.entries(element.dataset)) {
-            rendered.dataset[name] = value;
-        }
-        renderBooks(rendered, detail, false);
-        const card = rendered.querySelector(".book-card");
-        if (card) {
-            card.classList.add("footer-book-card");
-            element.replaceChildren(card);
-        }
-    }
-
-    document.querySelectorAll("[data-opds-footer-book]").forEach((element) => {
-        loadFooterBook(element).catch(() => {
-            element.replaceChildren();
-        });
-    });
-
     function setSearch() {
         const selected = document.querySelector(
             'input[name="searchtype"]:checked',

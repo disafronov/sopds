@@ -755,30 +755,6 @@ test("book annotations respect the OPDS content type and sanitize HTML", async (
   }
 });
 
-test("footer book card hides structured XML annotation", async () => {
-  const bookFeed = `<?xml version="1.0" encoding="utf-8"?>
-  <feed xmlns="http://www.w3.org/2005/Atom" xmlns:sopds="urn:sopds:meta">
-    <entry>
-      <id>book:42</id>
-      <title>Fixture book</title>
-      <sopds:annotation>Hidden footer annotation</sopds:annotation>
-    </entry>
-  </feed>`;
-  const dom = new JSDOM(
-    `<!doctype html>
-      <div data-opds-footer-book data-book-id="42"></div>`,
-    { runScripts: "dangerously", url: "https://sopds.test/web/" },
-  );
-  const { window } = dom;
-  window.fetch = async () => ({ ok: true, text: async () => bookFeed });
-
-  await loadFrontend(window);
-  await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
-
-  assert.equal(window.document.body.textContent.includes("Hidden footer annotation"), false);
-  dom.window.close();
-});
-
 test("direct book page omits empty structured XML annotation", async () => {
   const bookFeed = `<?xml version="1.0" encoding="utf-8"?>
   <feed xmlns="http://www.w3.org/2005/Atom" xmlns:sopds="urn:sopds:meta">
