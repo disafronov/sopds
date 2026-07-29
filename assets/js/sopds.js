@@ -78,6 +78,14 @@ import {createOpdsClient} from "./opds.js";
                     node.removeAttribute(name);
                 });
             });
+            const lastChild = content.lastElementChild;
+            if (
+                lastChild?.localName === "p"
+                && !lastChild.textContent.replace(/\u00a0/gu, " ").trim()
+                && !lastChild.querySelector("img")
+            ) {
+                lastChild.remove();
+            }
         } else {
             content.textContent = value;
         }
