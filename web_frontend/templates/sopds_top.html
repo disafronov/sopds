@@ -19,7 +19,15 @@
       {% csrf_token %}
 
       <div class="input-group">
-        <input class="input-group-field" type="search" name="searchterms" placeholder="Search" id="main_searchbox" minlength="3" required>
+        <input
+          class="input-group-field"
+          type="search"
+          name="searchterms"
+          placeholder="{% if searchobject == "author" %}{% trans "Search by author" %}{% elif searchobject == "series" %}{% trans "Search by series" %}{% elif searchobject == "genre" %}{% trans "Search by genre" %}{% elif searchobject == "as" %}{% trans "Search by author and series" %}{% else %}{% trans "Search by title" %}{% endif %}"
+          id="main_searchbox"
+          minlength="3"
+          required
+        >
 
         <div class="input-group-button">
           <button class="button" type="submit" name="submit">{% trans "Search" %}</button>
@@ -40,9 +48,10 @@
         <div class="row">
           <fieldset>
             <legend class="show-for-sr">{% trans "Choose Search Type:" %}</legend>
-            <label class="search-dropdown__option"><input type="radio" name="searchtype" value="m" id="title" data-search-url="{% url "web:searchbooks" %}" {% if searchobject == "title" or not searchobject %}checked{% endif %}><span>{% trans "Title" %}</span></label>
-            <label class="search-dropdown__option"><input type="radio" name="searchtype" value="m" id="author" data-search-url="{% url "web:searchauthors" %}" {% if searchobject == "author" %}checked{% endif %}><span>{% trans "Author" %}</span></label>
-            <label class="search-dropdown__option"><input type="radio" name="searchtype" value="m" id="series" data-search-url="{% url "web:searchseries" %}" {% if searchobject == "series" %}checked{% endif %}><span>{% trans "Series" %}</span></label>
+            <label class="search-dropdown__option"><input type="radio" name="searchtype" value="m" id="title" data-search-url="{% url "web:searchbooks" %}" data-placeholder="{% trans "Search by title" %}" {% if searchobject == "title" or not searchobject %}checked{% endif %}><span>{% trans "Title" context "search option" %}</span></label>
+            <label class="search-dropdown__option"><input type="radio" name="searchtype" value="m" id="author" data-search-url="{% url "web:searchauthors" %}" data-placeholder="{% trans "Search by author" %}" {% if searchobject == "author" %}checked{% endif %}><span>{% trans "Author" context "search option" %}</span></label>
+            <label class="search-dropdown__option"><input type="radio" name="searchtype" value="m" id="series" data-search-url="{% url "web:searchseries" %}" data-placeholder="{% trans "Search by series" %}" {% if searchobject == "series" %}checked{% endif %}><span>{% trans "Series" context "search option" %}</span></label>
+            <label class="search-dropdown__option"><input type="radio" name="searchtype" value="g" id="genre" data-search-url="{% url "web:searchbooks" %}" data-placeholder="{% trans "Search by genre" %}" {% if searchobject == "genre" %}checked{% endif %}><span>{% trans "Genre" context "search option" %}</span></label>
           </fieldset>
         </div>
       </div>
