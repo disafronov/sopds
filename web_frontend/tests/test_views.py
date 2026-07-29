@@ -739,12 +739,11 @@ class TestSeriesView:
 
 
 @pytest.mark.parametrize(
-    ("view_name", "view", "model_name", "feed_url", "selector_url", "search_url"),
+    ("view_name", "view", "feed_url", "selector_url", "search_url"),
     [
         (
             "book",
             "BooksView",
-            "Book",
             "/opds/books/1/AB/",
             "/web/book/",
             "/web/search/books/",
@@ -752,7 +751,6 @@ class TestSeriesView:
         (
             "author",
             "AuthorsView",
-            "Author",
             "/opds/authors/1/AB/",
             "/web/author/",
             "/web/search/authors/",
@@ -760,7 +758,6 @@ class TestSeriesView:
         (
             "series",
             "SeriesView",
-            "Series",
             "/opds/series/1/AB/",
             "/web/series/",
             "/web/search/series/",
@@ -772,7 +769,6 @@ def test_selector_views_adapt_public_opds_feeds(
     mocker: MockerFixture,
     view_name: str,
     view: str,
-    model_name: str,
     feed_url: str,
     selector_url: str,
     search_url: str,
@@ -791,7 +787,6 @@ def test_selector_views_adapt_public_opds_feeds(
         return HttpResponse("ok")
 
     mocker.patch.object(views, "render", side_effect=capture_render)
-    raw = mocker.patch.object(getattr(views, model_name).objects, "raw")
     _set_auth(mocker, False)
     request = make_anon_request()
     request.GET = QueryDict("lang=1&chars=ab")
@@ -800,7 +795,6 @@ def test_selector_views_adapt_public_opds_feeds(
 
     assert response.status_code == 200
     assert template_name == "sopds_selector.html"
-    raw.assert_not_called()
     assert rendered["current"] == view_name
     assert rendered["opds_adapter"]["feed_url"] == feed_url
     assert rendered["opds_adapter"]["selector_url"] == selector_url

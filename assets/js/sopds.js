@@ -276,56 +276,73 @@ import {createOpdsClient} from "./opds.js";
         )?.term || "";
     }
 
-    function pageUrl(element, page) {
+    function webPageHref(link, element) {
+        const page = pageNumber(link?.href);
+        if (!page) return "";
         const url = new URL(element.dataset.pageUrl, window.location);
         if (element.dataset.mode === "catalogs" && element.dataset.catId) {
             url.searchParams.set("cat", element.dataset.catId);
         } else {
             url.searchParams.set("searchtype", element.dataset.searchtype);
             url.searchParams.set("searchterms", element.dataset.searchterms);
+            if (element.dataset.searchterms0) {
+                url.searchParams.set("searchterms0", element.dataset.searchterms0);
+            }
         }
         url.searchParams.set("page", page);
         return `${url.pathname}${url.search}`;
     }
 
     function renderPagination(element, detail) {
-        const target = document.querySelector("[data-opds-pagination]");
-        if (!target || detail.pages <= 1) return;
-        const list = document.createElement("ul");
-        list.className = "pagination";
-        const previous = document.createElement("li");
-        previous.className = "pagination-previous";
-        previous.textContent = target.dataset.previousLabel;
-        if (detail.page > 1) {
-            const link = document.createElement("a");
-            link.href = pageUrl(element, detail.page - 1);
-            link.textContent = target.dataset.previousLabel;
-            previous.replaceChildren(link);
-        } else previous.className = "disabled";
-        list.append(previous);
-        for (let number = 1; number <= detail.pages; number += 1) {
-            const item = document.createElement("li");
-            if (number === detail.page) item.className = "current";
-            else {
-                const link = document.createElement("a");
-                link.href = pageUrl(element, number);
-                link.textContent = String(number);
-                item.append(link);
-            }
-            if (number === detail.page) item.textContent = String(number);
-            list.append(item);
+        const targets = document.querySelectorAll("[data-opds-pagination]");
+        if (!targets.length) return;
+        const first = opdsLink(detail, "first");
+        const previous = opdsLink(detail, "previous") || opdsLink(detail, "prev");
+        const next = opdsLink(detail, "next");
+        const last = opdsLink(detail, "last");
+        const hasMultiplePages = previous
+            || next
+            || (first && last && pageNumber(first.href) !== pageNumber(last.href));
+        if (!hasMultiplePages) {
+            targets.forEach((target) => {
+                target.hidden = true;
+                target.replaceChildren();
+            });
+            return;
         }
-        const next = document.createElement("li");
-        next.className = "pagination-next";
-        next.textContent = target.dataset.nextLabel;
-        if (detail.page < detail.pages) {
-            const link = document.createElement("a");
-            link.href = pageUrl(element, detail.page + 1);
-            link.textContent = target.dataset.nextLabel;
-            next.replaceChildren(link);
-        } else next.className = "disabled";
-        list.append(next);
-        target.replaceChildren(list);
+        targets.forEach((target) => {
+            target.hidden = false;
+            const list = document.createElement("div");
+            list.className = "opds-pagination";
+            const before = document.createElement("div");
+            before.className = "opds-pagination__before";
+            const after = document.createElement("div");
+            after.className = "opds-pagination__after";
+            const shownPages = new Set([detail.page]);
+            const addPageLink = (group, link, className, label) => {
+                const page = pageNumber(link?.href);
+                if (!link || shownPages.has(page)) return;
+                shownPages.add(page);
+                const item = document.createElement("span");
+                item.className = className;
+                const anchor = document.createElement("a");
+                anchor.href = webPageHref(link, element);
+                anchor.dataset.page = String(page);
+                anchor.setAttribute("aria-label", label);
+                anchor.textContent = anchor.dataset.page;
+                item.append(anchor);
+                group.append(item);
+            };
+            addPageLink(before, first, "pagination-first", target.dataset.firstLabel);
+            addPageLink(before, previous, "pagination-previous", target.dataset.previousLabel);
+            const current = document.createElement("span");
+            current.className = "current";
+            current.textContent = String(detail.page);
+            addPageLink(after, next, "pagination-next", target.dataset.nextLabel);
+            addPageLink(after, last, "pagination-last", target.dataset.lastLabel);
+            list.append(before, current, after);
+            target.replaceChildren(list);
+        });
     }
 
     function renderSelector(element, detail) {
