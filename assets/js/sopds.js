@@ -1,11 +1,31 @@
 import {createOpdsClient} from "./opds.js";
 
-(function($) {
+(function() {
     "use strict";
 
     const opds = createOpdsClient({
         fetch: (...args) => window.fetch(...args),
     });
+
+    function matchDesktopLayoutToMenu() {
+        const menu = document.getElementById("main_menu");
+        const isDesktop = window.matchMedia?.("(min-width: 64em)")?.matches;
+        if (!menu || !isDesktop) {
+            document.documentElement.style.removeProperty("--sopds-menu-width");
+            return;
+        }
+
+        const width = menu.scrollWidth;
+        if (width) {
+            document.documentElement.style.setProperty(
+                "--sopds-menu-width",
+                `${width}px`,
+            );
+        }
+    }
+
+    matchDesktopLayoutToMenu();
+    window.addEventListener("resize", matchDesktopLayoutToMenu);
 
     async function fetchAnnotation(url) {
         const response = await window.fetch(url, {
@@ -143,7 +163,7 @@ import {createOpdsClient} from "./opds.js";
 
         form.action = selected.dataset.searchUrl;
         searchBox.placeholder = `Search by ${selected.id}`;
-        $("#search-dropdown").foundation("close");
+        closeSearchDropdown();
     }
 
     document
@@ -171,37 +191,101 @@ import {createOpdsClient} from "./opds.js";
             });
         });
 
-    document
-        .querySelectorAll(".bookshelf-delete-trigger")
-        .forEach(function(trigger) {
-            trigger.addEventListener("click", function() {
-                const modal = $("#DeleteBookModal");
-                const bookId = trigger.dataset.bookId;
-
-                $("#DeleteBook_book").val(bookId);
-                $("#DeleteBook_image").attr(
-                    "src",
-                    `${modal[0].dataset.coverUrl}${bookId}/`,
-                );
-                $("#DeleteBook_title").text(trigger.dataset.bookTitle);
-                modal.foundation("open");
-            });
-        });
-
     document.addEventListener("click", function(event) {
+        const searchToggle = event.target.closest(".search-dropdown-toggle");
+        if (searchToggle) {
+            toggleSearchDropdown(searchToggle);
+            return;
+        }
+
+        if (!event.target.closest(".top-bar-search")) closeSearchDropdown();
+
+        if (!event.target.closest('#main_menu, .menu-icon[aria-controls="main_menu"]')) {
+            closeMainMenu();
+        }
+
+        const menuToggle = event.target.closest('.menu-icon[aria-controls="main_menu"]');
+        if (menuToggle) {
+            closeSearchDropdown();
+            const menu = document.getElementById("main_menu");
+            const isOpen = menu.classList.toggle("is-open");
+            menuToggle.setAttribute("aria-expanded", String(isOpen));
+            return;
+        }
+
+        const submenuToggle = event.target.closest(".sopdsmenu__submenu-toggle");
+        if (submenuToggle) {
+            const item = submenuToggle.closest("li");
+            const isOpen = item.classList.toggle("is-open");
+            if (isOpen) {
+                item.parentElement?.querySelectorAll(":scope > li.is-open").forEach((sibling) => {
+                    if (sibling === item) return;
+                    sibling.classList.remove("is-open");
+                    sibling.querySelector(".sopdsmenu__submenu-toggle")?.setAttribute("aria-expanded", "false");
+                });
+            }
+            submenuToggle.setAttribute("aria-expanded", String(isOpen));
+            return;
+        }
+
+        const dialogTrigger = event.target.closest("[data-dialog-open]");
+        if (dialogTrigger) {
+            document.getElementById(dialogTrigger.dataset.dialogOpen)?.showModal();
+            return;
+        }
+
+        const dialogClose = event.target.closest("[data-dialog-close]");
+        if (dialogClose) {
+            dialogClose.closest("dialog")?.close();
+            return;
+        }
+
         const trigger = event.target.closest(".bookshelf-delete-trigger");
         if (!trigger) {
             return;
         }
-        const modal = $("#DeleteBookModal");
+        const modal = document.getElementById("DeleteBookModal");
         const bookId = trigger.dataset.bookId;
-        $("#DeleteBook_book").val(bookId);
-        $("#DeleteBook_image").attr(
-            "src",
-            `${modal[0].dataset.coverUrl}${bookId}/`,
-        );
-        $("#DeleteBook_title").text(trigger.dataset.bookTitle || "");
-        modal.foundation("open");
+        document.getElementById("DeleteBook_book").value = bookId;
+        document.getElementById("DeleteBook_image").src = `${modal.dataset.coverUrl}${bookId}/`;
+        document.getElementById("DeleteBook_title").textContent = trigger.dataset.bookTitle || "";
+        modal.showModal();
+    });
+
+    function closeSearchDropdown() {
+        const dropdown = document.getElementById("search-dropdown");
+        const toggle = document.querySelector(".search-dropdown-toggle");
+        if (!dropdown || !toggle) return;
+        dropdown.hidden = true;
+        toggle.setAttribute("aria-expanded", "false");
+    }
+
+    function closeMainMenu() {
+        const menu = document.getElementById("main_menu");
+        const toggle = document.querySelector('.menu-icon[aria-controls="main_menu"]');
+        if (!menu || !toggle) return;
+        menu.classList.remove("is-open");
+        toggle.setAttribute("aria-expanded", "false");
+    }
+
+    function toggleSearchDropdown(toggle) {
+        const dropdown = document.getElementById(toggle.getAttribute("aria-controls"));
+        if (!dropdown) return;
+        if (dropdown.hidden) closeMainMenu();
+        dropdown.hidden = !dropdown.hidden;
+        toggle.setAttribute("aria-expanded", String(!dropdown.hidden));
+    }
+
+    document.addEventListener("keydown", function(event) {
+        if (event.key !== "Escape") return;
+        closeSearchDropdown();
+        closeMainMenu();
+    });
+
+    document.querySelectorAll("dialog").forEach((dialog) => {
+        dialog.addEventListener("click", (event) => {
+            if (event.target === dialog) dialog.close();
+        });
     });
 
     function opdsLink(entry, rel) {
@@ -696,6 +780,5 @@ import {createOpdsClient} from "./opds.js";
         renderPagination(element, detail);
     }
 
-    $(document).foundation();
     setSearch();
-})(jQuery);
+})();

@@ -2,8 +2,10 @@
 
 <div class="top-bar top-bar--search">
   <div class="top-bar-title">
-    <span data-responsive-toggle="main_menu" data-hide-for="medium">
-      <button class="menu-icon" type="button" data-toggle></button>
+    <span class="main-menu-toggle">
+      <button class="menu-icon" type="button" aria-controls="main_menu" aria-expanded="false">
+        <span class="show-for-sr">{% trans "Toggle navigation" %}</span>
+      </button>
     </span>
     <div class="title-bar-title">
       <a href="/">
@@ -24,18 +26,23 @@
         </div>
 
         <div class="input-group-button">
-          <a class="dropdown button arrow-only float-right" data-toggle="search-dropdown"></a>
+          <button
+            class="button arrow-only search-dropdown-toggle"
+            type="button"
+            aria-controls="search-dropdown"
+            aria-expanded="false"
+          ><span class="show-for-sr">{% trans "Choose search type" %}</span></button>
         </div>
         <input type="hidden" name="page" value="0">
       </div>
 
-      <div class="dropdown-pane bottom" id="search-dropdown" data-dropdown>
+      <div class="search-dropdown" id="search-dropdown" hidden>
         <div class="row">
-          <fieldset class="large-12 columns">
-            <legend>{% trans "Choose Search Type:" %}</legend>
-            <input type="radio" name="searchtype" value="m" id="title" data-search-url="{% url "web:searchbooks" %}" {% if searchobject == "title" or not searchobject %}checked{% endif %}><label for="title">{% trans "Title" %}</label>
-            <input type="radio" name="searchtype" value="m" id="author" data-search-url="{% url "web:searchauthors" %}" {% if searchobject == "author" %}checked{% endif %}><label for="author">{% trans "Author" %}</label>
-            <input type="radio" name="searchtype" value="m" id="series" data-search-url="{% url "web:searchseries" %}" {% if searchobject == "series" %}checked{% endif %}><label for="series">{% trans "Series" %}</label>
+          <fieldset>
+            <legend class="show-for-sr">{% trans "Choose Search Type:" %}</legend>
+            <label class="search-dropdown__option"><input type="radio" name="searchtype" value="m" id="title" data-search-url="{% url "web:searchbooks" %}" {% if searchobject == "title" or not searchobject %}checked{% endif %}><span>{% trans "Title" %}</span></label>
+            <label class="search-dropdown__option"><input type="radio" name="searchtype" value="m" id="author" data-search-url="{% url "web:searchauthors" %}" {% if searchobject == "author" %}checked{% endif %}><span>{% trans "Author" %}</span></label>
+            <label class="search-dropdown__option"><input type="radio" name="searchtype" value="m" id="series" data-search-url="{% url "web:searchseries" %}" {% if searchobject == "series" %}checked{% endif %}><span>{% trans "Series" %}</span></label>
           </fieldset>
         </div>
       </div>
