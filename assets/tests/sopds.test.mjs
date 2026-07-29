@@ -712,7 +712,7 @@ test("book result falls back to a fixed empty cover and keeps metadata compact",
   dom.window.close();
 });
 
-test("bookshelf cards preserve downloads and delete controls outside navigation", async () => {
+test("bookshelf cards expose only an external delete control", async () => {
   const bookFeed = `<?xml version="1.0" encoding="utf-8"?>
   <feed xmlns="http://www.w3.org/2005/Atom"><entry>
     <id>book:42</id><title>Bookshelf book</title>
