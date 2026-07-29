@@ -8,6 +8,7 @@ const parser = new XMLParser({
 const contentParser = new XMLParser({
     ignoreAttributes: false,
     htmlEntities: true,
+    trimValues: false,
 });
 
 function list(value) {
