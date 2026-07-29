@@ -4,6 +4,11 @@ const parser = new XMLParser({
     ignoreAttributes: false,
     stopNodes: ["feed.entry.content"],
 });
+const contentParser = new XMLParser({
+    ignoreAttributes: false,
+    htmlEntities: true,
+});
+const defaultBaseUrl = "http://opds.invalid/";
 
 function list(value) {
     return value === undefined ? [] : Array.isArray(value) ? value : [value];
@@ -17,57 +22,35 @@ function text(value) {
 }
 
 function decodeContent(value) {
-    const area = document.createElement("textarea");
-    area.innerHTML = String(value).replace(/^<!\[CDATA\[|\]\]>$/gu, "");
-    return area.value;
+    return text(contentParser.parse(`<content>${String(value)}</content>`).content);
 }
 
-function pageNumber(href) {
+function linkPath(href, baseUrl) {
+    return new URL(href, baseUrl).pathname.split("/").filter(Boolean);
+}
+
+function pageNumber(href, baseUrl) {
     if (!href) return 0;
-    const url = new URL(href, window.location);
+    const url = new URL(href, baseUrl);
     const queryPage = Number(url.searchParams.get("page"));
     if (queryPage > 0) return queryPage;
-    const finalSegment = url.pathname.split("/").filter(Boolean).at(-1);
+    const finalSegment = linkPath(href, baseUrl).at(-1);
     return /^\d+$/u.test(finalSegment || "") ? Number(finalSegment) : 1;
 }
 
-function seriesFromLinks(links) {
+function entitiesFromLinks(links, kind, baseUrl) {
     return links
         .filter((link) => {
             if (link.rel !== "related") return false;
-            const parts = new URL(link.href, window.location).pathname
-                .split("/")
-                .filter(Boolean);
-            return parts.at(-2) === "s";
+            return linkPath(link.href, baseUrl).at(-2) === kind;
         })
         .map((link) => ({
-            id: new URL(link.href, window.location).pathname
-                .split("/")
-                .filter(Boolean)
-                .at(-1) || "",
+            id: linkPath(link.href, baseUrl).at(-1) || "",
             name: (link.title || "").replace(/^[^:]+:\s*/u, ""),
         }));
 }
 
-function genresFromLinks(links) {
-    return links
-        .filter((link) => {
-            if (link.rel !== "related") return false;
-            const parts = new URL(link.href, window.location).pathname
-                .split("/")
-                .filter(Boolean);
-            return parts.at(-2) === "g";
-        })
-        .map((link) => ({
-            id: new URL(link.href, window.location).pathname
-                .split("/")
-                .filter(Boolean)
-                .at(-1) || "",
-            name: (link.title || "").replace(/^[^:]+:\s*/u, ""),
-        }));
-}
-
-export function parseFeed(xml) {
+export function parseFeed(xml, {baseUrl = defaultBaseUrl} = {}) {
     const feed = parser.parse(xml).feed || {};
     const feedLinks = list(feed.link).map((link) => ({
         href: link["@_href"] || "",
@@ -78,14 +61,14 @@ export function parseFeed(xml) {
     const linkByRel = (...relations) => feedLinks.find(
         (link) => relations.includes(link.rel),
     );
-    const previousPage = pageNumber(linkByRel("previous", "prev")?.href);
-    const nextPage = pageNumber(linkByRel("next")?.href);
+    const previousPage = pageNumber(linkByRel("previous", "prev")?.href, baseUrl);
+    const nextPage = pageNumber(linkByRel("next")?.href, baseUrl);
     const currentPage = previousPage
         ? previousPage + 1
         : nextPage
             ? Math.max(1, nextPage - 1)
-            : pageNumber(linkByRel("self")?.href) || 1;
-    const lastPage = pageNumber(linkByRel("last")?.href) || currentPage;
+            : pageNumber(linkByRel("self")?.href, baseUrl) || 1;
+    const lastPage = pageNumber(linkByRel("last")?.href, baseUrl) || currentPage;
     const entries = list(feed.entry).map((entry) => {
         const categories = list(entry.category);
         const links = list(entry.link).map((link) => ({
@@ -109,8 +92,8 @@ export function parseFeed(xml) {
                 id: text(author.uri).split("/").filter(Boolean).at(-1) || "",
                 name: text(author.name),
             })),
-            genres: genresFromLinks(links),
-            series: seriesFromLinks(links),
+            genres: entitiesFromLinks(links, "g", baseUrl),
+            series: entitiesFromLinks(links, "s", baseUrl),
             filesize: acquisition?.length ? String(Math.floor(acquisition.length / 1000)) : "",
             issued: text(entry["dcterms:issued"]),
             annotation: text(entry.summary),
@@ -129,20 +112,31 @@ export function parseFeed(xml) {
     };
 }
 
-async function fetchResource(url, accept) {
-    const response = await fetch(url, {
-        cache: "no-store",
-        credentials: "same-origin",
-        headers: {Accept: accept},
-    });
-    if (!response.ok) throw new Error(`OPDS request failed: ${response.status}`);
-    return response.text();
-}
+export function createOpdsClient({fetch: request, baseUrl = defaultBaseUrl}) {
+    if (typeof request !== "function") {
+        throw new TypeError("createOpdsClient requires a fetch implementation");
+    }
 
-export async function fetchFeed(url) {
-    return parseFeed(await fetchResource(url, "application/atom+xml"));
-}
+    async function fetchResource(url, accept) {
+        const response = await request(url, {
+            cache: "no-store",
+            credentials: "same-origin",
+            headers: {Accept: accept},
+        });
+        if (!response.ok) throw new Error(`OPDS request failed: ${response.status}`);
+        return {
+            text: await response.text(),
+            url: response.url || new URL(url, baseUrl).href,
+        };
+    }
 
-export async function fetchContent(url) {
-    return fetchResource(url, "text/html");
+    return {
+        async fetchFeed(url) {
+            const response = await fetchResource(url, "application/atom+xml");
+            return parseFeed(response.text, {baseUrl: response.url});
+        },
+        async fetchLinkedContent(url) {
+            return (await fetchResource(url, "text/html")).text;
+        },
+    };
 }

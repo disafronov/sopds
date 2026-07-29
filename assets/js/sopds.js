@@ -1,10 +1,15 @@
-import {fetchContent, fetchFeed} from "./opds.js";
+import {createOpdsClient} from "./opds.js";
 
 (function($) {
     "use strict";
 
+    const opds = createOpdsClient({
+        fetch: (...args) => window.fetch(...args),
+        baseUrl: window.location.href,
+    });
+
     async function loadOPDS(element) {
-        const detail = await fetchFeed(element.dataset.feedUrl);
+        const detail = await opds.fetchFeed(element.dataset.feedUrl);
         const CustomEventClass = element.ownerDocument.defaultView.CustomEvent;
         element.dispatchEvent(new CustomEventClass("sopds:feed", {detail}));
     }
@@ -42,7 +47,7 @@ import {fetchContent, fetchFeed} from "./opds.js";
 
     async function loadFooterBook(element) {
         const bookId = element.dataset.bookId;
-        const detail = await fetchFeed(`/opds/search/books/i/${bookId}/`);
+        const detail = await opds.fetchFeed(`/opds/search/books/i/${bookId}/`);
         const rendered = document.createElement("div");
         for (const [name, value] of Object.entries(element.dataset)) {
             rendered.dataset[name] = value;
@@ -463,7 +468,7 @@ import {fetchContent, fetchFeed} from "./opds.js";
             placeholder.textContent = element.dataset.loadingLabel || "Loading…";
             section.append(placeholder);
             article.append(section);
-            fetchContent(entry.content.src)
+            opds.fetchLinkedContent(entry.content.src)
                 .then((annotation) => {
                     const content = parseAnnotation(annotation);
                     if (content) {
@@ -549,7 +554,7 @@ import {fetchContent, fetchFeed} from "./opds.js";
             };
             if (showAnnotation && entry.annotation) appendAnnotation(entry.annotation);
             if (showAnnotation && entry.content?.src) {
-                fetchContent(entry.content.src)
+                opds.fetchLinkedContent(entry.content.src)
                     .then((annotation) => {
                         if (!annotation) return;
                         appendAnnotation(annotation);
