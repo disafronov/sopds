@@ -153,16 +153,13 @@ button {
 }
 
 .arrow-only::after {
-  display: block;
-  width: 0;
-  height: 0;
-  border: 0.4em solid transparent;
-  border-bottom: 0;
-  border-top-color: currentcolor;
-  content: '';
+  display: inline-block;
+  margin-left: 0;
+  content: '▾';
 }
 
 .search-dropdown {
+  display: none;
   position: absolute;
   top: 100%;
   right: 0;
@@ -174,6 +171,10 @@ button {
   border: 1px solid $sopds-menu-bg-active-color;
   background: $sopds-menu-bg-color;
   color: $sopds-menu-color;
+}
+
+.search-dropdown.is-open {
+  display: block;
 }
 
 .search-dropdown .row {
@@ -807,6 +808,17 @@ td {
 }
 
 @media screen and (max-width: 39.9375em) {
+  .arrow-only {
+    width: 2.75rem;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .arrow-only::after {
+    font-size: 2rem;
+    line-height: 1;
+  }
+
   .opds-books,
   .book-detail {
     width: calc(100% + 1.25rem);
@@ -853,16 +865,16 @@ td {
   }
 
   .top-bar-title .menu-icon::after {
-    top: 1.6875rem;
-    left: 0.5rem;
+    top: 1.875rem;
+    left: 0.5625rem;
     width: 1.5rem;
   }
 
   .top-bar-title .menu-icon::before {
-    top: 0.6875rem;
-    left: 0.5rem;
+    top: 0.625rem;
+    left: 0.5625rem;
     width: 1.5rem;
-    box-shadow: 0 0.5rem $white;
+    box-shadow: 0 0.625rem $white;
   }
 
   #main_menu .sopdsmenu a,
@@ -974,6 +986,10 @@ td {
 }
 
 @media screen and (min-width: 40em) {
+  .top-bar-search:has(.search-dropdown-toggle:hover, .search-dropdown:hover) .search-dropdown {
+    display: block;
+  }
+
   .book-detail-row > .book-detail-summary {
     padding-left: 1rem;
   }
