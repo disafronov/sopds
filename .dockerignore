@@ -66,3 +66,6 @@ opds_catalog/log/
 .env.docker
 
 *.mo
+
+# MAGG
+/.magg
