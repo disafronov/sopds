@@ -124,6 +124,7 @@ Settings are read from environment variables. See `env.example` for all options.
 | Variable | Description | Default |
 | --- | --- | --- |
 | `GUNICORN_WORKERS` | Gunicorn worker processes; `0` selects the CPU count automatically. | `0` |
+| `WHITENOISE_MAX_AGE` | Max-age for static files; hashed files are immutable. | `31536000` |
 
 ### Superuser (used by `make run` and `make docker-run`)
 
