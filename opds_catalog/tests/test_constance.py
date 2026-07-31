@@ -9,9 +9,6 @@ class constanceTestCase(TestCase):
     test_module_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     test_ROOTLIB = os.path.join(test_module_path, "tests/data")
 
-    def setUp(self) -> None:
-        pass
-
     def test_constance_attributes_count(self) -> None:
         out = StringIO()
         call_command("constance", "list", stdout=out)
