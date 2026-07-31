@@ -290,6 +290,7 @@ button {
   border: 1px solid $medium-gray;
   background: $white;
   color: $body-font-color;
+  text-align: center;
 }
 
 .sopds-dialog::backdrop {
@@ -297,7 +298,8 @@ button {
 }
 
 .sopds-dialog table {
-  width: 100%;
+  width: auto;
+  margin: 0 auto;
 
   th,
   td {
