@@ -242,6 +242,9 @@ STORAGES = {
     },
 }
 
+# Long-lived cache for hashed static files (WhiteNoise serves max-age=0 otherwise).
+WHITENOISE_MAX_AGE = int(os.getenv("WHITENOISE_MAX_AGE", "31536000"))
+
 CONSTANCE_BACKEND = "constance.backends.database.DatabaseBackend"
 
 CONSTANCE_ADDITIONAL_FIELDS = {
