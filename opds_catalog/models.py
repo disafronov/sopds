@@ -122,12 +122,6 @@ class bauthor(models.Model):
         ]
 
 
-#    class Meta:
-#        index_together = [
-#            ["book", "author"],
-#        ]
-
-
 class Genre(models.Model):
     genre = models.CharField(max_length=SIZE_GENRE, db_index=True)
     section = models.CharField(max_length=SIZE_GENRE_SECTION, db_index=True)
@@ -170,12 +164,6 @@ class bseries(models.Model):
                 fields=["book", "ser"], name="bseries_book_series_uniq"
             )
         ]
-
-
-#    class Meta:
-#        index_together = [
-#            ["book", "ser"],
-#        ]
 
 
 class bookshelf(models.Model):
