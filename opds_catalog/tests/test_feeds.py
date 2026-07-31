@@ -206,11 +206,18 @@ class feedsTestCase(TestCase):
         self.assertIn("Логинов Святослав", response.content.decode())
 
     def test_SearchGenres(self) -> None:
-        # response = c.get('/opds/search/genres/antiq/')
-        # self.assertEqual(response.status_code, 200)
-        # self.assertIn("The Sanctuary Sparrow", response.content.decode())
-        # self.assertIn("Peters Ellis", response.content.decode())
-        pass
+        c = Client()
+        response = c.get("/opds/search/books/g/229/")
+        self.assertEqual(response.status_code, 200)
+        response = c.get(
+            reverse(
+                "opds:searchbooks", kwargs={"searchtype": "g", "searchterms": "229"}
+            )
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("The Sanctuary Sparrow", response.content.decode())
+        self.assertIn("Peters Ellis", response.content.decode())
+        self.assertIn("antique", response.content.decode())
 
     def test_LangFeed(self) -> None:
         c = Client()
