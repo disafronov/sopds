@@ -690,7 +690,7 @@ import {createOpdsClient} from "./opds.js";
             section.append(heading);
             const placeholder = document.createElement("p");
             placeholder.className = "book-detail-annotation-loading";
-            placeholder.textContent = element.dataset.loadingLabel || "Loading…";
+            placeholder.textContent = element.dataset.loadingLabel || "Loading...";
             section.append(placeholder);
             article.append(section);
             fetchAnnotation(entry.content.src)
