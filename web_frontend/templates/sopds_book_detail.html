@@ -7,6 +7,11 @@
     data-cover-url="{% url 'opds:covertmpl' %}"
     data-no-cover="{% static 'images/nocover.jpg' %}"
     data-download-label="{% trans "Download" %}"
+    data-format-fb2="{% trans "FB2" %}"
+    data-format-fb2-zip="{% trans "FB2+ZIP" %}"
+    data-format-epub="{% trans "EPUB" %}"
+    data-format-mobi="{% trans "MOBI" %}"
+    data-format-download="{% trans "Download" %}"
     data-authors-label="{% trans "Authors" %}"
     data-series-label="{% trans "Series" %}"
     data-genres-label="{% trans "Genres" %}"
@@ -15,11 +20,11 @@
     data-publication-date-label="{% trans "Date" %}"
     data-annotation-label="{% trans "Annotation" %}"
     data-cover-label="{% trans "Book cover" %}"
-    data-loading-label="{% trans "Loading…" %}"
+    data-loading-label="{% trans "Loading..." %}"
     data-error-label="{% trans "Unable to load book details." %}"
 >
   <div class="callout secondary book-detail-loading" data-opds-loading role="status">
-    {% trans "Loading…" %}
+    {% trans "Loading..." %}
   </div>
   <div class="callout alert book-detail-error" data-opds-error role="alert" hidden>
     {% trans "Unable to load book details." %}

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-29 21:58+0000\n"
+"POT-Creation-Date: 2026-07-31 10:42+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -20,58 +20,79 @@ msgstr ""
 "(n%100>=11 && n%100<=14)? 2 : 3);\n"
 
 #: web_frontend/templates/sopds_book_detail.html:9
+#: web_frontend/templates/sopds_book_detail.html:14
 #: web_frontend/templates/sopds_books_opds.html:55
 msgid "Download"
 msgstr "Скачать"
 
 #: web_frontend/templates/sopds_book_detail.html:10
+msgid "FB2"
+msgstr "FB2"
+
+#: web_frontend/templates/sopds_book_detail.html:11
+msgid "FB2+ZIP"
+msgstr "FB2+ZIP"
+
+#: web_frontend/templates/sopds_book_detail.html:12
+msgid "EPUB"
+msgstr "EPUB"
+
+#: web_frontend/templates/sopds_book_detail.html:13
+msgid "MOBI"
+msgstr "MOBI"
+
+#: web_frontend/templates/sopds_book_detail.html:15
 #: web_frontend/templates/sopds_menu.html:7
 #: web_frontend/templates/sopds_menu.html:35 web_frontend/views.py:189
 #: web_frontend/views.py:348
 msgid "Authors"
 msgstr "Авторы"
 
-#: web_frontend/templates/sopds_book_detail.html:11
+#: web_frontend/templates/sopds_book_detail.html:16
 #: web_frontend/templates/sopds_menu.html:8
 #: web_frontend/templates/sopds_menu.html:43 web_frontend/views.py:178
 #: web_frontend/views.py:360
 msgid "Series"
 msgstr "Серии"
 
-#: web_frontend/templates/sopds_book_detail.html:12
+#: web_frontend/templates/sopds_book_detail.html:17
 #: web_frontend/templates/sopds_menu.html:9
 #: web_frontend/templates/sopds_menu.html:50 web_frontend/views.py:371
 msgid "Genres"
 msgstr "Жанры"
 
-#: web_frontend/templates/sopds_book_detail.html:13
+#: web_frontend/templates/sopds_book_detail.html:18
 #: web_frontend/templates/sopds_books_opds.html:51
 msgid "File size"
 msgstr "Размер файла"
 
-#: web_frontend/templates/sopds_book_detail.html:14
+#: web_frontend/templates/sopds_book_detail.html:19
 msgid "Kb"
 msgstr "Кб"
 
-#: web_frontend/templates/sopds_book_detail.html:15
+#: web_frontend/templates/sopds_book_detail.html:20
 msgid "Date"
 msgstr "Дата"
 
-#: web_frontend/templates/sopds_book_detail.html:16
+#: web_frontend/templates/sopds_book_detail.html:21
 msgid "Annotation"
 msgstr "Аннотация"
 
-#: web_frontend/templates/sopds_book_detail.html:17
+#: web_frontend/templates/sopds_book_detail.html:22
 msgid "Book cover"
 msgstr "Обложка"
 
-#: web_frontend/templates/sopds_book_detail.html:18
-#: web_frontend/templates/sopds_book_detail.html:22
-msgid "Loading…"
-msgstr "Загрузка…"
+#: web_frontend/templates/sopds_book_detail.html:23
+#: web_frontend/templates/sopds_book_detail.html:27
+#: web_frontend/templates/sopds_books_opds.html:58
+#: web_frontend/templates/sopds_catalogs_opds.html:17
+#: web_frontend/templates/sopds_results.html:22
+#: web_frontend/templates/sopds_selector.html:20
+msgid "Loading..."
+msgstr "Загрузка..."
 
-#: web_frontend/templates/sopds_book_detail.html:19
-#: web_frontend/templates/sopds_book_detail.html:25
+#: web_frontend/templates/sopds_book_detail.html:24
+#: web_frontend/templates/sopds_book_detail.html:30
 msgid "Unable to load book details."
 msgstr "Не удалось загрузить информацию о книге."
 
@@ -127,13 +148,6 @@ msgstr "Кб."
 #: web_frontend/templates/sopds_books_opds.html:53
 msgid "Publication date"
 msgstr "Дата публикации"
-
-#: web_frontend/templates/sopds_books_opds.html:58
-#: web_frontend/templates/sopds_catalogs_opds.html:17
-#: web_frontend/templates/sopds_results.html:22
-#: web_frontend/templates/sopds_selector.html:20
-msgid "Loading..."
-msgstr "Загрузка..."
 
 #: web_frontend/templates/sopds_books_opds.html:62
 #: web_frontend/templates/sopds_catalogs_opds.html:23
@@ -271,6 +285,10 @@ msgstr "Последняя"
 #: web_frontend/templates/sopds_top.html:7
 msgid "Toggle navigation"
 msgstr "Открыть или закрыть навигацию"
+
+#: web_frontend/templates/sopds_top.html:12
+msgid "SIMPLE OPDS CATALOG"
+msgstr "ПРОСТОЙ OPDS КАТАЛОГ"
 
 #: web_frontend/templates/sopds_top.html:26
 #: web_frontend/templates/sopds_top.html:52 web_frontend/views.py:98
