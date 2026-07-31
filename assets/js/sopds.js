@@ -546,15 +546,15 @@ import {createOpdsClient} from "./opds.js";
         container.append(line);
     }
 
-    function formatLabel(link) {
+    function formatLabel(link, element) {
         const labels = {
-            "application/fb2": "fb2",
-            "application/fb2+xml": "fb2",
-            "application/fb2+zip": "fb2+zip",
-            "application/epub+zip": "epub",
-            "application/x-mobipocket-ebook": "mobi",
+            "application/fb2": element.dataset.formatFb2,
+            "application/fb2+xml": element.dataset.formatFb2,
+            "application/fb2+zip": element.dataset.formatFb2Zip,
+            "application/epub+zip": element.dataset.formatEpub,
+            "application/x-mobipocket-ebook": element.dataset.formatMobi,
         };
-        return labels[link.type] || "download";
+        return labels[link.type] || element.dataset.formatDownload || "Download";
     }
 
     function renderBookDetail(element, detail) {
@@ -657,7 +657,7 @@ import {createOpdsClient} from "./opds.js";
                 const anchor = document.createElement("a");
                 anchor.href = link.href;
                 anchor.className = "button small book-download-link";
-                anchor.textContent = formatLabel(link);
+                anchor.textContent = formatLabel(link, element);
                 downloadsDiv.append(anchor);
             });
             metaCol.append(downloadsDiv);

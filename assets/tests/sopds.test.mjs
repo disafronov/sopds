@@ -851,7 +851,9 @@ test("book detail renders semantic metadata and acquisition links", async () => 
   const dom = new JSDOM(
     `<!doctype html><div data-opds-book-detail data-feed-url="/detail/"
       data-cover-url="/opds/thumb/" data-no-cover="/static/no-cover.jpg"
-      data-download-label="Download" data-cover-label="Book cover"
+      data-download-label="Download" data-format-fb2="FB2" data-format-fb2-zip="FB2+ZIP"
+      data-format-epub="EPUB" data-format-mobi="MOBI" data-format-download="Download"
+      data-cover-label="Book cover"
       data-authors-label="Authors" data-series-label="Series" data-genres-label="Genres"
       data-file-size-label="File size" data-file-size-unit="KB"
       data-publication-date-label="Date" data-annotation-label="Annotation"></div>`,
@@ -869,7 +871,7 @@ test("book detail renders semantic metadata and acquisition links", async () => 
   assert.equal(window.document.querySelector(".book-detail-summary").className.includes("large-9"), true);
   assert.deepEqual(
     [...window.document.querySelectorAll(".book-detail-downloads a")].map((link) => [link.textContent, link.pathname]),
-    [["epub", "/opds/download/42/0/"], ["fb2", "/opds/download/42/1/"]],
+    [["EPUB", "/opds/download/42/0/"], ["FB2", "/opds/download/42/1/"]],
   );
   assert.equal(window.document.querySelectorAll(".book-detail-downloads a.button.small").length, 2);
   assert.equal(window.document.querySelectorAll(".book-detail-metadata dt").length, 4);
