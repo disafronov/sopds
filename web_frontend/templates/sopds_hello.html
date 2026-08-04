@@ -5,13 +5,13 @@
 {% block ext-body %}
     <div class="row">
         <div class="small-12 medium-8 large-8 small-centered columns">
-            <div style="text-align:center; margin-bottom:1rem;">
+            <div class="hello-greeting text-center">
                 <img src="{% static "images/sopds_logo.gif" %}" alt="SOPDS">
             </div>
-            <h3 style="text-align:center;">
+            <h3 class="text-center">
                 {% trans "Hello" %} {% if user.is_authenticated %}{{ user.username }}{% else %}{% trans "Guest" %}{% endif %}!
             </h3>
-            <p style="text-align:justify;">
+            <p class="text-justify">
                 {% blocktrans trimmed %}
                     Simple OPDS Catalog is a free self-hosted application for
                     creating an electronic OPDS book catalog.
@@ -23,11 +23,11 @@
                     tablets, smartphones, and other devices.
                 {% endblocktrans %}
             </p>
-            <p style="text-align:center;">
+            <p class="text-center">
                 {% trans "OPDS catalog address to add to your reading app:" %}
                 <a href="{% url "opds:main" %}"><code>{% url "opds:main" %}</code></a>
             </p>
-            <p style="text-align:center;">
+            <p class="text-center">
                 <a href="https://github.com/disafronov/sopds/issues">
                     {% trans "Report bugs and request features on GitHub Issues." %}
                 </a>
