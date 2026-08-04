@@ -5,7 +5,7 @@ import test from "node:test";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { JSDOM } from "jsdom";
+import { JSDOM, VirtualConsole } from "jsdom";
 
 const frontendRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -1091,5 +1091,188 @@ test("book detail keeps a visible localized error callout when feed fails", asyn
   assert.equal(error.getAttribute("role"), "alert");
   assert.equal(error.textContent, "Book unavailable");
   assert.equal(window.document.querySelector("[data-opds-loading]").hidden, true);
+  dom.window.close();
+});
+
+test("javascript: links from OPDS feeds never reach href attributes", async () => {
+  const selectorFeed = `<?xml version="1.0" encoding="utf-8"?>
+  <feed xmlns="http://www.w3.org/2005/Atom">
+    <entry>
+      <id>evil:1</id><title>Unsafe</title>
+      <link href="javascript:alert(1)" rel="subsection"/>
+    </entry>
+    <entry>
+      <id>ok:2</id><title>Safe</title>
+      <link href="/opds/books/1/A/" rel="subsection"/>
+    </entry>
+  </feed>`;
+  const dom = new JSDOM(
+    `<!doctype html><table data-opds-selector data-feed-url="/opds/books/1/"
+      data-feed-kind="books" data-kind="book" data-lang-code="1"
+      data-count-label="Total: %(count)s books."
+      data-selector-url="/web/book/" data-search-url="/web/search/books/">
+      <tbody></tbody></table>`,
+    {runScripts: "dangerously", url: "https://sopds.test/web/book/?lang=1"},
+  );
+  const {window} = dom;
+  window.fetch = async () => ({ok: true, text: async () => selectorFeed});
+
+  await loadFrontend(window);
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+
+  const links = [...window.document.querySelectorAll(".selector-link")];
+  assert.equal(links.length, 2);
+  // The selector renders the title span followed by a space separator before
+  // the count, so assert on the title element rather than the link text.
+  assert.equal(
+    links[0].querySelector(".selector-link__title").textContent,
+    "Unsafe",
+  );
+  assert.equal(links[0].hasAttribute("href"), false);
+  assert.equal(links[0].getAttribute("href"), null);
+  assert.equal(window.document.querySelector('a[href^="javascript:"]'), null);
+  assert.equal(links[1].pathname, "/web/book/");
+  assert.equal(links[1].search, "?lang=1&chars=A");
+  dom.window.close();
+});
+
+test("catalog rows with javascript: links get no href and no click navigation", async () => {
+  const catalogFeed = `<?xml version="1.0" encoding="utf-8"?>
+  <feed xmlns="http://www.w3.org/2005/Atom"><entry>
+    <id>c:1</id><title>Unsafe folder</title>
+    <link href="javascript:alert(1)" rel="subsection"/>
+  </entry></feed>`;
+  const dom = new JSDOM(
+    `<!doctype html><table class="clickable-rows" data-opds-catalogs data-cat-id="1"
+      data-feed-url="/opds/catalogs/" data-page-url="/web/catalogs/">
+      <tbody></tbody></table>`,
+    {runScripts: "dangerously", url: "https://sopds.test/web/catalogs/"},
+  );
+  const {window} = dom;
+  window.fetch = async () => ({ok: true, text: async () => catalogFeed});
+
+  await loadFrontend(window);
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+
+  const link = window.document.querySelector(".selector-link");
+  assert.equal(link.hasAttribute("href"), false);
+  assert.equal(link.parentElement.querySelector("a[href]"), null);
+  dom.window.close();
+});
+
+test("selector and catalog widgets tolerate a missing tbody", async () => {
+  const feedSource = `<?xml version="1.0" encoding="utf-8"?>
+  <feed xmlns="http://www.w3.org/2005/Atom"><entry>
+    <id>a:1</id><title>Entry</title>
+    <link href="/opds/books/1/A/" rel="subsection"/>
+  </entry></feed>`;
+  const dom = new JSDOM(
+    `<!doctype html>
+      <table data-opds-selector data-feed-url="/opds/books/1/"
+             data-selector-url="/web/book/"></table>
+      <table data-opds-catalogs data-feed-url="/opds/catalogs/"
+             data-page-url="/web/catalogs/"></table>`,
+    {runScripts: "dangerously", url: "https://sopds.test/web/book/"},
+  );
+  const {window} = dom;
+  window.fetch = async () => ({ok: true, text: async () => feedSource});
+
+  await loadFrontend(window);
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+
+  assert.equal(window.document.querySelectorAll(".selector-link").length, 0);
+  dom.window.close();
+});
+
+test("feed failure reveals a sibling error box next to the widget", async () => {
+  const dom = new JSDOM(
+    `<!doctype html>
+      <table data-opds-catalogs data-cat-id="1" data-feed-url="/opds/catalogs/"
+             data-page-url="/web/catalogs/"><tbody></tbody></table>
+      <p data-opds-error hidden role="alert">Catalog unavailable.</p>`,
+    {runScripts: "dangerously", url: "https://sopds.test/web/catalogs/"},
+  );
+  const {window} = dom;
+  window.fetch = async () => ({ok: false, text: async () => ""});
+
+  await loadFrontend(window);
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+
+  const widget = window.document.querySelector("[data-opds-catalogs]");
+  const error = window.document.querySelector("[data-opds-error]");
+  assert.equal(widget.hidden, true);
+  assert.equal(error.hidden, false);
+  assert.equal(error.textContent, "Catalog unavailable.");
+  dom.window.close();
+});
+
+test("selector falls back to the last path segment as the page number", async () => {
+  const feedSource = `<?xml version="1.0" encoding="utf-8"?>
+  <feed xmlns="http://www.w3.org/2005/Atom">
+    <link href="/opds/books/42/" rel="self"/>
+    <link href="/opds/books/40/" rel="first"/>
+    <link href="/opds/books/45/" rel="last"/>
+    <entry>
+      <id>a:1</id><title>Entry</title>
+      <link href="/opds/books/1/A/" rel="subsection"/>
+    </entry>
+  </feed>`;
+  const dom = new JSDOM(
+    `<!doctype html>
+      <div data-opds-pagination data-first-label="First" data-previous-label="Previous"
+           data-next-label="Next" data-last-label="Last"></div>
+      <table data-opds-selector data-feed-url="/opds/books/42/"
+        data-feed-kind="books" data-kind="book" data-lang-code="1"
+        data-count-label="Total: %(count)s books."
+        data-selector-url="/web/book/" data-search-url="/web/search/books/">
+        <tbody></tbody></table>`,
+    {runScripts: "dangerously", url: "https://sopds.test/web/book/?lang=1"},
+  );
+  const {window} = dom;
+  window.fetch = async () => ({ok: true, text: async () => feedSource});
+
+  await loadFrontend(window);
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+
+  const pagination = window.document.querySelector(".opds-pagination");
+  assert.equal(pagination.querySelector(".current").textContent, "42");
+  dom.window.close();
+});
+
+test("failed lazy annotation logs to the console and removes the section", async () => {
+  const bookFeed = `<?xml version="1.0" encoding="utf-8"?>
+  <feed xmlns="http://www.w3.org/2005/Atom"><entry><id>book:42</id><title>Unavailable annotation</title>
+    <content src="/annotation/42/" type="text/html"/>
+  </entry></feed>`;
+  // In jsdom 29 the VirtualConsole class is a named export of the "jsdom"
+  // module; it is not a static property of the JSDOM constructor.
+  const virtualConsole = new VirtualConsole();
+  const warnings = [];
+  virtualConsole.on("warn", (...args) => {
+    warnings.push(args.map((arg) => String(arg)).join(" "));
+  });
+  const dom = new JSDOM(
+    `<!doctype html><div data-opds-book-detail data-feed-url="/detail/"
+      data-annotation-label="Annotation" data-loading-label="Loading"></div>`,
+    {
+      runScripts: "dangerously",
+      url: "https://sopds.test/web/details/42/",
+      virtualConsole,
+    },
+  );
+  const {window} = dom;
+  window.fetch = async (url) => url === "/detail/"
+    ? {ok: true, text: async () => bookFeed}
+    : Promise.reject(new Error("annotation unavailable"));
+
+  await loadFrontend(window);
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+
+  assert.equal(window.document.querySelector(".book-detail-annotation"), null);
+  assert.equal(
+    warnings.some((message) => message.includes("failed to load lazy annotation")),
+    true,
+  );
   dom.window.close();
 });
