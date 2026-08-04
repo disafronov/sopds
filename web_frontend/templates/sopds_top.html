@@ -3,7 +3,7 @@
 <div class="top-bar top-bar--search">
   <div class="top-bar-title">
     <span class="main-menu-toggle">
-      <button class="menu-icon" type="button" aria-controls="main_menu" aria-expanded="false">
+      <button class="menu-icon" type="button" aria-controls="main_menu" aria-expanded="false" aria-haspopup="true">
         <span class="show-for-sr">{% trans "Toggle navigation" %}</span>
       </button>
     </span>
@@ -19,6 +19,7 @@
       {% csrf_token %}
 
       <div class="input-group">
+        <label class="show-for-sr" for="main_searchbox">{% trans "Search" %}</label>
         <input
           class="input-group-field"
           type="search"
@@ -39,6 +40,7 @@
             type="button"
             aria-controls="search-dropdown"
             aria-expanded="false"
+            aria-haspopup="true"
           ><span class="show-for-sr">{% trans "Choose search type" %}</span></button>
         </div>
         <input type="hidden" name="page" value="0">

@@ -81,6 +81,16 @@ button {
   text-align: center;
 }
 
+.hello-greeting {
+  text-align: center;
+  margin-bottom: 1rem;
+  font-weight: bold;
+}
+
+.text-justify {
+  text-align: justify;
+}
+
 .show-for-sr {
   position: absolute;
   width: 1px;
@@ -305,6 +315,10 @@ button {
   td {
     border: 0;
   }
+}
+
+.book-cover-cell {
+  padding: 3px;
 }
 
 table {
