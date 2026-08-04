@@ -24,24 +24,24 @@
   <nav id="main_menu" aria-label="{% trans "Main navigation" %}">
     <ul class="sopdsmenu sopdsmenu--with-submenus">
       <li{% if current == "book" %} class="active"{% endif %}>
-        <button class="sopdsmenu__submenu-toggle" type="button" aria-expanded="false">{% trans "Books" %}</button>
-        <ul class="sopdsmenu__submenu">
+        <button class="sopdsmenu__submenu-toggle" type="button" aria-expanded="false" aria-haspopup="true" aria-controls="sopdsmenu-submenu-books">{% trans "Books" %}</button>
+        <ul class="sopdsmenu__submenu" id="sopdsmenu-submenu-books">
           {% for key, value in lang_menu.items %}
             <li{% if current == "book" and key == lang_code %} class="active"{% endif %}><a href="{% url "web:book" %}?lang={{ key }}">{{ value }}</a></li>
           {% endfor %}
         </ul>
       </li>
       <li{% if current == "author" %} class="active"{% endif %}>
-        <button class="sopdsmenu__submenu-toggle" type="button" aria-expanded="false">{% trans "Authors" %}</button>
-        <ul class="sopdsmenu__submenu">
+        <button class="sopdsmenu__submenu-toggle" type="button" aria-expanded="false" aria-haspopup="true" aria-controls="sopdsmenu-submenu-authors">{% trans "Authors" %}</button>
+        <ul class="sopdsmenu__submenu" id="sopdsmenu-submenu-authors">
           {% for key, value in lang_menu.items %}
             <li{% if current == "author" and key == lang_code %} class="active"{% endif %}><a href="{% url "web:author" %}?lang={{ key }}">{{ value }}</a></li>
           {% endfor %}
         </ul>
       </li>
       <li{% if current == "series" %} class="active"{% endif %}>
-        <button class="sopdsmenu__submenu-toggle" type="button" aria-expanded="false">{% trans "Series" %}</button>
-        <ul class="sopdsmenu__submenu">
+        <button class="sopdsmenu__submenu-toggle" type="button" aria-expanded="false" aria-haspopup="true" aria-controls="sopdsmenu-submenu-series">{% trans "Series" %}</button>
+        <ul class="sopdsmenu__submenu" id="sopdsmenu-submenu-series">
           {% for key, value in lang_menu.items %}
             <li{% if current == "series" and key == lang_code %} class="active"{% endif %}><a href="{% url "web:series" %}?lang={{ key }}">{{ value }}</a></li>
           {% endfor %}

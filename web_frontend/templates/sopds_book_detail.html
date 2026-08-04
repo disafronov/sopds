@@ -3,7 +3,7 @@
 
 {% block body %}
 <div class="opds-book-detail" data-opds-book-detail
-    data-feed-url="/opds/search/books/i/{{ book_id }}/"
+    data-feed-url="{% url "opds:searchbooks" "i" book_id %}"
     data-cover-url="{% url 'opds:covertmpl' %}"
     data-no-cover="{% static 'images/nocover.jpg' %}"
     data-download-label="{% trans "Download" %}"
