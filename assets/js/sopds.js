@@ -41,9 +41,19 @@ import {createOpdsClient} from "./opds.js";
         if (!href) return 0;
         const url = new URL(href, window.location);
         const queryPage = Number(url.searchParams.get("page"));
-        if (queryPage > 0) return queryPage;
-        const finalSegment = url.pathname.split("/").filter(Boolean).at(-1);
+        if (Number.isFinite(queryPage) && queryPage >= 1) return queryPage;
+        const pathSegments = url.pathname.split("/").filter(Boolean);
+        const finalSegment = pathSegments[pathSegments.length - 1];
         return /^\d+$/u.test(finalSegment || "") ? Number(finalSegment) : 1;
+    }
+
+    function isSafeWebHref(href) {
+        try {
+            const url = new URL(href, window.location.href);
+            return url.protocol === "http:" || url.protocol === "https:";
+        } catch {
+            return false;
+        }
     }
 
     function withPagination(detail) {
@@ -145,7 +155,10 @@ import {createOpdsClient} from "./opds.js";
                 return;
             }
             element.hidden = true;
-            const errorBox = document.querySelector("[data-opds-error]");
+            // The error box is a sibling of the widget inside the same template
+            // block, so scope the lookup next to the element instead of globally.
+            const scope = element.parentElement || document;
+            const errorBox = scope.querySelector("[data-opds-error]") || document.querySelector("[data-opds-error]");
             if (errorBox) errorBox.hidden = false;
         });
     });
@@ -185,7 +198,8 @@ import {createOpdsClient} from "./opds.js";
                 }
 
                 const link = row.querySelector("a[href]");
-                if (link) {
+                // Never navigate to javascript:/data:/vbscript: URLs from a click.
+                if (link && isSafeWebHref(link.href)) {
                     window.location.assign(link.href);
                 }
             });
@@ -304,7 +318,14 @@ import {createOpdsClient} from "./opds.js";
         return new URL(href, window.location).pathname
             .split("/")
             .filter(Boolean)
-            .map((part) => decodeURIComponent(part));
+            .map((part) => {
+                try {
+                    return decodeURIComponent(part);
+                } catch {
+                    // Malformed percent-encoding: keep the raw segment instead of crashing.
+                    return part;
+                }
+            });
     }
 
     function webSearchUrl(searchtype, searchterms, searchterms0) {
@@ -317,6 +338,10 @@ import {createOpdsClient} from "./opds.js";
 
     function webHref(link, element) {
         if (!link?.href) return "";
+        // Reject dangerous schemes (javascript:, data:, vbscript:) from OPDS feeds
+        // before they can reach an href attribute.
+        const resolved = new URL(link.href, window.location.href);
+        if (resolved.protocol !== "http:" && resolved.protocol !== "https:") return null;
         const parts = pathParts(link.href);
         if (parts[0] !== "opds") return link.href;
         const [, resource, ...rest] = parts;
@@ -379,7 +404,8 @@ import {createOpdsClient} from "./opds.js";
     function webPageHref(link, element) {
         const page = pageNumber(link?.href);
         if (!page) return "";
-        const url = new URL(element.dataset.pageUrl, window.location);
+        const baseUrl = element.dataset.pageUrl || window.location.href;
+        const url = new URL(baseUrl, window.location);
         if (element.dataset.mode === "catalogs" && element.dataset.catId) {
             url.searchParams.set("cat", element.dataset.catId);
         } else {
@@ -447,6 +473,7 @@ import {createOpdsClient} from "./opds.js";
 
     function renderSelector(element, detail) {
         const body = element.tBodies[0];
+        if (!body) return;
         body.replaceChildren();
         detail.entries.forEach((entry) => {
             const row = body.insertRow();
@@ -505,6 +532,7 @@ import {createOpdsClient} from "./opds.js";
 
     function renderCatalogs(element, detail) {
         const body = element.tBodies[0];
+        if (!body) return;
         body.replaceChildren();
         renderCatalogBreadcrumb(element, detail);
         detail.entries.forEach((entry) => {
@@ -519,7 +547,10 @@ import {createOpdsClient} from "./opds.js";
             image.src = `/static/images/${icon}.png`;
             image.alt = "";
             link.append(image);
-            link.href = catalog ? webHref(catalog, element) : bookUrl(entry);
+            const href = catalog ? webHref(catalog, element) : bookUrl(entry);
+            // A null/empty href (e.g. a javascript: URL from the OPDS feed) must not
+            // be assigned: the link stays without an href attribute.
+            if (href) link.href = href;
             link.append(document.createTextNode(entry.title || ""));
             cell.append(link);
             row.addEventListener("click", (event) => {
@@ -608,9 +639,12 @@ import {createOpdsClient} from "./opds.js";
             const description = document.createElement("dd");
             items.forEach((item, i) => {
                 if (i > 0) description.append(", ");
-                if (item.href) {
+                const href = item.href;
+                // webHref returns null for unsafe schemes; render such items as
+                // plain text and never assign null/empty to the href attribute.
+                if (href !== null && href !== undefined && href !== "") {
                     const a = document.createElement("a");
-                    a.href = item.href;
+                    a.href = href;
                     a.textContent = item.text;
                     description.append(a);
                 } else {
@@ -700,7 +734,10 @@ import {createOpdsClient} from "./opds.js";
                         placeholder.replaceWith(content);
                     } else section.remove();
                 })
-                .catch(() => section.remove());
+                .catch((err) => {
+                    console.warn("sopds: failed to load lazy annotation", err);
+                    section.remove();
+                });
         }
 
         element.append(article);
@@ -781,7 +818,9 @@ import {createOpdsClient} from "./opds.js";
                     .then((annotation) => {
                         appendAnnotation(annotation, entry.content.type);
                     })
-                    .catch(() => {});
+                    .catch((err) => {
+                        console.warn("sopds: failed to load annotation", err);
+                    });
             }
             element.append(content);
         });
