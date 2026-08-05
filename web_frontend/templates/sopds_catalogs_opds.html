@@ -1,25 +1,5 @@
 {% extends "sopds_main.html" %}
-{% load i18n static %}
 
 {% block body %}
-{% include "sopds_pagination.html" %}
-<table
-  class="selector-table clickable-rows"
-  data-opds-catalogs
-  data-mode="catalogs"
-  data-feed-url="{{ opds_adapter.feed_url }}"
-  data-page-url="{{ opds_adapter.page_url }}"
-  data-cat-id="{{ opds_adapter.cat_id }}"
-  data-half-pages="{{ opds_adapter.half_pages }}"
->
-  <tbody>
-    <tr data-opds-loading>
-      <td>{% trans "Loading..." %}</td>
-    </tr>
-  </tbody>
-</table>
-{% include "sopds_pagination.html" %}
-<p class="callout alert" data-opds-error hidden>
-  {% trans "Unable to load the catalog." %}
-</p>
+{% include "sopds_widget_shell.html" with widget_kind="catalogs" %}
 {% endblock %}
