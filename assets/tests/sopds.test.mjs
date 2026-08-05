@@ -1276,3 +1276,306 @@ test("failed lazy annotation logs to the console and removes the section", async
   );
   dom.window.close();
 });
+
+// --- Desktop layout / menu width -------------------------------------------
+
+// jsdom does not implement window.matchMedia. The stub reports a desktop
+// viewport whenever the queried media feature is the menu breakpoint and the
+// shared desktopRef flag is on, mirroring how the widget code reads it.
+function stubMatchMedia(window, desktopRef) {
+  window.matchMedia = (query) => ({
+    matches: query === "(min-width: 64em)" && desktopRef.current,
+    media: query,
+    addEventListener() {},
+    removeEventListener() {},
+    addListener() {},
+    removeListener() {},
+    onchange: null,
+    dispatchEvent() {
+      return false;
+    },
+  });
+}
+
+test("matchDesktopLayoutToMenu sets the menu width CSS variable on desktop and clears it on resize", async () => {
+  const dom = new JSDOM(
+    `<!doctype html><div id="main_menu"></div>`,
+    {runScripts: "dangerously", url: "https://sopds.test/"},
+  );
+  const {window} = dom;
+  const desktop = {current: true};
+  stubMatchMedia(window, desktop);
+  // jsdom always reports scrollWidth as 0 (no layout engine), so emulate a
+  // rendered menu width.
+  const menu = window.document.getElementById("main_menu");
+  Object.defineProperty(menu, "scrollWidth", {value: 280, configurable: true});
+
+  await loadFrontend(window);
+
+  // Desktop at load: the variable mirrors the rendered menu width.
+  assert.equal(
+    window.document.documentElement.style.getPropertyValue("--sopds-menu-width"),
+    "280px",
+  );
+
+  // Shrinking to a mobile viewport and resizing clears the variable.
+  desktop.current = false;
+  window.dispatchEvent(new window.Event("resize"));
+  assert.equal(
+    window.document.documentElement.style.getPropertyValue("--sopds-menu-width"),
+    "",
+  );
+
+  // Growing back to a desktop viewport restores it.
+  desktop.current = true;
+  window.dispatchEvent(new window.Event("resize"));
+  assert.equal(
+    window.document.documentElement.style.getPropertyValue("--sopds-menu-width"),
+    "280px",
+  );
+
+  dom.window.close();
+});
+
+test("matchDesktopLayoutToMenu keeps the width CSS variable unset on mobile, without a menu, or with zero width", async () => {
+  const scenarios = [
+    // Mobile viewport: the menu exists but the variable must stay clear.
+    {html: '<div id="main_menu"></div>', desktop: false, scrollWidth: 280},
+    // No menu element on the page.
+    {html: "", desktop: true, scrollWidth: 0},
+    // Desktop but the menu reports no width (hidden/empty menu).
+    {html: '<div id="main_menu"></div>', desktop: true, scrollWidth: 0},
+  ];
+  for (const scenario of scenarios) {
+    const dom = new JSDOM(`<!doctype html>${scenario.html}`, {
+      runScripts: "dangerously",
+      url: "https://sopds.test/",
+    });
+    const {window} = dom;
+    stubMatchMedia(window, {current: scenario.desktop});
+    const menu = window.document.getElementById("main_menu");
+    if (menu) {
+      Object.defineProperty(menu, "scrollWidth", {
+        value: scenario.scrollWidth,
+        configurable: true,
+      });
+    }
+
+    await loadFrontend(window);
+
+    assert.equal(
+      window.document.documentElement.style.getPropertyValue("--sopds-menu-width"),
+      "",
+      `scenario: desktop=${scenario.desktop} scrollWidth=${scenario.scrollWidth}`,
+    );
+    dom.window.close();
+  }
+});
+
+// --- Escape key handling ----------------------------------------------------
+
+test("Escape key closes the search dropdown, main menu, and open submenus", async () => {
+  const dom = new JSDOM(
+    `<!doctype html>
+      <button class="search-dropdown-toggle" aria-controls="search-dropdown" aria-expanded="true">Search</button>
+      <div id="search-dropdown" class="is-open"></div>
+      <button class="menu-icon" aria-controls="main_menu" aria-expanded="true">Menu</button>
+      <nav id="main_menu" class="is-open">
+        <ul>
+          <li class="is-open">
+            <button class="sopdsmenu__submenu-toggle" aria-expanded="true">Submenu</button>
+          </li>
+        </ul>
+      </nav>`,
+    {runScripts: "dangerously", url: "https://sopds.test/"},
+  );
+  const {window} = dom;
+  const document = window.document;
+
+  await loadFrontend(window);
+
+  const dropdown = document.getElementById("search-dropdown");
+  const searchToggle = document.querySelector(".search-dropdown-toggle");
+  const menu = document.getElementById("main_menu");
+  const menuToggle = document.querySelector('.menu-icon[aria-controls="main_menu"]');
+  const submenuToggle = document.querySelector(".sopdsmenu__submenu-toggle");
+  const submenuItem = submenuToggle.closest("li");
+
+  // Keys other than Escape leave the menus open.
+  document.dispatchEvent(new window.KeyboardEvent("keydown", {key: "Enter", bubbles: true}));
+  assert.equal(dropdown.classList.contains("is-open"), true);
+  assert.equal(menu.classList.contains("is-open"), true);
+
+  document.dispatchEvent(new window.KeyboardEvent("keydown", {key: "Escape", bubbles: true}));
+  assert.equal(dropdown.classList.contains("is-open"), false);
+  assert.equal(searchToggle.getAttribute("aria-expanded"), "false");
+  assert.equal(menu.classList.contains("is-open"), false);
+  assert.equal(menuToggle.getAttribute("aria-expanded"), "false");
+  assert.equal(submenuItem.classList.contains("is-open"), false);
+  assert.equal(submenuToggle.getAttribute("aria-expanded"), "false");
+
+  dom.window.close();
+});
+
+// --- Clickable table rows ---------------------------------------------------
+
+test("clickable table rows navigate only through safe web links", async () => {
+  const dom = new JSDOM(
+    `<!doctype html>
+      <table class="clickable-rows">
+        <tbody>
+          <tr data-row="safe"><td><a href="/web/book/?lang=1">Safe</a></td></tr>
+          <tr data-row="unsafe"><td><a href="javascript:alert(1)">Unsafe</a></td></tr>
+          <tr data-row="nolink"><td>No link</td></tr>
+          <tr data-row="nested"><td><a href="/web/other/"><button>Button</button></a></td></tr>
+        </tbody>
+      </table>`,
+    {runScripts: "dangerously", url: "https://sopds.test/web/book/"},
+  );
+  const {window} = dom;
+  // jsdom 29.x exposes window.location.assign as a LegacyUnforgeable own
+  // property (writable: false, configurable: false), so it can neither be
+  // reassigned nor redefined via Object.defineProperty — the same constraint
+  // as window.location.reload, see timezone.test.mjs — and a Proxy get trap
+  // cannot intercept it either. The click path only reads window.location.href
+  // and calls window.location.assign, so substitute a plain shim object for
+  // window.location and keep the rest of the window delegated via Proxy.
+  const navigations = [];
+  const locationShim = {
+    href: window.location.href, // read once, the bundle only reads it
+    assign(url) { navigations.push(String(url)); },
+  };
+  const windowProxy = new Proxy(window, {
+    get(target, prop, receiver) {
+      if (prop === "location") return locationShim;
+      return Reflect.get(target, prop, receiver);
+    },
+  });
+  window.__sopdsTestWindowProxy = windowProxy;
+  const bundle = await readClient();
+  window.eval(`(function (window) { ${bundle} })(window.__sopdsTestWindowProxy);`);
+
+  const rows = [...window.document.querySelectorAll(".clickable-rows tbody tr")];
+
+  rows[0].dispatchEvent(new window.MouseEvent("click", {bubbles: true}));
+  rows[1].dispatchEvent(new window.MouseEvent("click", {bubbles: true}));
+  rows[2].dispatchEvent(new window.MouseEvent("click", {bubbles: true}));
+  // Clicking an interactive child inside the row link must not navigate.
+  rows[3].querySelector("button").dispatchEvent(new window.MouseEvent("click", {bubbles: true}));
+
+  assert.deepEqual(navigations, ["https://sopds.test/web/book/?lang=1"]);
+
+  dom.window.close();
+});
+
+// --- <dialog> open/close triggers -------------------------------------------
+
+test("data-dialog-open and data-dialog-close toggle a <dialog> element", async () => {
+  const dom = new JSDOM(
+    `<!doctype html>
+      <button type="button" data-dialog-open="confirm-dialog">Open</button>
+      <dialog id="confirm-dialog">
+        <button type="button" data-dialog-close>Close</button>
+      </dialog>`,
+    {runScripts: "dangerously", url: "https://sopds.test/"},
+  );
+  const {window} = dom;
+  const document = window.document;
+
+  // jsdom does not implement HTMLDialogElement#showModal/#close. Emulate the
+  // native open-attribute reflection so the widget code can be exercised.
+  window.HTMLDialogElement.prototype.showModal = function () {
+    this.open = true;
+  };
+  window.HTMLDialogElement.prototype.close = function () {
+    this.open = false;
+  };
+
+  await loadFrontend(window);
+
+  const dialog = document.getElementById("confirm-dialog");
+  assert.equal(dialog.hasAttribute("open"), false);
+
+  document.querySelector('[data-dialog-open="confirm-dialog"]').dispatchEvent(
+    new window.MouseEvent("click", {bubbles: true}),
+  );
+  assert.equal(dialog.hasAttribute("open"), true);
+
+  document.querySelector("[data-dialog-close]").dispatchEvent(
+    new window.MouseEvent("click", {bubbles: true}),
+  );
+  assert.equal(dialog.hasAttribute("open"), false);
+
+  dom.window.close();
+});
+
+// --- Download label formatting ----------------------------------------------
+
+test("book detail maps media types to download labels with a Download fallback", async () => {
+  const bookFeed = `<?xml version="1.0" encoding="utf-8"?>
+  <feed xmlns="http://www.w3.org/2005/Atom">
+    <entry>
+      <id>book:42</id><title>Formats</title>
+      <link href="/opds/download/42/0/" rel="http://opds-spec.org/acquisition/open-access"
+            type="application/fb2"/>
+      <link href="/opds/download/42/1/" rel="http://opds-spec.org/acquisition/open-access"
+            type="application/fb2+xml"/>
+      <link href="/opds/download/42/2/" rel="http://opds-spec.org/acquisition/open-access"
+            type="application/fb2+zip"/>
+      <link href="/opds/download/42/3/" rel="http://opds-spec.org/acquisition/open-access"
+            type="application/epub+zip"/>
+      <link href="/opds/download/42/4/" rel="http://opds-spec.org/acquisition/open-access"
+            type="application/x-mobipocket-ebook"/>
+      <link href="/opds/download/42/5/" rel="http://opds-spec.org/acquisition/open-access"
+            type="application/unknown"/>
+    </entry>
+  </feed>`;
+  const dom = new JSDOM(
+    `<!doctype html><div data-opds-book-detail data-feed-url="/detail/"
+      data-format-fb2="FB2" data-format-fb2-zip="FB2+ZIP"
+      data-format-epub="EPUB" data-format-mobi="MOBI"></div>`,
+    {runScripts: "dangerously", url: "https://sopds.test/web/details/42/"},
+  );
+  const {window} = dom;
+  window.fetch = async () => ({ok: true, text: async () => bookFeed});
+
+  await loadFrontend(window);
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+
+  // Unknown media types fall back to the hard-coded "Download" label when no
+  // data-format-download attribute is configured.
+  assert.deepEqual(
+    [...window.document.querySelectorAll(".book-detail-downloads a")].map((link) => link.textContent),
+    ["FB2", "FB2", "FB2+ZIP", "EPUB", "MOBI", "Download"],
+  );
+
+  dom.window.close();
+});
+
+test("book detail uses the configured download label for unknown media types", async () => {
+  const bookFeed = `<?xml version="1.0" encoding="utf-8"?>
+  <feed xmlns="http://www.w3.org/2005/Atom">
+    <entry>
+      <id>book:42</id><title>Formats</title>
+      <link href="/opds/download/42/0/" rel="http://opds-spec.org/acquisition/open-access"
+            type="application/unknown"/>
+    </entry>
+  </feed>`;
+  const dom = new JSDOM(
+    `<!doctype html><div data-opds-book-detail data-feed-url="/detail/"
+      data-format-download="Save file"></div>`,
+    {runScripts: "dangerously", url: "https://sopds.test/web/details/42/"},
+  );
+  const {window} = dom;
+  window.fetch = async () => ({ok: true, text: async () => bookFeed});
+
+  await loadFrontend(window);
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+
+  assert.deepEqual(
+    [...window.document.querySelectorAll(".book-detail-downloads a")].map((link) => link.textContent),
+    ["Save file"],
+  );
+
+  dom.window.close();
+});
