@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-31 10:42+0000\n"
+"POT-Creation-Date: 2026-08-05 14:46+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -85,9 +85,7 @@ msgstr "Обложка"
 #: web_frontend/templates/sopds_book_detail.html:23
 #: web_frontend/templates/sopds_book_detail.html:27
 #: web_frontend/templates/sopds_books_opds.html:58
-#: web_frontend/templates/sopds_catalogs_opds.html:17
-#: web_frontend/templates/sopds_results.html:22
-#: web_frontend/templates/sopds_selector.html:20
+#: web_frontend/templates/sopds_widget_shell.html:33
 msgid "Loading..."
 msgstr "Загрузка..."
 
@@ -150,9 +148,7 @@ msgid "Publication date"
 msgstr "Дата публикации"
 
 #: web_frontend/templates/sopds_books_opds.html:62
-#: web_frontend/templates/sopds_catalogs_opds.html:23
-#: web_frontend/templates/sopds_results.html:28
-#: web_frontend/templates/sopds_selector.html:26
+#: web_frontend/templates/sopds_widget_shell.html:39
 msgid "Unable to load the catalog."
 msgstr "Не удалось загрузить каталог."
 
@@ -266,19 +262,27 @@ msgstr "Выход"
 msgid "Login"
 msgstr "Вход"
 
+#: web_frontend/templates/sopds_messages.html:4
+msgid "Dismiss alert"
+msgstr "Закрыть уведомление"
+
 #: web_frontend/templates/sopds_pagination.html:4
+msgid "Pagination"
+msgstr "Основная навигация"
+
+#: web_frontend/templates/sopds_pagination.html:5
 msgid "First"
 msgstr "Первая"
 
-#: web_frontend/templates/sopds_pagination.html:5
+#: web_frontend/templates/sopds_pagination.html:6
 msgid "Previous"
 msgstr "Предыдущая"
 
-#: web_frontend/templates/sopds_pagination.html:6
+#: web_frontend/templates/sopds_pagination.html:7
 msgid "Next"
 msgstr "Следующая"
 
-#: web_frontend/templates/sopds_pagination.html:7
+#: web_frontend/templates/sopds_pagination.html:8
 msgid "Last"
 msgstr "Последняя"
 
@@ -290,60 +294,61 @@ msgstr "Открыть или закрыть навигацию"
 msgid "SIMPLE OPDS CATALOG"
 msgstr "ПРОСТОЙ OPDS КАТАЛОГ"
 
-#: web_frontend/templates/sopds_top.html:26
-#: web_frontend/templates/sopds_top.html:52 web_frontend/views.py:98
-msgid "Search by author"
-msgstr "Поиск по автору"
-
-#: web_frontend/templates/sopds_top.html:26
-#: web_frontend/templates/sopds_top.html:53 web_frontend/views.py:99
-msgid "Search by series"
-msgstr "Поиск по серии"
-
-#: web_frontend/templates/sopds_top.html:26
-#: web_frontend/templates/sopds_top.html:54 web_frontend/views.py:101
-msgid "Search by genre"
-msgstr "Поиск по жанру"
-
-#: web_frontend/templates/sopds_top.html:26 web_frontend/views.py:100
-msgid "Search by author and series"
-msgstr "Поиск по автору и серии"
-
-#: web_frontend/templates/sopds_top.html:26
-#: web_frontend/templates/sopds_top.html:51 web_frontend/views.py:95
-#: web_frontend/views.py:96 web_frontend/views.py:97
-msgid "Search by title"
-msgstr "Поиск по названию"
-
-#: web_frontend/templates/sopds_top.html:33 web_frontend/views.py:106
+#: web_frontend/templates/sopds_top.html:22
+#: web_frontend/templates/sopds_top.html:34 web_frontend/views.py:106
 #: web_frontend/views.py:217
 msgid "Search"
 msgstr "Найти"
 
-#: web_frontend/templates/sopds_top.html:42
+#: web_frontend/templates/sopds_top.html:27
+#: web_frontend/templates/sopds_top.html:54 web_frontend/views.py:98
+msgid "Search by author"
+msgstr "Поиск по автору"
+
+#: web_frontend/templates/sopds_top.html:27
+#: web_frontend/templates/sopds_top.html:55 web_frontend/views.py:99
+msgid "Search by series"
+msgstr "Поиск по серии"
+
+#: web_frontend/templates/sopds_top.html:27
+#: web_frontend/templates/sopds_top.html:56 web_frontend/views.py:101
+msgid "Search by genre"
+msgstr "Поиск по жанру"
+
+#: web_frontend/templates/sopds_top.html:27 web_frontend/views.py:100
+msgid "Search by author and series"
+msgstr "Поиск по автору и серии"
+
+#: web_frontend/templates/sopds_top.html:27
+#: web_frontend/templates/sopds_top.html:53 web_frontend/views.py:95
+#: web_frontend/views.py:96 web_frontend/views.py:97
+msgid "Search by title"
+msgstr "Поиск по названию"
+
+#: web_frontend/templates/sopds_top.html:44
 msgid "Choose search type"
 msgstr "Выберите тип поиска:"
 
-#: web_frontend/templates/sopds_top.html:50
+#: web_frontend/templates/sopds_top.html:52
 msgid "Choose Search Type:"
 msgstr "Выберите тип поиска:"
 
-#: web_frontend/templates/sopds_top.html:51
+#: web_frontend/templates/sopds_top.html:53
 msgctxt "search option"
 msgid "Title"
 msgstr "Название"
 
-#: web_frontend/templates/sopds_top.html:52
+#: web_frontend/templates/sopds_top.html:54
 msgctxt "search option"
 msgid "Author"
 msgstr "Автор"
 
-#: web_frontend/templates/sopds_top.html:53
+#: web_frontend/templates/sopds_top.html:55
 msgctxt "search option"
 msgid "Series"
 msgstr "Серия"
 
-#: web_frontend/templates/sopds_top.html:54
+#: web_frontend/templates/sopds_top.html:56
 msgctxt "search option"
 msgid "Genre"
 msgstr "Жанр"
