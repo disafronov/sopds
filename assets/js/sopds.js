@@ -37,6 +37,18 @@ import {createOpdsClient} from "./opds.js";
         return response.text();
     }
 
+    // Shared lazy-annotation pipeline: fetch the remote source, hand the raw
+    // response to onContent for sanitizing/insertion, and on failure log the
+    // same console.warn every caller used before plus an optional cleanup hook.
+    function loadAnnotation({url, onContent, errorMessage, onError}) {
+        return fetchAnnotation(url)
+            .then(onContent)
+            .catch((err) => {
+                console.warn(errorMessage, err);
+                onError?.(err);
+            });
+    }
+
     function pageNumber(href) {
         if (!href) return 0;
         const url = new URL(href, window.location);
@@ -56,21 +68,23 @@ import {createOpdsClient} from "./opds.js";
         }
     }
 
+    function linkByRel(links, relations) {
+        const names = Array.isArray(relations) ? relations : [relations];
+        return (links || []).find((link) => names.includes(link.rel));
+    }
+
     function withPagination(detail) {
-        const linkByRel = (...relations) => detail.links.find(
-            (link) => relations.includes(link.rel),
-        );
-        const previousPage = pageNumber(linkByRel("previous", "prev")?.href);
-        const nextPage = pageNumber(linkByRel("next")?.href);
+        const previousPage = pageNumber(linkByRel(detail.links, ["previous", "prev"])?.href);
+        const nextPage = pageNumber(linkByRel(detail.links, ["next"])?.href);
         const page = previousPage
             ? previousPage + 1
             : nextPage
                 ? Math.max(1, nextPage - 1)
-                : pageNumber(linkByRel("self")?.href) || 1;
+                : pageNumber(linkByRel(detail.links, ["self"])?.href) || 1;
         return {
             ...detail,
             page,
-            pages: pageNumber(linkByRel("last")?.href) || page,
+            pages: pageNumber(linkByRel(detail.links, ["last"])?.href) || page,
         };
     }
 
@@ -311,7 +325,7 @@ import {createOpdsClient} from "./opds.js";
     });
 
     function opdsLink(entry, rel) {
-        return (entry.links || []).find((link) => link.rel === rel);
+        return linkByRel(entry.links, [rel]);
     }
 
     function pathParts(href) {
@@ -381,7 +395,7 @@ import {createOpdsClient} from "./opds.js";
 
     function relatedEntities(entry, kind) {
         return (entry.links || [])
-            .filter((link) => link.rel === "related" && pathParts(link.href).at(-2) === kind)
+            .filter((link) => linkByRel([link], "related") && pathParts(link.href).at(-2) === kind)
             .map((link) => ({
                 name: (link.title || "").replace(/^[^:]+:\s*/u, ""),
                 href: webHref(link),
@@ -419,8 +433,12 @@ import {createOpdsClient} from "./opds.js";
         return `${url.pathname}${url.search}`;
     }
 
+    // Pagination targets are static template elements present before the first
+    // render, so cache the query result instead of re-scanning per widget.
+    let paginationTargets = null;
+
     function renderPagination(element, detail) {
-        const targets = document.querySelectorAll("[data-opds-pagination]");
+        const targets = paginationTargets || (paginationTargets = document.querySelectorAll("[data-opds-pagination]"));
         if (!targets.length) return;
         const first = opdsLink(detail, "first");
         const previous = opdsLink(detail, "previous") || opdsLink(detail, "prev");
@@ -479,7 +497,7 @@ import {createOpdsClient} from "./opds.js";
             const row = body.insertRow();
             const cell = row.insertCell();
             const title = entry.title || "";
-            const opdsNavigation = (entry.links || []).find((item) => ["subsection", "alternate"].includes(item.rel));
+            const opdsNavigation = linkByRel(entry.links, ["subsection", "alternate"]);
             const targetUrl = webHref(opdsNavigation, element);
             const current = targetUrl && new URL(targetUrl, window.location).href === window.location.href;
             const link = document.createElement(current ? "span" : "a");
@@ -553,18 +571,46 @@ import {createOpdsClient} from "./opds.js";
             if (href) link.href = href;
             link.append(document.createTextNode(entry.title || ""));
             cell.append(link);
-            row.addEventListener("click", (event) => {
-                if (!event.target.closest("a, button, input, select, textarea")) {
-                    window.location.assign(link.href);
-                }
-            });
+        });
+        // Delegate row clicks from the tbody: nested interactive elements must
+        // not trigger navigation, everything else follows the row link.
+        body.addEventListener("click", (event) => {
+            if (event.target.closest("a, button, input, select, textarea")) return;
+            const row = event.target.closest("tr");
+            if (!row) return;
+            const link = row.querySelector("a[href]");
+            if (link && isSafeWebHref(link.href)) {
+                window.location.assign(link.href);
+            }
         });
         renderPagination(element, detail);
     }
 
     function bookUrl(entry) {
-        const id = String(entry.id || "").split(":").pop();
+        const id = bookIdFromEntry(entry);
         return id ? `/web/details/${id}/` : "";
+    }
+
+    // OPDS entry ids carry the numeric book id after the last colon.
+    function bookIdFromEntry(entry) {
+        return String(entry.id || "").split(":").pop();
+    }
+
+    // Shared broken-cover fallback: try the widget-provided no-cover image once,
+    // then stop reacting to errors. The optional fallbackClass marks the image
+    // when no no-cover source is configured (bookshelf cards use it, the book
+    // detail cover historically did not).
+    function setCoverFallback(img, element, fallbackClass) {
+        img.onerror = () => {
+            const noCover = element.dataset.noCover || "";
+            if (noCover && img.src !== new URL(noCover, window.location).href) {
+                img.onerror = null;
+                img.src = noCover;
+                return;
+            }
+            img.onerror = null;
+            if (fallbackClass) img.classList.add(fallbackClass);
+        };
     }
 
     function appendBookMetadata(container, className, label, values) {
@@ -602,25 +648,17 @@ import {createOpdsClient} from "./opds.js";
         coverCol.className = "small-12 medium-4 large-3 columns book-detail-cover";
 
         const coverLink = document.createElement("a");
-        const bookId = (entry.id || "").split(":").pop();
+        const bookId = bookIdFromEntry(entry);
         const coverUrl = `${element.dataset.coverUrl || "/opds/thumb/"}${bookId}/`;
         coverLink.href = `/opds/cover/${bookId}/`;
         coverLink.setAttribute("aria-label", element.dataset.coverLabel || "Book cover");
 
         const coverImg = document.createElement("img");
-        const imageLink = (entry.links || []).find((link) => link.rel === "http://opds-spec.org/image");
+        const imageLink = opdsLink(entry, "http://opds-spec.org/image");
         coverImg.src = imageLink?.href || coverUrl;
         coverImg.alt = entry.title || "";
         coverImg.className = "book-detail-cover__image";
-        coverImg.onerror = () => {
-            const noCover = element.dataset.noCover || "";
-            if (noCover && coverImg.src !== new URL(noCover, window.location).href) {
-                coverImg.onerror = null;
-                coverImg.src = noCover;
-            } else {
-                coverImg.onerror = null;
-            }
-        };
+        setCoverFallback(coverImg, element);
         coverLink.append(coverImg);
         coverCol.append(coverLink);
         row.append(coverCol);
@@ -674,9 +712,10 @@ import {createOpdsClient} from "./opds.js";
         if (entry.issued?.trim()) {
             appendLine(metadata, element.dataset.publicationDateLabel || "Date", [{text: entry.issued}]);
         }
-        if (fileSize(entry)) {
+        const size = fileSize(entry);
+        if (size) {
             appendLine(metadata, element.dataset.fileSizeLabel || "File size", [
-                {text: `${fileSize(entry)} ${element.dataset.fileSizeUnit || "Kb"}`},
+                {text: `${size} ${element.dataset.fileSizeUnit || "Kb"}`},
             ]);
         }
         metaCol.append(metadata);
@@ -727,17 +766,17 @@ import {createOpdsClient} from "./opds.js";
             placeholder.textContent = element.dataset.loadingLabel || "Loading...";
             section.append(placeholder);
             article.append(section);
-            fetchAnnotation(entry.content.src)
-                .then((annotation) => {
+            loadAnnotation({
+                url: entry.content.src,
+                errorMessage: "sopds: failed to load lazy annotation",
+                onContent: (annotation) => {
                     const content = annotationContent(annotation, entry.content.type);
                     if (content) {
                         placeholder.replaceWith(content);
                     } else section.remove();
-                })
-                .catch((err) => {
-                    console.warn("sopds: failed to load lazy annotation", err);
-                    section.remove();
-                });
+                },
+                onError: () => section.remove(),
+            });
         }
 
         element.append(article);
@@ -760,16 +799,7 @@ import {createOpdsClient} from "./opds.js";
                 img.className = "book-card__image";
                 img.src = image.href;
                 img.alt = entry.title || "";
-                img.onerror = () => {
-                    const noCover = element.dataset.noCover || "";
-                    if (noCover && img.src !== new URL(noCover, window.location).href) {
-                        img.onerror = null;
-                        img.src = noCover;
-                        return;
-                    }
-                    img.onerror = null;
-                    img.classList.add("book-card__image--fallback");
-                };
+                setCoverFallback(img, element, "book-card__image--fallback");
                 cover.append(img);
             } else {
                 cover.classList.add("book-card__cover--empty");
@@ -790,7 +820,7 @@ import {createOpdsClient} from "./opds.js";
                 const deleteButton = document.createElement("button");
                 deleteButton.type = "button";
                 deleteButton.className = "bookshelf-delete-trigger";
-                deleteButton.dataset.bookId = String(entry.id || "").split(":").pop();
+                deleteButton.dataset.bookId = bookIdFromEntry(entry);
                 deleteButton.dataset.bookTitle = entry.title || "";
                 deleteButton.textContent = element.dataset.deleteLabel || "Delete";
                 content.append(card, deleteButton);
@@ -814,13 +844,13 @@ import {createOpdsClient} from "./opds.js";
                 if (annotation) appendAnnotation(annotation.value, annotation.type);
             }
             if (showAnnotation && !entry.summary && !entry.content?.value && entry.content?.src) {
-                fetchAnnotation(entry.content.src)
-                    .then((annotation) => {
+                loadAnnotation({
+                    url: entry.content.src,
+                    errorMessage: "sopds: failed to load annotation",
+                    onContent: (annotation) => {
                         appendAnnotation(annotation, entry.content.type);
-                    })
-                    .catch((err) => {
-                        console.warn("sopds: failed to load annotation", err);
-                    });
+                    },
+                });
             }
             element.append(content);
         });
