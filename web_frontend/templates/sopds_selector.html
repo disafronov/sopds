@@ -1,28 +1,5 @@
 {% extends "sopds_main.html" %}
-{% load i18n static %}
 
 {% block body %}
-{% include "sopds_pagination.html" %}
-<table
-  class="selector-table clickable-rows"
-  data-opds-selector
-  data-feed-url="{{ opds_adapter.feed_url }}"
-  data-feed-kind="{{ opds_adapter.feed_kind }}"
-  data-kind="{{ opds_adapter.kind }}"
-  data-mode="{{ opds_adapter.mode|default:"selector" }}"
-  data-lang-code="{{ opds_adapter.lang_code }}"
-  data-count-label="{{ opds_adapter.count_label }}"
-  data-selector-url="{{ opds_adapter.selector_url }}"
-  data-search-url="{{ opds_adapter.search_url }}"
->
-  <tbody>
-    <tr data-opds-loading>
-      <td>{% trans "Loading..." %}</td>
-    </tr>
-  </tbody>
-</table>
-{% include "sopds_pagination.html" %}
-<p class="callout alert" data-opds-error hidden>
-  {% trans "Unable to load the catalog." %}
-</p>
+{% include "sopds_widget_shell.html" with widget_kind="selector" %}
 {% endblock %}
