@@ -3,8 +3,6 @@ from __future__ import annotations
 import re
 from typing import Any, BinaryIO
 
-STRIP_SYMBOLS = " »«'\"&\n-.#\\`"
-
 
 class BookFile:
     def __init__(self, file: BinaryIO, original_filename: str, mimetype: str) -> None:
@@ -55,4 +53,4 @@ class BookFile:
         return re.sub(r"\s+", " ", text.strip()) if text is not None else None
 
 
-__all__ = ["BookFile", "STRIP_SYMBOLS"]
+__all__ = ["BookFile"]
