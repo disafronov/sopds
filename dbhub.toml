@@ -1,9 +1,8 @@
 # DBHub (bytebase/dbhub) multi-database configuration for local SOPDS dev.
-# Local dev creds from compose.yml (postgres:17 / mariadb:lts services).
 [[sources]]
 id = "postgres"
 dsn = "postgresql://sopds:sopds@127.0.0.1:5432/sopds"
 
 [[sources]]
 id = "mariadb"
-dsn = "mysql://sopds:sopds@127.0.0.1:3306/sopds"
+dsn = "mysql://root:sopds@127.0.0.1:3306/sopds?charset=utf8mb4&collation=utf8mb4_nopad_bin"
