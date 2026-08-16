@@ -1297,19 +1297,27 @@ class SearchAuthorsFeed(AuthFeed):
         page_num = page if page > 0 else 1
 
         if searchtype == "m":
-            authors = Author.objects.filter(
-                full_name__upper__contains=searchterms.upper()
-            ).order_by(Upper("full_name"))
+            authors = (
+                Author.objects.filter(full_name__upper__contains=searchterms.upper())
+                .annotate(book_count=Count("book", distinct=True))
+                .order_by(Upper("full_name"))
+            )
         elif searchtype == "b":
-            authors = Author.objects.filter(
-                full_name__upper__startswith=searchterms.upper()
-            ).order_by(Upper("full_name"))
+            authors = (
+                Author.objects.filter(full_name__upper__startswith=searchterms.upper())
+                .annotate(book_count=Count("book", distinct=True))
+                .order_by(Upper("full_name"))
+            )
         elif searchtype == "e":
-            authors = Author.objects.filter(
-                full_name__upper=(
-                    "" if searchterms == EMPTY_SEARCH_TERM else searchterms
-                ).upper()
-            ).order_by(Upper("full_name"))
+            authors = (
+                Author.objects.filter(
+                    full_name__upper=(
+                        "" if searchterms == EMPTY_SEARCH_TERM else searchterms
+                    ).upper()
+                )
+                .annotate(book_count=Count("book", distinct=True))
+                .order_by(Upper("full_name"))
+            )
 
         # Создаем результирующее множество
         authors_count = authors.count()
@@ -1321,7 +1329,7 @@ class SearchAuthorsFeed(AuthFeed):
                 "id": row.id,
                 "full_name": row.full_name,
                 "lang_code": row.lang_code,
-                "book_count": Book.objects.filter(authors=row).count(),
+                "book_count": row.book_count,
             }
             items.append(p)
 
