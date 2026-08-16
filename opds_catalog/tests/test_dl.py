@@ -119,6 +119,41 @@ class TestGetFileData:
             with pytest.raises(AssertionError):
                 dl.getFileData(book)
 
+    def test_cat_inp(self, mocker: MockerFixture) -> None:
+        """CAT_INP: path is split and re-joined to reach the parent zip."""
+        book = mocker.MagicMock(spec=Book)
+        book.catalog = mocker.MagicMock(cat_type=opdsdb.CAT_INP, path="a/inpx/b/inp")
+        book.filename = "inner.fb2"
+        mocker.patch("builtins.open", mocker.mock_open(read_data=b"dummy"))
+        mocker.patch(
+            "opds_catalog.zipf.ZipFile",
+            return_value=mocker.MagicMock(
+                open=lambda n: io.BytesIO(b"inpdata"),
+            ),
+        )
+        with mocker.patch.object(dl, "django_settings", _cfg(SOPDS_ROOT_LIB="/lib")):
+            assert dl.getFileData(book).read() == b"inpdata"
+
+    def test_cat_inp_not_found(self, mocker: MockerFixture) -> None:
+        """CAT_INP: FileNotFoundError is swallowed → AssertionError."""
+        book = mocker.MagicMock(spec=Book)
+        book.catalog = mocker.MagicMock(cat_type=opdsdb.CAT_INP, path="a/inpx/b/inp")
+        book.filename = "missing.fb2"
+        with mocker.patch.object(dl, "django_settings", _cfg(SOPDS_ROOT_LIB="/lib")):
+            mocker.patch("builtins.open", side_effect=FileNotFoundError)
+            with pytest.raises(AssertionError):
+                dl.getFileData(book)
+
+    def test_cat_zip_not_found(self, mocker: MockerFixture) -> None:
+        """CAT_ZIP: FileNotFoundError is swallowed → AssertionError."""
+        book = mocker.MagicMock(spec=Book)
+        book.catalog = mocker.MagicMock(cat_type=opdsdb.CAT_ZIP, path="missing.zip")
+        book.filename = "inner.fb2"
+        with mocker.patch.object(dl, "django_settings", _cfg(SOPDS_ROOT_LIB="/lib")):
+            mocker.patch("builtins.open", side_effect=FileNotFoundError)
+            with pytest.raises(AssertionError):
+                dl.getFileData(book)
+
 
 class TestGetBookAnnotation:
     def test_extracts_annotation(self, mocker: MockerFixture) -> None:
@@ -488,3 +523,269 @@ class TestCoverEdgeCases:
         response = dl.Cover(request, 1, False)
         assert response.status_code == 307
         assert "nocover" in response["Location"]
+
+    @pytest.mark.django_db
+    def test_cover_cat_inp(self, mocker: MockerFixture) -> None:
+        """Cover from a CAT_INP archive extracts the cover successfully."""
+        from opds_catalog import dl
+
+        mock_book = mocker.MagicMock()
+        mock_book.catalog.cat_type = opdsdb.CAT_INP
+        mock_book.catalog.path = "inpx/collection.inpx/BookDir/Book.inp"
+        mock_book.format = "fb2"
+
+        mocker.patch("opds_catalog.dl.Book.objects.get", return_value=mock_book)
+        mock_book_data = mocker.MagicMock()
+        mock_book_data.extract_cover_memory.return_value = _make_jpeg()
+        mocker.patch("opds_catalog.dl.create_bookfile", return_value=mock_book_data)
+        mocker.patch(
+            "opds_catalog.zipf.ZipFile",
+            return_value=mocker.MagicMock(
+                open=lambda n: io.BytesIO(b"zipdata"),
+            ),
+        )
+        mocker.patch("builtins.open", mocker.mock_open())
+
+        request = mocker.MagicMock()
+        with mocker.patch.object(
+            dl, "config", _cfg(SOPDS_AUTH=False, SOPDS_CACHE_TIME=0)
+        ):
+            with mocker.patch.object(
+                dl, "django_settings", _cfg(SOPDS_ROOT_LIB="/lib")
+            ):
+                response = dl.Cover(request, 1, False)
+        assert response.status_code == 200
+        assert response["Content-Type"] == "image/jpeg"
+
+    @pytest.mark.django_db
+    def test_cover_cat_zip(self, mocker: MockerFixture) -> None:
+        """Cover from a CAT_ZIP archive extracts the cover successfully."""
+        from opds_catalog import dl
+
+        mock_book = mocker.MagicMock()
+        mock_book.catalog.cat_type = opdsdb.CAT_ZIP
+        mock_book.catalog.path = "books.zip"
+        mock_book.format = "fb2"
+
+        mocker.patch("opds_catalog.dl.Book.objects.get", return_value=mock_book)
+        mock_book_data = mocker.MagicMock()
+        mock_book_data.extract_cover_memory.return_value = _make_jpeg()
+        mocker.patch("opds_catalog.dl.create_bookfile", return_value=mock_book_data)
+        mocker.patch(
+            "opds_catalog.zipf.ZipFile",
+            return_value=mocker.MagicMock(
+                open=lambda n: io.BytesIO(b"zipdata"),
+            ),
+        )
+        mocker.patch("builtins.open", mocker.mock_open())
+
+        request = mocker.MagicMock()
+        with mocker.patch.object(
+            dl, "config", _cfg(SOPDS_AUTH=False, SOPDS_CACHE_TIME=0)
+        ):
+            with mocker.patch.object(
+                dl, "django_settings", _cfg(SOPDS_ROOT_LIB="/lib")
+            ):
+                response = dl.Cover(request, 1, False)
+        assert response.status_code == 200
+        assert response["Content-Type"] == "image/jpeg"
+
+
+# ──────────────────────────────────────────────
+# Download: CAT_INP, zip_flag, unknown cat_type
+# ──────────────────────────────────────────────
+
+
+@pytest.mark.django_db
+class TestDownloadCatInp:
+    """Download from a CAT_INP archive."""
+
+    def _request(self, path: str = "/opds/download/1/0/") -> HttpRequest:
+        from django.test import RequestFactory
+
+        request = RequestFactory().get(path)
+        request.user = MagicMock(is_authenticated=False)
+        return request
+
+    def test_download_cat_inp_no_zip(self, mocker: MockerFixture) -> None:
+        """CAT_INP, zip_flag='0': streams the file from the parent zip."""
+        book = mocker.MagicMock(spec=Book)
+        book.id = 1
+        book.catalog = mocker.MagicMock(
+            cat_type=opdsdb.CAT_INP, path="inpx/col.inpx/sub/inp"
+        )
+        book.filename = "inner.fb2"
+        book.format = "fb2"
+        book.filesize = 100
+        book.title = "Book"
+        mocker.patch("opds_catalog.models.Book.objects.get", return_value=book)
+
+        zip_content = io.BytesIO()
+        with zipfile.ZipFile(zip_content, "w") as zf:
+            zf.writestr("inner.fb2", b"inpcontent")
+        zip_bytes = zip_content.getvalue()
+
+        fz_mock = mocker.MagicMock()
+        fz_mock.read.return_value = zip_bytes
+        fo_mock = io.BytesIO(b"inpcontent")
+        z_mock = mocker.MagicMock()
+        z_mock.open.return_value = fo_mock
+
+        mocker.patch("builtins.open", return_value=fz_mock)
+        mocker.patch("opds_catalog.zipf.ZipFile", return_value=z_mock)
+        mocker.patch("opds_catalog.dl.bookshelf.objects.get_or_create")
+        mocker.patch.object(
+            dl, "config", _cfg(SOPDS_TITLE_AS_FILENAME=False, SOPDS_AUTH=False)
+        )
+        mocker.patch.object(dl, "django_settings", _cfg(SOPDS_ROOT_LIB="/lib"))
+
+        response = dl.Download(self._request(), 1, "0")
+        assert response.status_code == 200
+        assert (
+            b"".join(
+                response.streaming_content  # type: ignore[attr-defined]  # FileResponse
+            )
+            == b"inpcontent"
+        )
+
+    def test_download_cat_inp_zip_flag(self, mocker: MockerFixture) -> None:
+        """CAT_INP, zip_flag='1': wraps the content in a zip on the fly."""
+        book = mocker.MagicMock(spec=Book)
+        book.id = 1
+        book.catalog = mocker.MagicMock(
+            cat_type=opdsdb.CAT_INP, path="inpx/col.inpx/sub/inp"
+        )
+        book.filename = "inner.fb2"
+        book.format = "fb2"
+        book.filesize = 100
+        book.title = "Book"
+        mocker.patch("opds_catalog.models.Book.objects.get", return_value=book)
+
+        fo_mock = io.BytesIO(b"inpcontent")
+        z_mock = mocker.MagicMock()
+        z_mock.open.return_value = fo_mock
+        fz_mock = mocker.MagicMock()
+        mocker.patch("builtins.open", return_value=fz_mock)
+        # Only mock ZipFile for read mode; let write mode create real zips.
+        real_zipfile = zipfile.ZipFile
+
+        def _zipfile_side_effect(
+            file: object, mode: str = "r", *a: object, **kw: object
+        ) -> object:
+            if mode == "r":
+                return z_mock
+            return real_zipfile(file, mode, *a, **kw)  # type: ignore[call-overload]
+
+        mocker.patch("opds_catalog.zipf.ZipFile", side_effect=_zipfile_side_effect)
+        mocker.patch("opds_catalog.dl.bookshelf.objects.get_or_create")
+        mocker.patch.object(
+            dl, "config", _cfg(SOPDS_TITLE_AS_FILENAME=False, SOPDS_AUTH=False)
+        )
+        mocker.patch.object(dl, "django_settings", _cfg(SOPDS_ROOT_LIB="/lib"))
+
+        response = dl.Download(self._request(), 1, "1")
+        assert response.status_code == 200
+        buf = response.content
+        with zipfile.ZipFile(io.BytesIO(buf)) as zf:
+            assert len(zf.namelist()) == 1
+
+    def test_download_unknown_cat_type(self, mocker: MockerFixture) -> None:
+        """Unknown cat_type → Http404."""
+        book = mocker.MagicMock(spec=Book)
+        book.id = 1
+        book.catalog = mocker.MagicMock(cat_type=99, path=".")
+        book.filename = "book.fb2"
+        book.format = "fb2"
+        book.filesize = 100
+        book.title = "Book"
+        mocker.patch("opds_catalog.models.Book.objects.get", return_value=book)
+        mocker.patch.object(
+            dl, "config", _cfg(SOPDS_TITLE_AS_FILENAME=False, SOPDS_AUTH=False)
+        )
+        mocker.patch.object(dl, "django_settings", _cfg(SOPDS_ROOT_LIB="/lib"))
+        with pytest.raises(Http404):
+            dl.Download(self._request(), 1, "0")
+
+    def test_download_cat_zip_zip_flag(self, mocker: MockerFixture) -> None:
+        """CAT_ZIP, zip_flag='1': wraps zip content in another zip."""
+        book = mocker.MagicMock(spec=Book)
+        book.id = 1
+        book.catalog = mocker.MagicMock(cat_type=opdsdb.CAT_ZIP, path="lib.zip")
+        book.filename = "inner.fb2"
+        book.format = "fb2"
+        book.filesize = 100
+        book.title = "Book"
+        mocker.patch("opds_catalog.models.Book.objects.get", return_value=book)
+
+        fo_mock = io.BytesIO(b"zipdata")
+        z_mock = mocker.MagicMock()
+        z_mock.open.return_value = fo_mock
+        fz_mock = mocker.MagicMock()
+        mocker.patch("builtins.open", return_value=fz_mock)
+        real_zipfile = zipfile.ZipFile
+
+        def _zipfile_side_effect(
+            file: object, mode: str = "r", *a: object, **kw: object
+        ) -> object:
+            if mode == "r":
+                return z_mock
+            return real_zipfile(file, mode, *a, **kw)  # type: ignore[call-overload]
+
+        mocker.patch("opds_catalog.zipf.ZipFile", side_effect=_zipfile_side_effect)
+        mocker.patch("opds_catalog.dl.bookshelf.objects.get_or_create")
+        mocker.patch.object(
+            dl, "config", _cfg(SOPDS_TITLE_AS_FILENAME=False, SOPDS_AUTH=False)
+        )
+        mocker.patch.object(dl, "django_settings", _cfg(SOPDS_ROOT_LIB="/lib"))
+
+        response = dl.Download(self._request(), 1, "1")
+        assert response.status_code == 200
+        buf = response.content
+        with zipfile.ZipFile(io.BytesIO(buf)) as zf:
+            assert len(zf.namelist()) == 1
+
+    def test_download_cat_normal_zip_flag(self, mocker: MockerFixture) -> None:
+        """CAT_NORMAL, zip_flag='1': wraps file content in a zip."""
+        book = mocker.MagicMock(spec=Book)
+        book.id = 1
+        book.catalog = mocker.MagicMock(cat_type=opdsdb.CAT_NORMAL, path=".")
+        book.filename = "book.fb2"
+        book.format = "fb2"
+        book.filesize = 100
+        book.title = "Book"
+        mocker.patch("opds_catalog.models.Book.objects.get", return_value=book)
+        mocker.patch("os.path.getsize", return_value=100)
+        mocker.patch("builtins.open", mocker.mock_open(read_data=b"bookcontent"))
+        mocker.patch("opds_catalog.dl.bookshelf.objects.get_or_create")
+        mocker.patch.object(
+            dl, "config", _cfg(SOPDS_TITLE_AS_FILENAME=False, SOPDS_AUTH=False)
+        )
+        mocker.patch.object(dl, "django_settings", _cfg(SOPDS_ROOT_LIB="/lib"))
+
+        response = dl.Download(self._request(), 1, "1")
+        assert response.status_code == 200
+        buf = response.content
+        with zipfile.ZipFile(io.BytesIO(buf)) as zf:
+            assert len(zf.namelist()) == 1
+
+    def test_download_title_as_filename(self, mocker: MockerFixture) -> None:
+        """SOPDS_TITLE_AS_FILENAME uses book.title for the download name."""
+        book = mocker.MagicMock(spec=Book)
+        book.id = 1
+        book.catalog = mocker.MagicMock(cat_type=opdsdb.CAT_NORMAL, path=".")
+        book.filename = "orig.fb2"
+        book.format = "fb2"
+        book.filesize = 100
+        book.title = "My Book"
+        mocker.patch("opds_catalog.models.Book.objects.get", return_value=book)
+        mocker.patch("os.path.getsize", return_value=100)
+        mocker.patch("builtins.open", mocker.mock_open(read_data=b"bookcontent"))
+        mocker.patch("opds_catalog.dl.bookshelf.objects.get_or_create")
+        mocker.patch.object(
+            dl, "config", _cfg(SOPDS_TITLE_AS_FILENAME=True, SOPDS_AUTH=False)
+        )
+        mocker.patch.object(dl, "django_settings", _cfg(SOPDS_ROOT_LIB="/lib"))
+
+        response = dl.Download(self._request(), 1, "0")
+        assert response.status_code == 200
+        assert "My_Book.fb2" in response["Content-Disposition"]

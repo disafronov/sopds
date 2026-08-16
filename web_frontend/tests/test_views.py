@@ -929,3 +929,79 @@ class TestBSClearView:
         request.META = {"HTTP_HOST": "testserver"}
         response = views.BSClearView(request)
         assert response.status_code == 302
+
+
+class TestLoginViewEdgeCases:
+    """Additional edge cases for LoginView — 403 branches."""
+
+    def test_authenticated_user_redirects(self, mocker: MockerFixture) -> None:
+        from web_frontend import views
+
+        request = make_auth_request()
+        request.method = "POST"
+        request.POST = QueryDict("username=user&password=pass")
+        response = views.LoginView(request)
+        assert response.status_code in (301, 302)
+
+    def test_no_post_renders_login(self, mocker: MockerFixture) -> None:
+        from web_frontend import views
+
+        mocker.patch.object(views, "render", return_value=HttpResponse("login"))
+        request = make_anon_request()
+        response = views.LoginView(request)
+        assert response.status_code == 200
+
+    def test_wrong_password_returns_403(self, mocker: MockerFixture) -> None:
+        from web_frontend import views
+
+        mocker.patch("web_frontend.views.authenticate", return_value=None)
+        mock_handler = mocker.patch(
+            "web_frontend.views.handler403", return_value=HttpResponse(status=403)
+        )
+        request = make_anon_request()
+        request.method = "POST"
+        request.POST = QueryDict("username=user&password=wrong")
+        response = views.LoginView(request)
+        assert response.status_code == 403
+        mock_handler.assert_called_once()
+        args_dict = mock_handler.call_args[0][1]
+        assert "password is incorrect" in args_dict["system_message"]["text"]
+
+    def test_inactive_user_returns_403(self, mocker: MockerFixture) -> None:
+        from web_frontend import views
+
+        mock_user = mocker.MagicMock(is_active=False)
+        mocker.patch("web_frontend.views.authenticate", return_value=mock_user)
+        mock_handler = mocker.patch(
+            "web_frontend.views.handler403", return_value=HttpResponse(status=403)
+        )
+        request = make_anon_request()
+        request.method = "POST"
+        request.POST = QueryDict("username=user&password=pass")
+        response = views.LoginView(request)
+        assert response.status_code == 403
+        mock_handler.assert_called_once()
+        args_dict = mock_handler.call_args[0][1]
+        assert "not active" in args_dict["system_message"]["text"]
+
+
+class TestBSDelViewEdgeCases:
+    """Edge cases for BSDelView()."""
+
+    def test_missing_book_param_returns_400(self, mocker: MockerFixture) -> None:
+        from web_frontend import views
+
+        request = make_auth_request()
+        request.method = "POST"
+        request.POST = QueryDict("")
+        response = views.BSDelView(request)
+        assert response.status_code == 400
+
+    def test_non_numeric_book_param_returns_400(self, mocker: MockerFixture) -> None:
+        from web_frontend import views
+
+        request = make_auth_request()
+        request.method = "POST"
+        request.POST = QueryDict("book=abc")
+        response = views.BSDelView(request)
+        assert response.status_code == 400
