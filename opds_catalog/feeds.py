@@ -568,7 +568,11 @@ class CatalogsFeed(AuthFeed):
 
         catalogs_list = Catalog.objects.filter(parent=cat).order_by("cat_name")
         catalogs_count = catalogs_list.count()
-        books_list = Book.objects.filter(catalog=cat).order_by(Upper("title"))
+        books_list = (
+            Book.objects.filter(catalog=cat)
+            .select_related("catalog")
+            .order_by(Upper("title"))
+        )
         books_count = books_list.count()
 
         # Получаем результирующий список
@@ -587,7 +591,34 @@ class CatalogsFeed(AuthFeed):
             }
             items.append(p)
 
-        for book_row in books_list[op.d2_first_pos : op.d2_last_pos + 1]:
+        book_slice = list(books_list[op.d2_first_pos : op.d2_last_pos + 1])
+        book_ids = [b.id for b in book_slice]
+        authors_by_book: dict[int, list[dict[str, Any]]] = {
+            b.id: [] for b in book_slice
+        }
+        for a in Book.authors.through.objects.filter(
+            book_id__in=book_ids
+        ).select_related("author"):
+            authors_by_book[a.book_id].append(
+                {"id": a.author_id, "full_name": a.author.full_name}
+            )
+        genres_by_book: dict[int, list[dict[str, Any]]] = {b.id: [] for b in book_slice}
+        for g in Book.genres.through.objects.filter(
+            book_id__in=book_ids
+        ).select_related("genre"):
+            genres_by_book[g.book_id].append({"id": g.genre_id, "genre": g.genre.genre})
+        series_by_book: dict[int, list[dict[str, Any]]] = {b.id: [] for b in book_slice}
+        for s in Book.series.through.objects.filter(
+            book_id__in=book_ids
+        ).select_related("ser"):
+            series_by_book[s.book_id].append({"id": s.ser_id, "series": s.ser.ser})
+        ser_no_by_book: dict[int, list[dict[str, Any]]] = {b.id: [] for b in book_slice}
+        for sn in models.bseries.objects.filter(book_id__in=book_ids):
+            ser_no_by_book[sn.book_id].append(
+                {"ser_id": sn.ser_id, "ser_no": sn.ser_no}
+            )
+
+        for book_row in book_slice:
             p = {
                 "is_catalog": 0,
                 "lang_code": book_row.lang_code,
@@ -601,10 +632,10 @@ class CatalogsFeed(AuthFeed):
                 "title": book_row.title,
                 "filesize": book_row.filesize // 1000,
                 "file_length": book_row.filesize,
-                "authors": book_row.authors.values(),
-                "genres": book_row.genres.values(),
-                "series": book_row.series.values(),
-                "ser_no": book_row.bseries_set.values("ser_id", "ser_no"),
+                "authors": authors_by_book[book_row.id],
+                "genres": genres_by_book[book_row.id],
+                "series": series_by_book[book_row.id],
+                "ser_no": ser_no_by_book[book_row.id],
             }
             items.append(p)
 
@@ -835,29 +866,41 @@ class SearchBooksFeed(AuthFeed):
 
         # Поиск книг по подсроке
         if searchtype == "m":
-            books = Book.objects.filter(
-                title__upper__contains=(searchterms or "").upper()
-            ).order_by(Upper("title"), "-docdate")
+            books = (
+                Book.objects.filter(title__upper__contains=(searchterms or "").upper())
+                .select_related("catalog")
+                .order_by(Upper("title"), "-docdate")
+            )
         # Поиск книг по начальной подстроке
         elif searchtype == "b":
-            books = Book.objects.filter(
-                title__upper__startswith=(searchterms or "").upper()
-            ).order_by(Upper("title"), "-docdate")
+            books = (
+                Book.objects.filter(
+                    title__upper__startswith=(searchterms or "").upper()
+                )
+                .select_related("catalog")
+                .order_by(Upper("title"), "-docdate")
+            )
         # Поиск книг по точному совпадению наименования
         elif searchtype == "e":
-            books = Book.objects.filter(
-                title__upper=(
-                    "" if searchterms == EMPTY_SEARCH_TERM else (searchterms or "")
-                ).upper()
-            ).order_by(Upper("title"), "-docdate")
+            books = (
+                Book.objects.filter(
+                    title__upper=(
+                        "" if searchterms == EMPTY_SEARCH_TERM else (searchterms or "")
+                    ).upper()
+                )
+                .select_related("catalog")
+                .order_by(Upper("title"), "-docdate")
+            )
         # Поиск книг по автору
         elif searchtype == "a":
             try:
                 author_id = int(searchterms or "")
             except Exception:
                 author_id = 0
-            books = Book.objects.filter(authors=author_id).order_by(
-                Upper("title"), "-docdate"
+            books = (
+                Book.objects.filter(authors=author_id)
+                .select_related("catalog")
+                .order_by(Upper("title"), "-docdate")
             )
         # Поиск книг по серии
         elif searchtype == "s":
@@ -865,8 +908,10 @@ class SearchBooksFeed(AuthFeed):
                 ser_id = int(searchterms or "")
             except Exception:
                 ser_id = 0
-            books = Book.objects.filter(series=ser_id).order_by(
-                "bseries__ser_no", Upper("title"), "-docdate"
+            books = (
+                Book.objects.filter(series=ser_id)
+                .select_related("catalog")
+                .order_by("bseries__ser_no", Upper("title"), "-docdate")
             )
         # Поиск книг по автору и серии
         elif searchtype == "as":
@@ -876,33 +921,41 @@ class SearchBooksFeed(AuthFeed):
             except Exception:
                 ser_id = 0
                 author_id = 0
-            books = Book.objects.filter(
-                authors=author_id, series=ser_id if ser_id else None
-            ).order_by("bseries__ser_no", Upper("title"), "-docdate")
+            books = (
+                Book.objects.filter(
+                    authors=author_id, series=ser_id if ser_id else None
+                )
+                .select_related("catalog")
+                .order_by("bseries__ser_no", Upper("title"), "-docdate")
+            )
         # Поиск книг по жанру
         elif searchtype == "g":
             try:
                 genre_id = int(searchterms or "")
             except Exception:
                 genre_id = 0
-            books = Book.objects.filter(genres=genre_id).order_by(
-                Upper("title"), "-docdate"
+            books = (
+                Book.objects.filter(genres=genre_id)
+                .select_related("catalog")
+                .order_by(Upper("title"), "-docdate")
             )
         # Поиск книг на книжной полке
         elif searchtype == "u":
             if config.SOPDS_AUTH and request.user.is_authenticated:
-                books = Book.objects.filter(bookshelf__user=request.user).order_by(
-                    "-bookshelf__readtime"
+                books = (
+                    Book.objects.filter(bookshelf__user=request.user)
+                    .select_related("catalog")
+                    .order_by("-bookshelf__readtime")
                 )
             else:
-                books = Book.objects.filter(id=0)
+                books = Book.objects.filter(id=0).select_related("catalog")
         # Поиск книги по ID
         elif searchtype == "i":
             try:
                 book_id = int(searchterms or "")
             except Exception:
                 book_id = 0
-            books = Book.objects.filter(id=book_id)
+            books = Book.objects.filter(id=book_id).select_related("catalog")
         # Поиск дубликатов для книги
         elif searchtype == "d":
             book_id = int(searchterms or "")
@@ -911,6 +964,7 @@ class SearchBooksFeed(AuthFeed):
                 Book.objects.filter(
                     title__iexact=mbook.title, authors__in=mbook.authors.all()
                 )
+                .select_related("catalog")
                 .exclude(id=book_id)
                 .order_by(Upper("title"), "-docdate")
             )
@@ -934,7 +988,37 @@ class SearchBooksFeed(AuthFeed):
         )
         finish = op.d1_last_pos
 
-        for row in books[start : finish + 1]:
+        # Eagerly fetch all M2M data to avoid per-row queries.
+        # The doubles-hide lookahead may read a few extra rows beyond the page.
+        prefetch_end = min(finish + 4, books_count)
+        book_slice = list(books[start:prefetch_end])
+        book_ids = [b.id for b in book_slice]
+        authors_by_book: dict[int, list[dict[str, Any]]] = {
+            b.id: [] for b in book_slice
+        }
+        for a in Book.authors.through.objects.filter(
+            book_id__in=book_ids
+        ).select_related("author"):
+            authors_by_book[a.book_id].append(
+                {"id": a.author_id, "full_name": a.author.full_name}
+            )
+        genres_by_book: dict[int, list[dict[str, Any]]] = {b.id: [] for b in book_slice}
+        for g in Book.genres.through.objects.filter(
+            book_id__in=book_ids
+        ).select_related("genre"):
+            genres_by_book[g.book_id].append({"id": g.genre_id, "genre": g.genre.genre})
+        series_by_book: dict[int, list[dict[str, Any]]] = {b.id: [] for b in book_slice}
+        for s in Book.series.through.objects.filter(
+            book_id__in=book_ids
+        ).select_related("ser"):
+            series_by_book[s.book_id].append({"id": s.ser_id, "series": s.ser.ser})
+        ser_no_by_book: dict[int, list[dict[str, Any]]] = {b.id: [] for b in book_slice}
+        for sn in models.bseries.objects.filter(book_id__in=book_ids):
+            ser_no_by_book[sn.book_id].append(
+                {"ser_id": sn.ser_id, "ser_no": sn.ser_no}
+            )
+
+        for row in book_slice[: finish - start + 1]:
             p: ItemDict = {
                 "doubles": 0,
                 "lang_code": row.lang_code,
@@ -948,10 +1032,10 @@ class SearchBooksFeed(AuthFeed):
                 "title": row.title,
                 "filesize": row.filesize // 1000,
                 "file_length": row.filesize,
-                "authors": row.authors.values(),
-                "genres": row.genres.values(),
-                "series": row.series.values(),
-                "ser_no": row.bseries_set.values("ser_id", "ser_no"),
+                "authors": authors_by_book[row.id],
+                "genres": genres_by_book[row.id],
+                "series": series_by_book[row.id],
+                "ser_no": ser_no_by_book[row.id],
             }
             if summary_DOUBLES_HIDE:
                 title = p["title"]
@@ -974,12 +1058,18 @@ class SearchBooksFeed(AuthFeed):
         # дубликаты с текущей
         if summary_DOUBLES_HIDE:
             double_flag = True
+            lookahead_idx = finish - start + 1
             while ((finish + 1) < books_count) and double_flag:
                 finish += 1
+                lookahead_idx += 1
                 if (
                     prev_title
-                    and books[finish].title.upper() == prev_title.upper()
-                    and {a["id"] for a in books[finish].authors.values()}
+                    and book_slice[lookahead_idx - 1].title.upper()
+                    == prev_title.upper()
+                    and {
+                        a["id"]
+                        for a in authors_by_book[book_slice[lookahead_idx - 1].id]
+                    }
                     == prev_authors_set
                 ):
                     items[-1]["doubles"] += 1
