@@ -13,7 +13,6 @@ import os
 import zipfile
 from typing import Any
 
-from book_tools.format.bookfile import STRIP_SYMBOLS
 from opds_catalog import inpx_parser
 from opds_catalog.scan_types import (
     AuthorMeta,
@@ -96,7 +95,7 @@ def _normalize_author(author_raw: str) -> str:
     3. Names that already contain a comma are kept as-is after stripping
        (``"Smith, John"`` → ``"Smith, John"``).
     """
-    author = author_raw.strip(STRIP_SYMBOLS)
+    author = author_raw.strip()
     if author and "," not in author:
         parts = author.split()
         if len(parts) > 1:
@@ -137,7 +136,7 @@ def _to_bookmeta(
 
     # --- genres / tags -----------------------------------------------------
     genres: list[str] = [
-        g.lower().strip(STRIP_SYMBOLS)
+        g.lower()
         for g in getattr(book_data, "tags", [])
         if isinstance(g, str) and g.strip()
     ]
@@ -153,24 +152,22 @@ def _to_bookmeta(
             series.append(SeriesMeta(title=ser_title, index=index))
 
     # --- title (fallback → filename without extension) ---------------------
-    title_raw = (getattr(book_data, "title", "") or "").strip(STRIP_SYMBOLS)
+    title_raw = (getattr(book_data, "title", "") or "").strip()
     title = title_raw if title_raw else os.path.splitext(name)[0]
 
     # --- annotation / description (may be str or bytes) --------------------
     description_raw = getattr(book_data, "description", None)
     if description_raw:
         if isinstance(description_raw, bytes):
-            annotation = description_raw.decode("utf8", errors="replace").strip(
-                STRIP_SYMBOLS
-            )
+            annotation = description_raw.decode("utf8", errors="replace").strip()
         else:
-            annotation = str(description_raw).strip(STRIP_SYMBOLS)
+            annotation = str(description_raw).strip()
     else:
         annotation = ""
 
     # --- language ----------------------------------------------------------
     lang_raw = getattr(book_data, "language_code", None)
-    lang = lang_raw.strip(STRIP_SYMBOLS) if lang_raw else ""
+    lang = lang_raw.strip() if lang_raw else ""
 
     # --- docdate -----------------------------------------------------------
     docdate = getattr(book_data, "docdate", "") or ""
@@ -210,10 +207,10 @@ def inpx_entry_to_bookmeta(
 
     name = "%s.%s" % (meta_data[inpx_parser.sFile], meta_data[inpx_parser.sExt])
 
-    # --- title / lang / docdate (all strip_symbols) ------------------------
-    title = meta_data[inpx_parser.sTitle].strip(STRIP_SYMBOLS)
-    lang = meta_data[inpx_parser.sLang].strip(STRIP_SYMBOLS)
-    docdate = meta_data[inpx_parser.sDate].strip(STRIP_SYMBOLS)
+    # --- title / lang / docdate ---------------------------------------------
+    title = meta_data[inpx_parser.sTitle].strip()
+    lang = meta_data[inpx_parser.sLang].strip()
+    docdate = meta_data[inpx_parser.sDate].strip()
 
     # --- annotation (INPX never provides annotations) ----------------------
     annotation = ""
@@ -224,10 +221,8 @@ def inpx_entry_to_bookmeta(
     for a in meta_data[inpx_parser.sAuthor]:
         authors.append(AuthorMeta(name=a.replace(",", " ")))
 
-    # --- genres: lowercase + strip_symbols ---------------------------------
-    genres: list[str] = [
-        g.lower().strip(STRIP_SYMBOLS) for g in meta_data[inpx_parser.sGenre]
-    ]
+    # --- genres: lowercase --------------------------------------------------
+    genres: list[str] = [g.lower() for g in meta_data[inpx_parser.sGenre]]
 
     # --- series: strip whitespace, index always 0 --------------------------
     # The original callback ignores sSerNo and always passes 0 to addbseries.

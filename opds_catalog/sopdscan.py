@@ -24,7 +24,6 @@ from django.db.utils import InterfaceError, OperationalError
 from django.utils.translation import gettext as _
 
 from book_tools.format import create_bookfile, supported_book_extensions
-from book_tools.format.bookfile import STRIP_SYMBOLS
 from opds_catalog import opdsdb
 from opds_catalog.models import (
     SIZE_AUTHOR_NAME,
@@ -831,22 +830,18 @@ class opdsScanner:
 
                     if book_data:
                         lang = (
-                            book_data.language_code.strip(STRIP_SYMBOLS)
+                            book_data.language_code.strip()
                             if book_data.language_code
                             else ""
                         )
-                        title = (
-                            book_data.title.strip(STRIP_SYMBOLS)
-                            if book_data.title
-                            else n
-                        )
+                        title = book_data.title.strip() if book_data.title else n
                         annotation = (
                             book_data.description if book_data.description else ""
                         )
                         annotation = (
-                            annotation.strip(STRIP_SYMBOLS)
+                            annotation.strip()
                             if isinstance(annotation, str)
-                            else annotation.decode("utf8").strip(STRIP_SYMBOLS)
+                            else annotation.decode("utf8").strip()
                         )
                         docdate = book_data.docdate if book_data.docdate else ""
 
@@ -871,9 +866,7 @@ class opdsScanner:
                         )
 
                         for a in book_data.authors:
-                            author_name = a.get("name", _("Unknown author")).strip(
-                                STRIP_SYMBOLS
-                            )
+                            author_name = a.get("name", _("Unknown author")).strip()
                             # Если в имени автора нет запятой, то фамилию
                             # переносим из конца в начало
                             if author_name and author_name.find(",") < 0:
@@ -887,7 +880,7 @@ class opdsScanner:
                         for genre in book_data.tags:
                             opdsdb.addbgenre(
                                 book,
-                                opdsdb.addgenre(genre.lower().strip(STRIP_SYMBOLS)),
+                                opdsdb.addgenre(genre.lower()),
                             )
 
                         if book_data.series_info:
