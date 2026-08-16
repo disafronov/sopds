@@ -322,7 +322,9 @@ class TestDownloadView(_ViewTestBase):
     def test_download_success(self, mocker: MockerFixture) -> None:
         response = self._do(mocker, "0")
         assert response.status_code == 200
-        assert b"bookcontent" in response.content
+        assert b"bookcontent" in b"".join(
+            response.streaming_content  # type: ignore[attr-defined]  # FileResponse
+        )
         assert "Content-Disposition" in response
 
     def test_download_zip(self, mocker: MockerFixture) -> None:
@@ -421,7 +423,12 @@ class TestDownloadView(_ViewTestBase):
             config.SOPDS_TITLE_AS_FILENAME = original_title_as_filename
 
         assert response.status_code == 200
-        assert response.content == b"bookcontent"
+        assert (
+            b"".join(
+                response.streaming_content  # type: ignore[attr-defined]  # FileResponse
+            )
+            == b"bookcontent"
+        )
         add_to_bookshelf.assert_called_once_with(user=user, book=book)
 
 
