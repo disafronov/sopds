@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-05 14:46+0000\n"
+"POT-Creation-Date: 2026-08-16 18:50+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -253,7 +253,7 @@ msgid "Settings"
 msgstr "Настройки"
 
 #: web_frontend/templates/sopds_menu.html:16
-#: web_frontend/templates/sopds_menu.html:57 web_frontend/views.py:462
+#: web_frontend/templates/sopds_menu.html:57 web_frontend/views.py:460
 msgid "Logout"
 msgstr "Выход"
 
@@ -357,7 +357,7 @@ msgstr "Жанр"
 msgid "Doubles for book"
 msgstr "Дубликаты книги"
 
-#: web_frontend/views.py:104 web_frontend/views.py:477
+#: web_frontend/views.py:104 web_frontend/views.py:475
 msgid "Book"
 msgstr "Книга"
 
@@ -389,6 +389,6 @@ msgstr "ГЛАВНАЯ"
 msgid "This account is not active!"
 msgstr "Учетная запись не активна!"
 
-#: web_frontend/views.py:451
+#: web_frontend/views.py:450
 msgid "User does not exist or the password is incorrect!"
 msgstr "Пользователь не существует или введен неправильный пароль!"
