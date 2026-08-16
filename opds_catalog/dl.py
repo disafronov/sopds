@@ -139,44 +139,46 @@ def Download(request: HttpRequest, book_id: int, zip_flag: str) -> HttpResponse:
     fz = None
     fo: BinaryIO | None = None
     book_size = book.filesize
-    try:
-        if book.catalog.cat_type == opdsdb.CAT_NORMAL:
-            file_path = os.path.join(full_path, book.filename)
-            try:
-                book_size = os.path.getsize(file_path)
-                fo = open(file_path, "rb")
-            except FileNotFoundError:
-                raise Http404
-        elif book.catalog.cat_type in [opdsdb.CAT_ZIP, opdsdb.CAT_INP]:
-            try:
-                fz = open(full_path, "rb")
-            except FileNotFoundError:
-                raise Http404
-            z = zipfile.ZipFile(fz, "r", allowZip64=True)
-            book_size = z.getinfo(book.filename).file_size
-            fo = cast(BinaryIO, z.open(book.filename))
-        else:
-            raise Http404
 
-        if zip_flag == "1":
-            dio = io.BytesIO()
-            zo = zipfile.ZipFile(dio, "w", zipfile.ZIP_DEFLATED)
-            zo.writestr(transname, fo.read())
-            zo.close()
-            buf = dio.getvalue()
-            response = HttpResponse(buf)
-            response["Content-Length"] = str(len(buf))
-        else:
-            # django-stubs doesn't recognise FileResponse as HttpResponse.
-            response = FileResponse(fo)  # type: ignore[assignment]
-            response["Content-Length"] = str(book_size)
-    finally:
+    if book.catalog.cat_type == opdsdb.CAT_NORMAL:
+        file_path = os.path.join(full_path, book.filename)
+        try:
+            book_size = os.path.getsize(file_path)
+            fo = open(file_path, "rb")
+        except FileNotFoundError:
+            raise Http404
+    elif book.catalog.cat_type in [opdsdb.CAT_ZIP, opdsdb.CAT_INP]:
+        try:
+            fz = open(full_path, "rb")
+        except FileNotFoundError:
+            raise Http404
+        z = zipfile.ZipFile(fz, "r", allowZip64=True)
+        book_size = z.getinfo(book.filename).file_size
+        fo = cast(BinaryIO, z.open(book.filename))
+    else:
+        raise Http404
+
+    if zip_flag == "1":
+        dio = io.BytesIO()
+        zo = zipfile.ZipFile(dio, "w", zipfile.ZIP_DEFLATED)
+        zo.writestr(transname, fo.read())
+        zo.close()
+        buf = dio.getvalue()
+        response = HttpResponse(buf)
+        response["Content-Length"] = str(len(buf))
+        # All data is in memory; safe to close handles now.
         if fo:
             fo.close()
         if z:
             z.close()
         if fz:
             fz.close()
+    else:
+        # FileResponse registers fo.close in _resource_closers and will
+        # close the handle after the WSGI handler finishes streaming.
+        # django-stubs doesn't recognise FileResponse as HttpResponse.
+        response = FileResponse(fo)  # type: ignore[assignment]
+        response["Content-Length"] = str(book_size)
 
     response["Content-Type"] = '%s; name="%s"' % (content_type, dlfilename)
     response["Content-Disposition"] = 'attachment; filename="%s"' % (dlfilename)
