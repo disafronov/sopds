@@ -17,16 +17,16 @@ dependencies = [
   "gunicorn>=26.0.0,<27.0.0",
   "whitenoise>=6.9.0,<7.0.0",
   "psycopg2-binary>=2.9.12,<3.0.0",
-  "tzdata==2026.3"
+  "tzdata==2026.3",
 ]
 
-  [[project.authors]]
-  name = "Dmitrii Safronov"
-  email = "dhameoelin@gmail.com"
+[[project.authors]]
+name = "Dmitrii Safronov"
+email = "dhameoelin@gmail.com"
 
 [tool.black]
 line-length = 88
-target-version = [ "py312" ]
+target-version = ["py312"]
 include = "\\.pyi?$"
 
 [tool.isort]
@@ -35,16 +35,16 @@ extend_skip_glob = "*/migrations/*.py"
 
 [tool.flake8]
 max-line-length = 88
-extend-ignore = [ "E203", "W503" ]
-exclude = [ ".venv", "htmlcov", "*/migrations/*.py" ]
+extend-ignore = ["E203", "W503"]
+exclude = [".venv", "htmlcov", "*/migrations/*.py"]
 
 [tool.mypy]
 strict = true
 warn_unreachable = true
-plugins = [ "mypy_django_plugin.main" ]
+plugins = ["mypy_django_plugin.main"]
 
-  [[tool.mypy.overrides]]
-  module = [
+[[tool.mypy.overrides]]
+module = [
   "lxml",
   "lxml.*",
   "PIL",
@@ -58,15 +58,15 @@ plugins = [ "mypy_django_plugin.main" ]
   "ebookmeta",
   "ebookmeta.*",
   "mobi",
-  "mobi.*"
+  "mobi.*",
 ]
-  ignore_missing_imports = true
+ignore_missing_imports = true
 
 [tool.django-stubs]
 django_settings_module = "config.settings"
 
 [tool.bandit]
-exclude_dirs = [ ".venv", "htmlcov", "tests", "*/migrations/*" ]
+exclude_dirs = [".venv", "htmlcov", "tests", "*/migrations/*"]
 skips = [
   "B101",
   "B110",
@@ -78,11 +78,11 @@ skips = [
   "B105",
   "B608",
   "B104",
-  "B311"
+  "B311",
 ]
 
 [tool.coverage.run]
-source = [ "." ]
+source = ["."]
 omit = [
   ".venv/*",
   "tests/*",
@@ -90,7 +90,7 @@ omit = [
   "*/migrations/*",
   "manage.py",
   "sopds/settings.py",
-  "config/wsgi.py"
+  "config/wsgi.py",
 ]
 branch = true
 parallel = true
@@ -105,7 +105,7 @@ exclude_lines = [
   "@(abc\\.)?abstractmethod",
   "@overload",
   "\\.\\.\\.$",
-  "pragma: no cover"
+  "pragma: no cover",
 ]
 show_missing = true
 skip_covered = false
@@ -115,8 +115,8 @@ directory = "htmlcov"
 
 [tool.vulture]
 min_confidence = 80
-paths = [ "." ]
-exclude = [ ".venv", "htmlcov", "tests/*", "*/tests/*", "*/migrations/*" ]
+paths = ["."]
+exclude = [".venv", "htmlcov", "tests/*", "*/tests/*", "*/migrations/*"]
 ignore_names = [
   "cls",
   "owner",
@@ -126,15 +126,15 @@ ignore_names = [
   "args",
   "kwargs",
   "test_zip",
-  "test_files"
+  "test_files",
 ]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings"
-python_files = [ "test_*.py" ]
+python_files = ["test_*.py"]
 addopts = "--strict-markers --cov --cov-report=term-missing --cov-report=html"
-testpaths = [ "." ]
-filterwarnings = [ "ignore::DeprecationWarning" ]
+testpaths = ["."]
+filterwarnings = ["ignore::DeprecationWarning"]
 
 [dependency-groups]
 dev = [
@@ -152,5 +152,5 @@ dev = [
   "bandit>=1.7.5",
   "pre-commit>=4.6.2",
   "vulture>=2.16",
-  "pip-audit>=2.10.1"
+  "pip-audit>=2.10.1",
 ]
