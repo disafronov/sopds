@@ -24,11 +24,3 @@ if loglevel.lower() in loglevels:
     LOGLEVEL = loglevels[loglevel.lower()]
 else:
     LOGLEVEL = logging.NOTSET
-
-# from constance.signals import config_updated
-#
-# @receiver(config_updated)
-# def constance_updated(sender, updated_key, new_value, **kwargs):
-#    if updated_key == 'SOPDS_LANGUAGE':
-#        translation.activate(new_value)
-#        print(new_value)

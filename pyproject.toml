@@ -89,7 +89,6 @@ omit = [
   "*/tests/*",
   "*/migrations/*",
   "manage.py",
-  "sopds/settings.py",
   "config/wsgi.py"
 ]
 branch = true
