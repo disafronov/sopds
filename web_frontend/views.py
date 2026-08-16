@@ -445,14 +445,12 @@ def LoginView(request: HttpRequest) -> HttpResponse:
                 "type": "alert",
             }
             return handler403(request, args)
-            # return render(request, 'sopds_login.html', args)
     else:
         args["system_message"] = {
             "text": _("User does not exist or the password is incorrect!"),
             "type": "alert",
         }
         return handler403(request, args)
-        # return render(request, 'sopds_login.html', args)
 
 
 @vary_on_headers("HTTP_ACCEPT_LANGUAGE")
