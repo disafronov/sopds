@@ -5,9 +5,6 @@ from typing import Optional
 from constance import config
 from django.contrib import auth
 from django.http import HttpRequest, HttpResponse
-from django.middleware.cache import (
-    FetchFromCacheMiddleware as DjangoFetchFromCacheMiddleware,
-)
 from django.utils import translation
 from django.utils.deprecation import MiddlewareMixin
 
@@ -68,12 +65,3 @@ class SOPDSLocaleMiddleware(MiddlewareMixin):
         request.LANG = config.SOPDS_LANGUAGE  # type: ignore[attr-defined]
         translation.activate(request.LANG)  # type: ignore[attr-defined]
         request.LANGUAGE_CODE = request.LANG  # type: ignore[attr-defined]
-
-
-class FetchFromCacheMiddleware(DjangoFetchFromCacheMiddleware):
-
-    def process_request(self, request: HttpRequest) -> Optional[HttpResponse]:
-        if not request.user.is_authenticated:
-            return None
-        else:
-            return super(FetchFromCacheMiddleware, self).process_request(request)

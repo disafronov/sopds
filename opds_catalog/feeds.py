@@ -568,8 +568,6 @@ class CatalogsFeed(AuthFeed):
 
         catalogs_list = Catalog.objects.filter(parent=cat).order_by("cat_name")
         catalogs_count = catalogs_list.count()
-        # books_list = Book.objects.filter(catalog=cat).prefetch_related(
-        #     'authors','genres','series').order_by("title")
         books_list = Book.objects.filter(catalog=cat).order_by(Upper("title"))
         books_count = books_list.count()
 
@@ -837,22 +835,16 @@ class SearchBooksFeed(AuthFeed):
 
         # Поиск книг по подсроке
         if searchtype == "m":
-            # books = Book.objects.extra(where=["upper(title) like %s"],
-            #     params=["%%%s%%"%searchterms.upper()]).order_by('title','-docdate')
             books = Book.objects.filter(
                 title__upper__contains=(searchterms or "").upper()
             ).order_by(Upper("title"), "-docdate")
         # Поиск книг по начальной подстроке
         elif searchtype == "b":
-            # books = Book.objects.extra(where=["upper(title) like %s"],
-            #     params=["%s%%"%searchterms.upper()]).order_by('title','-docdate')
             books = Book.objects.filter(
                 title__upper__startswith=(searchterms or "").upper()
             ).order_by(Upper("title"), "-docdate")
         # Поиск книг по точному совпадению наименования
         elif searchtype == "e":
-            # books = Book.objects.extra(where=["upper(title)=%s"],
-            #     params=["%s"%searchterms.upper()]).order_by('title','-docdate')
             books = Book.objects.filter(
                 title__upper=(
                     "" if searchterms == EMPTY_SEARCH_TERM else (searchterms or "")
@@ -922,10 +914,6 @@ class SearchBooksFeed(AuthFeed):
                 .exclude(id=book_id)
                 .order_by(Upper("title"), "-docdate")
             )
-
-        # if len(books)>0:
-        # books = books.prefetch_related('authors','genres','series').order_by(
-        #     'title','authors','-docdate')
 
         # Фильтруем дубликаты
         books_count = books.count()

@@ -59,7 +59,6 @@ class Book(models.Model):
     catalog = models.ForeignKey("Catalog", db_index=True, on_delete=models.CASCADE)
     registerdate = models.DateTimeField(null=False, default=timezone.now)
     docdate = models.CharField(max_length=SIZE_BOOK_DOCDATE, db_index=True)
-    # favorite = models.IntegerField(null=False, default=0)
     lang = models.CharField(max_length=SIZE_BOOK_LANG)
     title = models.CharField(max_length=SIZE_BOOK_TITLE, db_index=True)
     annotation = models.CharField(max_length=SIZE_BOOK_ANNOTATION)
