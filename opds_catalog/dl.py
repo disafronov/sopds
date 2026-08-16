@@ -145,8 +145,8 @@ def Download(request: HttpRequest, book_id: int, zip_flag: str) -> HttpResponse:
     book_size = book.filesize
     if book.catalog.cat_type == opdsdb.CAT_NORMAL:
         file_path = os.path.join(full_path, book.filename)
-        book_size = os.path.getsize(file_path)
         try:
+            book_size = os.path.getsize(file_path)
             fo = open(file_path, "rb")
         except FileNotFoundError:
             raise Http404
