@@ -9,6 +9,7 @@ from constance import config
 from django.conf import settings as django_settings
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.http import (
+    FileResponse,
     Http404,
     HttpRequest,
     HttpResponse,
@@ -109,7 +110,7 @@ def _add_downloaded_book_to_bookshelf(request: HttpRequest, book: Book) -> None:
 
 
 def Download(request: HttpRequest, book_id: int, zip_flag: str) -> HttpResponse:
-    """Загрузка файла книги"""
+    """Stream a book file to the client without loading it entirely into memory."""
     book = Book.objects.get(id=book_id)
 
     full_path = os.path.join(django_settings.SOPDS_ROOT_LIB, book.catalog.path)
@@ -134,52 +135,52 @@ def Download(request: HttpRequest, book_id: int, zip_flag: str) -> HttpResponse:
         dlfilename = transname
         content_type = mime_detector.fmt(book.format)
 
-    response = HttpResponse()
+    z = None
+    fz = None
+    fo: BinaryIO | None = None
+    book_size = book.filesize
+    try:
+        if book.catalog.cat_type == opdsdb.CAT_NORMAL:
+            file_path = os.path.join(full_path, book.filename)
+            try:
+                book_size = os.path.getsize(file_path)
+                fo = open(file_path, "rb")
+            except FileNotFoundError:
+                raise Http404
+        elif book.catalog.cat_type in [opdsdb.CAT_ZIP, opdsdb.CAT_INP]:
+            try:
+                fz = open(full_path, "rb")
+            except FileNotFoundError:
+                raise Http404
+            z = zipfile.ZipFile(fz, "r", allowZip64=True)
+            book_size = z.getinfo(book.filename).file_size
+            fo = cast(BinaryIO, z.open(book.filename))
+        else:
+            raise Http404
+
+        if zip_flag == "1":
+            dio = io.BytesIO()
+            zo = zipfile.ZipFile(dio, "w", zipfile.ZIP_DEFLATED)
+            zo.writestr(transname, fo.read())
+            zo.close()
+            buf = dio.getvalue()
+            response = HttpResponse(buf)
+            response["Content-Length"] = str(len(buf))
+        else:
+            # django-stubs doesn't recognise FileResponse as HttpResponse.
+            response = FileResponse(fo)  # type: ignore[assignment]
+            response["Content-Length"] = str(book_size)
+    finally:
+        if fo:
+            fo.close()
+        if z:
+            z.close()
+        if fz:
+            fz.close()
+
     response["Content-Type"] = '%s; name="%s"' % (content_type, dlfilename)
     response["Content-Disposition"] = 'attachment; filename="%s"' % (dlfilename)
     response["Content-Transfer-Encoding"] = "binary"
-
-    z = None
-    fz = None
-    fo: BinaryIO
-    book_size = book.filesize
-    if book.catalog.cat_type == opdsdb.CAT_NORMAL:
-        file_path = os.path.join(full_path, book.filename)
-        try:
-            book_size = os.path.getsize(file_path)
-            fo = open(file_path, "rb")
-        except FileNotFoundError:
-            raise Http404
-        s: bytes = fo.read()
-    elif book.catalog.cat_type in [opdsdb.CAT_ZIP, opdsdb.CAT_INP]:
-        try:
-            fz = open(full_path, "rb")
-        except FileNotFoundError:
-            raise Http404
-        z = zipfile.ZipFile(fz, "r", allowZip64=True)
-        book_size = z.getinfo(book.filename).file_size
-        fo = cast(BinaryIO, z.open(book.filename))
-        s = fo.read()
-    else:
-        raise Http404
-
-    if zip_flag == "1":
-        dio = io.BytesIO()
-        zo = zipfile.ZipFile(dio, "w", zipfile.ZIP_DEFLATED)
-        zo.writestr(transname, s)
-        zo.close()
-        buf = dio.getvalue()
-        response["Content-Length"] = str(len(buf))
-        response.write(buf)
-    else:
-        response["Content-Length"] = str(book_size)
-        response.write(s)
-
-    fo.close()
-    if z:
-        z.close()
-    if fz:
-        fz.close()
 
     _add_downloaded_book_to_bookshelf(request, book)
     return response
