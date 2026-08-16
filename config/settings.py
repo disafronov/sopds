@@ -225,8 +225,12 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
-CACHE_BACKEND = "locmem://"
-CACHE_MIDDLEWARE_KEY_PREFIX = "sopds"
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "KEY_PREFIX": "sopds",
+    }
+}
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
