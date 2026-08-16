@@ -432,3 +432,79 @@ class feedsTestCase(TestCase):
         c = Client()
         response = c.get(reverse("opds:main"))
         self.assertEqual(response.status_code, 401)
+
+
+class LocalReferenceTest(TestCase):
+    """Tests for _SyndicationFeedBase._local_reference()."""
+
+    def _call(self, url: str | None, host: str = "testserver") -> str | None:
+        from django.test import RequestFactory
+
+        from opds_catalog.feeds import AuthFeed
+
+        request = RequestFactory().get("/")
+        # Simulate request.get_host() returning ``host``.
+        request.META["SERVER_NAME"] = host
+        fn = AuthFeed._local_reference
+        return fn(url, request)
+
+    def test_none_returns_none(self) -> None:
+        self.assertIsNone(self._call(None))
+
+    def test_empty_string_returns_empty(self) -> None:
+        self.assertEqual(self._call(""), "")
+
+    def test_external_netloc_is_kept(self) -> None:
+        self.assertEqual(
+            self._call("https://example.com/path"), "https://example.com/path"
+        )
+
+    def test_matching_netloc_is_stripped(self) -> None:
+        self.assertEqual(self._call("http://testserver/path"), "/path")
+
+    def test_query_is_preserved(self) -> None:
+        self.assertEqual(self._call("/search?q=django"), "/search?q=django")
+
+    def test_fragment_is_preserved(self) -> None:
+        self.assertEqual(self._call("/page#section"), "/page#section")
+
+    def test_query_and_fragment_are_preserved(self) -> None:
+        self.assertEqual(self._call("/p?q=1#f"), "/p?q=1#f")
+
+
+class FeedSearchLinksTest(TestCase):
+    """Integration: search_url and searchTerm_url are emitted in feeds."""
+
+    fixtures = ["testdb.json"]
+
+    def setUp(self) -> None:
+        config.SOPDS_AUTH = False
+
+    def test_books_feed_has_search_links(self) -> None:
+        c = Client()
+        response = c.get(reverse("opds:nolang_books"))
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn('rel="search"', content)
+
+    def test_search_authors_feed_has_search_links(self) -> None:
+        c = Client()
+        response = c.get(
+            reverse(
+                "opds:searchauthors",
+                kwargs={
+                    "searchtype": "b",
+                    "searchterms": "a",
+                },
+            )
+        )
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn('rel="search"', content)
+
+    def test_catalogs_feed_has_search_links(self) -> None:
+        c = Client()
+        response = c.get(reverse("opds:catalogs"))
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn('rel="search"', content)
