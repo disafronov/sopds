@@ -51,6 +51,3 @@ build/
 
 # Frontend dependencies
 /assets/node_modules/
-
-# MAGG
-/.magg
