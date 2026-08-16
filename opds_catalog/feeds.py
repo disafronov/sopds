@@ -606,12 +606,19 @@ class CatalogsFeed(AuthFeed):
         for g in Book.genres.through.objects.filter(
             book_id__in=book_ids
         ).select_related("genre"):
-            genres_by_book[g.book_id].append({"id": g.genre_id, "genre": g.genre.genre})
+            genres_by_book[g.book_id].append(
+                {
+                    "id": g.genre_id,
+                    "genre": g.genre.genre,
+                    "section": g.genre.section,
+                    "subsection": g.genre.subsection,
+                }
+            )
         series_by_book: dict[int, list[dict[str, Any]]] = {b.id: [] for b in book_slice}
         for s in Book.series.through.objects.filter(
             book_id__in=book_ids
         ).select_related("ser"):
-            series_by_book[s.book_id].append({"id": s.ser_id, "series": s.ser.ser})
+            series_by_book[s.book_id].append({"id": s.ser_id, "ser": s.ser.ser})
         ser_no_by_book: dict[int, list[dict[str, Any]]] = {b.id: [] for b in book_slice}
         for sn in models.bseries.objects.filter(book_id__in=book_ids):
             ser_no_by_book[sn.book_id].append(
@@ -1006,12 +1013,19 @@ class SearchBooksFeed(AuthFeed):
         for g in Book.genres.through.objects.filter(
             book_id__in=book_ids
         ).select_related("genre"):
-            genres_by_book[g.book_id].append({"id": g.genre_id, "genre": g.genre.genre})
+            genres_by_book[g.book_id].append(
+                {
+                    "id": g.genre_id,
+                    "genre": g.genre.genre,
+                    "section": g.genre.section,
+                    "subsection": g.genre.subsection,
+                }
+            )
         series_by_book: dict[int, list[dict[str, Any]]] = {b.id: [] for b in book_slice}
         for s in Book.series.through.objects.filter(
             book_id__in=book_ids
         ).select_related("ser"):
-            series_by_book[s.book_id].append({"id": s.ser_id, "series": s.ser.ser})
+            series_by_book[s.book_id].append({"id": s.ser_id, "ser": s.ser.ser})
         ser_no_by_book: dict[int, list[dict[str, Any]]] = {b.id: [] for b in book_slice}
         for sn in models.bseries.objects.filter(book_id__in=book_ids):
             ser_no_by_book[sn.book_id].append(
