@@ -2,16 +2,14 @@
 PYTHON_VERSION := $(shell tr -d '[:space:]' < .python-version)
 
 # Include env files for local development (not in CI).
+# A missing or empty .env is ignored: only a non-empty .env is loaded.
+# `test -s` follows symlinks, so .env -> /dev/null (size 0) is also ignored.
 ifeq ($(strip $(CI)),)
-    ifneq (,$(wildcard .env))
-        ifneq (,$(wildcard env.example))
-            include env.example
-        endif
+    ifneq (,$(wildcard env.example))
+        include env.example
+    endif
+    ifneq ($(strip $(shell test -s .env && echo yes)),)
         include .env
-    else
-        ifneq (,$(wildcard env.example))
-            include env.example
-        endif
     endif
     export
 endif
@@ -33,7 +31,7 @@ DOCKER_RUN_OPTS = --rm \
 	--add-host=host.docker.internal:host-gateway \
 	$(if $(wildcard env.example),--env-file env.example,) \
 	$(if $(wildcard env.docker),--env-file env.docker,) \
-	$(if $(wildcard .env),--env-file .env,) \
+	$(if $(shell test -s .env && echo yes),--env-file .env,) \
 	$(if $(wildcard .env.docker),--env-file .env.docker,) \
 	-e SOPDS_ROOT_LIB=/books \
 	-v "${PWD}/opds_catalog/tests/data":/books
