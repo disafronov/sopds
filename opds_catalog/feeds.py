@@ -982,6 +982,8 @@ class SearchBooksFeed(AuthFeed):
                     .exclude(id=book_id)
                     .order_by(Upper("title"), "-docdate")
                 )
+        else:
+            books = Book.objects.none()
 
         # Фильтруем дубликаты
         books_count = books.count()
