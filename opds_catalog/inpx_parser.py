@@ -84,79 +84,66 @@ class Inpx:
         return result
 
     def parse(self) -> None:
-        finpx = zipfile.ZipFile(self.inpx_file, "r")
-        filelist = finpx.namelist()
-        # здесь читаем формат файлов inp, если есть, если нет, то по умолчанию
-        if "structure.info" in filelist:
-            self.inpx_structure = True
-            fsds = finpx.open("structure.info")
-            fsb = str(fsds.read(), "utf-8")
-            self.inpx_format = fsb.split(";")
-            fsds.close()
-            self.inpx_folders = sFolder in self.inpx_format
-        else:
-            self.inpx_format = [
-                sAuthor,
-                sGenre,
-                sTitle,
-                sSeries,
-                sSerNo,
-                sFile,
-                sSize,
-                sLibId,
-                sDel,
-                sExt,
-                sDate,
-                sLang,
-            ]
+        with zipfile.ZipFile(self.inpx_file, "r") as finpx:
+            filelist = finpx.namelist()
+            # здесь читаем формат файлов inp, если есть, если нет, то по умолчанию
+            if "structure.info" in filelist:
+                self.inpx_structure = True
+                with finpx.open("structure.info") as fsds:
+                    fsb = str(fsds.read(), "utf-8")
+                    self.inpx_format = fsb.split(";")
+                self.inpx_folders = sFolder in self.inpx_format
+            else:
+                self.inpx_format = [
+                    sAuthor,
+                    sGenre,
+                    sTitle,
+                    sSeries,
+                    sSerNo,
+                    sFile,
+                    sSize,
+                    sLibId,
+                    sDel,
+                    sExt,
+                    sDate,
+                    sLang,
+                ]
 
-        for inp_file in filelist:
-            inp_name, inp_ext = os.path.splitext(inp_file)
+            for inp_file in filelist:
+                inp_name, inp_ext = os.path.splitext(inp_file)
 
-            if inp_ext.upper() != ".INP":
-                continue
-
-            if self.inpskip_callback(
-                self.inpx_file, inp_file, finpx.getinfo(inp_file).file_size
-            ):
-                continue
-
-            finp = finpx.open(inp_file)
-            for line in finp:
-                meta_list = line.split(self.inpx_separator)
-                meta_data: dict[str, Any] = {}
-
-                if not self.inpx_folders:
-                    meta_data[sFolder] = "%s%s" % (inp_name, ".zip")
-
-                for idx, key in enumerate(self.inpx_format):
-                    try:
-                        if key in [sAuthor, sGenre, sSeries]:
-                            meta_data[key] = [
-                                value
-                                for value in meta_list[idx]
-                                .decode(self.inpx_encoding)
-                                .split(self.inpx_itemseparator)
-                                if value
-                            ]
-                        else:
-                            meta_data[key] = meta_list[idx].decode(self.inpx_encoding)
-                    except IndexError:
-                        meta_data[key] = ""
-
-                if not (meta_data[sDel].strip() in ["", "0"]):
+                if inp_ext.upper() != ".INP":
                     continue
 
-                zip_file = os.path.join(self.inpx_catalog, meta_data[sFolder])
-                zip_exists, zip_names = self._get_zip_info(zip_file)
-                if (self.TEST_ZIP or self.TEST_FILES) and not zip_exists:
+                if self.inpskip_callback(
+                    self.inpx_file, inp_file, finpx.getinfo(inp_file).file_size
+                ):
                     continue
 
-                if self.TEST_FILES:
-                    if not "%s.%s" % (meta_data[sFile], meta_data[sExt]) in zip_names:
-                        continue
+                with finpx.open(inp_file) as finp:
+                    for line in finp:
+                        meta_list = line.split(self.inpx_separator)
+                        meta_data: dict[str, Any] = {}
 
-                self.append_callback(self.inpx_file, inp_name, meta_data)
+                        if not self.inpx_folders:
+                            meta_data[sFolder] = "%s%s" % (inp_name, ".zip")
 
-            finp.close()
-        finpx.close()
+                        for idx, key in enumerate(self.inpx_format):
+                            try:
+                                if key in [sAuthor, sGenre, sSeries]:
+                                    meta_data[key] = (
+                                        meta_list[idx]
+                                        .decode("utf-8")
+                                        .split(self.inpx_itemseparator)
+                                    )
+                                else:
+                                    meta_data[key] = (
+                                        meta_list[idx].decode("utf-8").strip()
+                                    )
+                            except (IndexError, UnicodeDecodeError):
+                                meta_data[key] = ""
+
+                        if meta_data.get(sDel, "").strip() not in ("", "0"):
+                            continue
+
+                        self.append_callback(self.inpx_file, inp_name, meta_data)
