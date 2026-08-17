@@ -61,17 +61,19 @@ def getFileData(book: Book) -> io.BytesIO:
         except FileNotFoundError:
             fo = None
 
-    dio = io.BytesIO()
-    assert fo is not None
-    dio.write(fo.read())
-    dio.seek(0)
+    if fo is None:
+        raise Http404
 
-    if fo:
+    dio = io.BytesIO()
+    try:
+        dio.write(fo.read())
+        dio.seek(0)
+    finally:
         fo.close()
-    if z:
-        z.close()
-    if fz:
-        fz.close()
+        if z:
+            z.close()
+        if fz:
+            fz.close()
 
     return dio
 
