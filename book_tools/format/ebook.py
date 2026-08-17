@@ -28,13 +28,13 @@ class EbookMetaBook(BookFile):
         finally:
             if path:
                 os.unlink(path)
-        self.__set_title__(metadata.title)
+        self.set_title(metadata.title)
         sort_names = metadata.author_sort_list
         for index, author in enumerate(metadata.author_list):
             sort_name = sort_names[index] if index < len(sort_names) else None
-            self.__add_author__(author, sort_name)
+            self.add_author(author, sort_name)
         for tag in metadata.tag_list:
-            self.__add_tag__(tag)
+            self.add_tag(tag)
         self.description = metadata.description
         self.language_code = metadata.lang
         if metadata.series:
@@ -44,9 +44,9 @@ class EbookMetaBook(BookFile):
             }
         self._cover = metadata.cover_image_data
         if mimetype == Mimetype.FB2:
-            self.__set_docdate__(self._fb2_document_date())
+            self.set_docdate(self._fb2_document_date())
         elif mimetype == Mimetype.EPUB:
-            self.__set_docdate__(self._epub_document_date())
+            self.set_docdate(self._epub_document_date())
 
     def extract_cover_memory(self) -> bytes | None:
         return self._cover
