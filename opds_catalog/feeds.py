@@ -965,16 +965,23 @@ class SearchBooksFeed(AuthFeed):
             books = Book.objects.filter(id=book_id).select_related("catalog")
         # Поиск дубликатов для книги
         elif searchtype == "d":
-            book_id = int(searchterms or "")
-            mbook = Book.objects.get(id=book_id)
-            books = (
-                Book.objects.filter(
-                    title__iexact=mbook.title, authors__in=mbook.authors.all()
+            try:
+                book_id = int(searchterms or "")
+            except (ValueError, TypeError):
+                book_id = 0
+            try:
+                mbook = Book.objects.get(id=book_id)
+            except Book.DoesNotExist:
+                books = Book.objects.none()
+            else:
+                books = (
+                    Book.objects.filter(
+                        title__iexact=mbook.title, authors__in=mbook.authors.all()
+                    )
+                    .select_related("catalog")
+                    .exclude(id=book_id)
+                    .order_by(Upper("title"), "-docdate")
                 )
-                .select_related("catalog")
-                .exclude(id=book_id)
-                .order_by(Upper("title"), "-docdate")
-            )
 
         # Фильтруем дубликаты
         books_count = books.count()
