@@ -19,37 +19,37 @@ class BookFile:
     def extract_cover_memory(self) -> bytes | None:
         return None
 
-    def __set_title__(self, title: str | None) -> None:
+    def set_title(self, title: str | None) -> None:
         if title and isinstance(title, str):
             title = title.strip()
             if title:
                 self.title = title
 
-    def __set_docdate__(self, docdate: str | None) -> None:
+    def set_docdate(self, docdate: str | None) -> None:
         if docdate and isinstance(docdate, str):
             docdate = docdate.strip()
             if docdate:
                 self.docdate = docdate
 
-    def __add_author__(self, name: str | None, sortkey: str | None = None) -> None:
+    def add_author(self, name: str | None, sortkey: str | None = None) -> None:
         if not name or not isinstance(name, str):
             return
-        name = self.__normalise_string__(name)
+        name = self.normalise_string(name)
         if not name:
             return
         sortkey = sortkey.strip() if sortkey else name.split()[-1]
-        sortkey = self.__normalise_string__(sortkey)
+        sortkey = self.normalise_string(sortkey)
         if sortkey:
             self.authors.append({"name": name, "sortkey": sortkey.lower()})
 
-    def __add_tag__(self, text: str | None) -> None:
+    def add_tag(self, text: str | None) -> None:
         if text and isinstance(text, str):
             text = text.strip()
             if text:
                 self.tags.append(text)
 
     @staticmethod
-    def __normalise_string__(text: str | None) -> str | None:
+    def normalise_string(text: str | None) -> str | None:
         return re.sub(r"\s+", " ", text.strip()) if text is not None else None
 
 

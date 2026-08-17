@@ -36,17 +36,17 @@ class Mobipocket(BookFile):
             raise ValueError("MOBI metadata not found")
         opf_path = opf_files[0]
         root = etree.parse(str(opf_path)).getroot()
-        self.__set_title__(self._text(root, "title"))
+        self.set_title(self._text(root, "title"))
         self.language_code = self._text(root, "language")
         self.description = self._text(root, "description")
-        self.__set_docdate__(self._text(root, "date"))
+        self.set_docdate(self._text(root, "date"))
         for creator in root.findall(f".//{{{DC}}}creator"):
-            self.__add_author__(
+            self.add_author(
                 creator.text,
                 creator.get(f"{{{OPF}}}file-as"),
             )
         for subject in root.findall(f".//{{{DC}}}subject"):
-            self.__add_tag__(subject.text)
+            self.add_tag(subject.text)
         metadata = root.find(f".//{{{OPF}}}metadata")
         if metadata is not None:
             series = self._meta_content(metadata, "calibre:series")
