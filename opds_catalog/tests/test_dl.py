@@ -116,7 +116,7 @@ class TestGetFileData:
         book.filename = "missing.fb2"
         with mocker.patch.object(dl, "django_settings", _cfg(SOPDS_ROOT_LIB="/lib")):
             mocker.patch("builtins.open", side_effect=FileNotFoundError)
-            with pytest.raises(AssertionError):
+            with pytest.raises(Http404):
                 dl.getFileData(book)
 
     def test_cat_inp(self, mocker: MockerFixture) -> None:
@@ -135,23 +135,23 @@ class TestGetFileData:
             assert dl.getFileData(book).read() == b"inpdata"
 
     def test_cat_inp_not_found(self, mocker: MockerFixture) -> None:
-        """CAT_INP: FileNotFoundError is swallowed → AssertionError."""
+        """CAT_INP: FileNotFoundError is swallowed → Http404."""
         book = mocker.MagicMock(spec=Book)
         book.catalog = mocker.MagicMock(cat_type=opdsdb.CAT_INP, path="a/inpx/b/inp")
         book.filename = "missing.fb2"
         with mocker.patch.object(dl, "django_settings", _cfg(SOPDS_ROOT_LIB="/lib")):
             mocker.patch("builtins.open", side_effect=FileNotFoundError)
-            with pytest.raises(AssertionError):
+            with pytest.raises(Http404):
                 dl.getFileData(book)
 
     def test_cat_zip_not_found(self, mocker: MockerFixture) -> None:
-        """CAT_ZIP: FileNotFoundError is swallowed → AssertionError."""
+        """CAT_ZIP: FileNotFoundError is swallowed → Http404."""
         book = mocker.MagicMock(spec=Book)
         book.catalog = mocker.MagicMock(cat_type=opdsdb.CAT_ZIP, path="missing.zip")
         book.filename = "inner.fb2"
         with mocker.patch.object(dl, "django_settings", _cfg(SOPDS_ROOT_LIB="/lib")):
             mocker.patch("builtins.open", side_effect=FileNotFoundError)
-            with pytest.raises(AssertionError):
+            with pytest.raises(Http404):
                 dl.getFileData(book)
 
 
