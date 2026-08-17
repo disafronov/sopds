@@ -219,26 +219,31 @@ def Cover(request: HttpRequest, book_id: int, thumbnail: bool = False) -> HttpRe
 
     book_data: Any = None
     image: bytes | None = None
-    fo: BinaryIO
+    fo: BinaryIO | None = None
+    z: zipfile.ZipFile | None = None
+    fz: BinaryIO | None = None
     try:
         if book.catalog.cat_type == opdsdb.CAT_NORMAL:
             file_path = os.path.join(full_path, book.filename)
             fo = open(file_path, "rb")
             book_data = create_bookfile(fo, book.filename)
             image = book_data.extract_cover_memory()
-            fo.close()
         elif book.catalog.cat_type in [opdsdb.CAT_ZIP, opdsdb.CAT_INP]:
             fz = open(full_path, "rb")
             z = zipfile.ZipFile(fz, "r", allowZip64=True)
             fo = cast(BinaryIO, z.open(book.filename))
             book_data = create_bookfile(fo, book.filename)
             image = book_data.extract_cover_memory()
-            fo.close()
-            z.close()
-            fz.close()
     except Exception:
         book_data = None
         image = None
+    finally:
+        if fo:
+            fo.close()
+        if z:
+            z.close()
+        if fz:
+            fz.close()
 
     if image:
         response["Content-Type"] = "image/jpeg"
