@@ -1339,6 +1339,10 @@ class SearchAuthorsFeed(AuthFeed):
                 .annotate(book_count=Count("book", distinct=True))
                 .order_by(Upper("full_name"))
             )
+        else:
+            # Bare QuerySet intentionally — no annotated fields needed for the
+            # no-match fallback path.
+            authors = Author.objects.none()  # type: ignore[assignment]
 
         # Создаем результирующее множество
         authors_count = authors.count()
