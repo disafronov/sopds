@@ -480,7 +480,7 @@ class opdsScanner:
         self.logger.info(" ***** Starting sopds-scan...")
         self.logger.debug("OPTIONS SET")
         if settings.SOPDS_ROOT_LIB is not None:
-            self.logger.debug("root_lib = %s" % settings.SOPDS_ROOT_LIB)
+            self.logger.debug("root_lib = %s", settings.SOPDS_ROOT_LIB)
 
     def log_stats(self) -> None:
         self.t2 = datetime.timedelta(seconds=time.time())
