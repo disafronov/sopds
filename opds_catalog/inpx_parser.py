@@ -131,11 +131,15 @@ class Inpx:
                         for idx, key in enumerate(self.inpx_format):
                             try:
                                 if key in [sAuthor, sGenre, sSeries]:
-                                    meta_data[key] = (
-                                        meta_list[idx]
+                                    # Filter empty strings produced by
+                                    # leading/trailing ":" in INPX fields.
+                                    meta_data[key] = [
+                                        v
+                                        for v in meta_list[idx]
                                         .decode("utf-8")
                                         .split(self.inpx_itemseparator)
-                                    )
+                                        if v
+                                    ]
                                 else:
                                     meta_data[key] = (
                                         meta_list[idx].decode("utf-8").strip()
@@ -145,5 +149,17 @@ class Inpx:
 
                         if meta_data.get(sDel, "").strip() not in ("", "0"):
                             continue
+
+                        zip_file = os.path.join(self.inpx_catalog, meta_data[sFolder])
+                        zip_exists, zip_names = self._get_zip_info(zip_file)
+                        if (self.TEST_ZIP or self.TEST_FILES) and not zip_exists:
+                            continue
+
+                        if self.TEST_FILES:
+                            if (
+                                "%s.%s" % (meta_data[sFile], meta_data[sExt])
+                                not in zip_names
+                            ):
+                                continue
 
                         self.append_callback(self.inpx_file, inp_name, meta_data)
