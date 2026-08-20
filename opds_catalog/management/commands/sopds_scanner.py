@@ -41,7 +41,7 @@ class Command(BaseCommand):
 
     def scan(self, *, suppress_errors: bool = True) -> None:
         if self.scan_is_active:
-            self.stdout.write("Scan process already active. Skip currend job.")
+            self.stdout.write("Scan process already active. Skip current job.")
             return
 
         self.scan_is_active = True
