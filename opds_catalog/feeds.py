@@ -1448,7 +1448,7 @@ class SearchSeriesFeed(AuthFeed):
         elif searchtype == "a":
             try:
                 self.author_id = int(searchterms or "")
-            except Exception:
+            except (ValueError, TypeError):
                 self.author_id = None
             series = Series.objects.filter(book__authors=self.author_id)
 
