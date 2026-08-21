@@ -20,7 +20,7 @@ RUN --mount=type=bind,source=assets/package.json,target=package.json \
 
 FROM ghcr.io/astral-sh/uv:0.12.5 AS uv
 
-FROM ubuntu:noble-20260610 AS base
+FROM ubuntu:noble-20260810 AS base
 
 # ENVs
 ENV PYTHONDONTWRITEBYTECODE=1 \
