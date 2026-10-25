@@ -36,7 +36,7 @@ DOCKER_RUN_OPTS = --rm \
 	-e SOPDS_ROOT_LIB=/books \
 	-v "${PWD}/opds_catalog/tests/data":/books
 
-.PHONY: all audit clean collectstatic dead-code dev docker docker-build docker-run format frontend frontend-audit frontend-build frontend-dev frontend-test help install lint locale makemigrations migrate migrate-mysql migrate-postgresql run scanner scan test test-mysql test-postgresql
+.PHONY: all audit python-audit clean collectstatic dead-code dev docker docker-build docker-run format frontend frontend-audit frontend-build frontend-dev frontend-test help install lint locale makemigrations migrate migrate-mysql migrate-postgresql run scanner scan test test-mysql test-postgresql
 
 help: ## Show this help message
 	@echo "Available commands:"
@@ -78,7 +78,9 @@ frontend: frontend-build frontend-test ## Build and test frontend assets
 frontend-audit: ## Check frontend dependencies for known vulnerabilities
 	cd $(FRONTEND_DIR) && npm audit
 
-audit: frontend-audit ## Check dependencies for known vulnerabilities
+audit: frontend-audit python-audit ## Check dependencies for known vulnerabilities
+
+python-audit: ## Check Python dependencies for known vulnerabilities
 	@echo "Auditing dependencies..."
 	uv run pip-audit
 

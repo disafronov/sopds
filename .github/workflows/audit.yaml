@@ -1,0 +1,51 @@
+---
+name: Audit
+
+"on":
+  pull_request:
+    branches:
+      - main
+      - release
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  python_audit:
+    name: Python dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Read Python version
+        id: python_version
+        run: echo "version=$(cat .python-version | tr -d '[:space:]')" >> $GITHUB_OUTPUT
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-suffix: ${{ steps.python_version.outputs.version }}
+      - name: Audit Python dependencies
+        run: make python-audit
+        env:
+          UV_PYTHON: ${{ steps.python_version.outputs.version }}
+
+  npm_audit:
+    name: npm dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Install Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: assets/package-lock.json
+      - name: Install frontend dependencies
+        run: npm ci --prefix assets
+      - name: Audit frontend dependencies
+        run: make frontend-audit
