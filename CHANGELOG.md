@@ -1,3 +1,9 @@
+## [4.5.4-rc.1](https://github.com/disafronov/sopds/compare/v4.5.3...v4.5.4-rc.1) (2026-10-25)
+
+### Bug Fixes
+
+* cover assets npm dependencies with Dependabot ([b67994b](https://github.com/disafronov/sopds/commit/b67994b4eb0fe16d1da1ce86150d5446fe04df0d))
+
 ## [4.5.3](https://github.com/disafronov/sopds/compare/v4.5.2...v4.5.3) (2026-08-20)
 
 ## [4.5.3-rc.6](https://github.com/disafronov/sopds/compare/v4.5.3-rc.5...v4.5.3-rc.6) (2026-08-20)
