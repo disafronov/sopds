@@ -1433,22 +1433,25 @@ test("clickable table rows navigate only through safe web links", async () => {
     {runScripts: "dangerously", url: "https://sopds.test/web/book/"},
   );
   const {window} = dom;
-  // jsdom 29.x exposes window.location.assign as a LegacyUnforgeable own
-  // property (writable: false, configurable: false), so it can neither be
-  // reassigned nor redefined via Object.defineProperty — the same constraint
-  // as window.location.reload, see timezone.test.mjs — and a Proxy get trap
-  // cannot intercept it either. The click path only reads window.location.href
-  // and calls window.location.assign, so substitute a plain shim object for
+  // jsdom exposes window.location.assign as a LegacyUnforgeable own property
+  // (writable: false, configurable: false), so it can neither be reassigned
+  // nor redefined via Object.defineProperty — the same constraint as
+  // window.location.reload, see timezone.test.mjs — and a Proxy get trap cannot
+  // intercept it either. The click path only reads window.location.href and
+  // calls window.location.assign, so substitute a plain shim object for
   // window.location and keep the rest of the window delegated via Proxy.
+  // jsdom 30 validates the receiver of every generated IDL method, so a Proxy
+  // target cannot be used as `this`; bind delegated methods to the real window.
   const navigations = [];
   const locationShim = {
     href: window.location.href, // read once, the bundle only reads it
     assign(url) { navigations.push(String(url)); },
   };
   const windowProxy = new Proxy(window, {
-    get(target, prop, receiver) {
+    get(target, prop) {
       if (prop === "location") return locationShim;
-      return Reflect.get(target, prop, receiver);
+      const value = Reflect.get(target, prop, target);
+      return typeof value === "function" ? value.bind(target) : value;
     },
   });
   window.__sopdsTestWindowProxy = windowProxy;
