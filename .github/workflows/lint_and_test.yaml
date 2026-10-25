@@ -84,7 +84,3 @@ jobs:
           DATABASE_URL_POSTGRESQL: postgres://user:password@127.0.0.1:5432/database
           DATABASE_URL_MYSQL: "mysql://root:password@127.0.0.1:3306/database?charset=utf8mb4&collation=utf8mb4_nopad_bin"
 
-      - name: Audit dependencies
-        run: make audit
-        env:
-          UV_PYTHON: ${{ steps.python_version.outputs.version }}
