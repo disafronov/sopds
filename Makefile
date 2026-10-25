@@ -17,8 +17,9 @@ endif
 TOOLING_SECRET_KEY = unsafe-secret-key-for-tooling
 TOOLING_DATABASE_URL = postgres://unused:unused@127.0.0.1:5432/unused
 
-UV = uv run
-PYTEST_CMD = $(COMMON_OPTS) DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python -m pytest -v -n auto
+UV = uv
+UV_RUN = $(UV) run --locked
+PYTEST_CMD = $(COMMON_OPTS) DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV_RUN) python -m pytest -v -n auto
 
 DOCKER_IMAGE = sopds
 FRONTEND_DIR = assets
@@ -44,25 +45,25 @@ help: ## Show this help message
 
 install: ## Install dependencies
 	@echo "Installing dependencies..."
-	uv python install $(PYTHON_VERSION)
-	uv sync --python $(PYTHON_VERSION)
+	$(UV) python install $(PYTHON_VERSION)
+	$(UV) sync --locked --python $(PYTHON_VERSION)
 	cd $(FRONTEND_DIR) && npm ci
 	$(MAKE) frontend-build
 	@echo "Installing pre-commit hooks..."
-	uv run pre-commit install
+	$(UV_RUN) pre-commit install
 
 format: ## Format code
 	@echo "Formatting code..."
-	$(UV) black . && \
-	$(UV) isort .
+	$(UV_RUN) black . && \
+	$(UV_RUN) isort .
 
 lint: ## Run linting tools
 	@echo "Running linting tools..."
-	$(UV) black --check . && \
-	$(UV) isort --check-only . && \
-	$(UV) flake8 . && \
-	DATABASE_URL=$(TOOLING_DATABASE_URL) DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) mypy . && \
-	$(UV) bandit -r -c pyproject.toml .
+	$(UV_RUN) black --check . && \
+	$(UV_RUN) isort --check-only . && \
+	$(UV_RUN) flake8 . && \
+	DATABASE_URL=$(TOOLING_DATABASE_URL) DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV_RUN) mypy . && \
+	$(UV_RUN) bandit -r -c pyproject.toml .
 
 frontend-build: ## Build frontend assets
 	cd $(FRONTEND_DIR) && npm run build
@@ -82,32 +83,32 @@ audit: frontend-audit python-audit ## Check dependencies for known vulnerabiliti
 
 python-audit: ## Check Python dependencies for known vulnerabilities
 	@echo "Auditing dependencies..."
-	uv run pip-audit
+	$(UV_RUN) pip-audit
 
 dead-code: ## Check for dead code using vulture
 	@echo "Checking for dead code..."
-	uv run vulture
+	$(UV_RUN) vulture
 
 locale: ## Make and compile locale messages
 	@echo "Making translation messages..."
-	DATABASE_URL=$(TOOLING_DATABASE_URL) DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py makemessages --no-obsolete --all --ignore=".venv/*" --ignore="staticfiles/*" --ignore="*/static/*" --ignore="*/tests/*" --ignore="conftest.py"
+	DATABASE_URL=$(TOOLING_DATABASE_URL) DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV_RUN) python manage.py makemessages --no-obsolete --all --ignore=".venv/*" --ignore="staticfiles/*" --ignore="*/static/*" --ignore="*/tests/*" --ignore="conftest.py"
 	@echo "Compiling translation messages..."
-	DATABASE_URL=$(TOOLING_DATABASE_URL) DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py compilemessages --ignore=".venv/*"
+	DATABASE_URL=$(TOOLING_DATABASE_URL) DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV_RUN) python manage.py compilemessages --ignore=".venv/*"
 
 collectstatic: ## Collect static assets for local serving
-	DATABASE_URL=$(TOOLING_DATABASE_URL) DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py collectstatic --clear --noinput
+	DATABASE_URL=$(TOOLING_DATABASE_URL) DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV_RUN) python manage.py collectstatic --clear --noinput
 
 makemigrations: ## Create new migrations
 	@echo "Creating migrations..."
-	DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py makemigrations
+	DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV_RUN) python manage.py makemigrations
 
 migrate-postgresql: ## Apply database migrations to PostgreSQL
 	@echo "Applying migrations to PostgreSQL..."
-	DATABASE_URL="$(DATABASE_URL_POSTGRESQL)" DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py migrate
+	DATABASE_URL="$(DATABASE_URL_POSTGRESQL)" DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV_RUN) python manage.py migrate
 
 migrate-mysql: ## Apply database migrations to MySQL/MariaDB
 	@echo "Applying migrations to MySQL/MariaDB..."
-	DATABASE_URL="$(DATABASE_URL_MYSQL)" DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py migrate
+	DATABASE_URL="$(DATABASE_URL_MYSQL)" DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV_RUN) python manage.py migrate
 
 migrate: migrate-postgresql migrate-mysql ## Apply migrations to both supported databases
 
@@ -126,22 +127,22 @@ all: lint frontend test dead-code ## Run all checks
 
 run: frontend-build locale collectstatic ## Start the app on selected DATABASE_URL (with migrations)
 	@echo "Running Django dev server + scanner..."
-	DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py migrate
+	DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV_RUN) python manage.py migrate
 	@if [ -n "$$DJANGO_SUPERUSER_USERNAME" ] && [ -n "$$DJANGO_SUPERUSER_PASSWORD" ] && [ -n "$$DJANGO_SUPERUSER_EMAIL" ]; then \
 		echo "Ensuring Django superuser exists..."; \
-		$(UV) python manage.py createsuperuser --noinput || true; \
+		$(UV_RUN) python manage.py createsuperuser --noinput || true; \
 	else \
 		echo "Skipping createsuperuser (set DJANGO_SUPERUSER_USERNAME/PASSWORD/EMAIL to enable)."; \
 	fi
-	$(COMMON_OPTS) DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV) python manage.py dev
+	$(COMMON_OPTS) DJANGO_SECRET_KEY=$(TOOLING_SECRET_KEY) $(UV_RUN) python manage.py dev
 
 scanner: ## Run the sopds scanner (APScheduler)
 	@echo "Running sopds scanner..."
-	$(COMMON_OPTS) $(UV) python manage.py sopds_scanner start
+	$(COMMON_OPTS) $(UV_RUN) python manage.py sopds_scanner start
 
 scan: ## Run the sopds scanner oneshot scan
 	@echo "Running sopds scanner oneshot scan..."
-	$(COMMON_OPTS) $(UV) python manage.py sopds_scanner scan
+	$(COMMON_OPTS) $(UV_RUN) python manage.py sopds_scanner scan
 
 clean: ## Clean caches and coverage outputs
 	@echo "Cleaning cache and temporary files..."
