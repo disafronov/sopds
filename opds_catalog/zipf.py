@@ -10,10 +10,7 @@ from zipfile import (
     BadZipFile,
 )
 from zipfile import ZipFile as StandardZipFile
-from zipfile import (
-    ZipInfo,
-    is_zipfile,
-)
+from zipfile import ZipInfo, is_zipfile
 
 from constance import config
 
