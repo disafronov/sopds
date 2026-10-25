@@ -236,6 +236,9 @@ assets/                 Front-end assets
 books/                  Book storage directory (mounted as Docker volume)
 ```
 
+<-- refactor: deps -->
+
+
 ## Versioning
 
 This project uses [Semantic Versioning](https://semver.org/) with
