@@ -1,3 +1,9 @@
+## [4.5.4-rc.4](https://github.com/disafronov/sopds/compare/v4.5.4-rc.3...v4.5.4-rc.4) (2026-10-25)
+
+### Bug Fixes
+
+* **release:** sign generated releases as GitHub Actions ([416c393](https://github.com/disafronov/sopds/commit/416c39375c133ad5261ed8c82b97480b5c776313))
+
 ## [4.5.4-rc.3](https://github.com/disafronov/sopds/compare/v4.5.4-rc.2...v4.5.4-rc.3) (2026-10-25)
 
 ## [4.5.4-rc.2](https://github.com/disafronov/sopds/compare/v4.5.4-rc.1...v4.5.4-rc.2) (2026-10-25)
