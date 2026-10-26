@@ -1,3 +1,9 @@
+## [4.5.4-rc.5](https://github.com/disafronov/sopds/compare/v4.5.4-rc.4...v4.5.4-rc.5) (2026-10-26)
+
+### Bug Fixes
+
+* align semantic-release policy and committer sign-off ([de76f2c](https://github.com/disafronov/sopds/commit/de76f2cd36a75a5a9c415d43669a2672f2c3135e))
+
 ## [4.5.4-rc.4](https://github.com/disafronov/sopds/compare/v4.5.4-rc.3...v4.5.4-rc.4) (2026-10-25)
 
 ### Bug Fixes
