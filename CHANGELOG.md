@@ -1,3 +1,5 @@
+## [4.5.4-rc.6](https://github.com/disafronov/sopds/compare/v4.5.4-rc.5...v4.5.4-rc.6) (2026-10-27)
+
 ## [4.5.4-rc.5](https://github.com/disafronov/sopds/compare/v4.5.4-rc.4...v4.5.4-rc.5) (2026-10-26)
 
 ### Bug Fixes
