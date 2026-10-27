@@ -4,14 +4,10 @@ name: "Docker"
 "on":
   pull_request:
     branches:
-      # Publish PRs as unsigned images.
       - main
   push:
     tags:
-      # Publish semver release tags.
-      - "v[0-9]+.[0-9]+.[0-9]+"
-      # Publish semver release candidates tags.
-      - "v[0-9]+.[0-9]+.[0-9]+-rc.[0-9]+"
+      - "v*"
 
 env:
   # Use docker.io for Docker Hub if empty
@@ -30,6 +26,17 @@ jobs:
       id-token: write
 
     steps:
+      - name: Validate release tag
+        if: github.event_name == 'push'
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          if [[ ! "$TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-rc\.(0|[1-9][0-9]*))?$ ]]; then
+            echo "::error::Invalid release tag: $TAG"
+            exit 1
+          fi
+
       - name: Checkout repository
         uses: actions/checkout@v7
 
@@ -99,34 +106,15 @@ jobs:
 
       # * SIGNING ##############################################################
 
-      # Install the cosign tool except on PR
+      # Install Cosign for all published images (PR, RC, and stable).
       # https://github.com/sigstore/cosign-installer
       - name: Install cosign
-        if: >-
-          ${{
-            github.event_name != 'pull_request' &&
-            startsWith(github.ref, 'refs/tags/v') &&
-            !contains(github.ref, '-rc.')
-          }}
         uses: sigstore/cosign-installer@v3
-        # with:
-        #   cosign-release: 'v2.2.2'
 
-      # Sign the resulting Docker image digest except on PRs.
-      # This will only write to the public Rekor transparency log when the
-      # Docker repository is public to avoid leaking data. If you would like
-      # to publish transparency data even for private images, pass --force to
-      # cosign below.
+      # Sign the multi-platform image digest once, regardless of tag count.
       # https://github.com/sigstore/cosign
       - name: Sign the published Docker image
-        if: >-
-          ${{
-            github.event_name != 'pull_request' &&
-            startsWith(github.ref, 'refs/tags/v') &&
-            !contains(github.ref, '-rc.')
-          }}
         env:
-          COSIGN_EXPERIMENTAL: "true"
-        # This step uses the identity token to provision an ephemeral
-        # certificate against the sigstore community Fulcio instance.
-        run: echo "${{ steps.meta.outputs.tags }}" | grep -E '^(.+):(.+)-(.+)-(.+)$|^(.+):([0-9]+).([0-9]+).([0-9]+)(.+)$' | xargs -I {} cosign sign --yes {}@${{ steps.build-and-push.outputs.digest }}
+          IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          DIGEST: ${{ steps.build-and-push.outputs.digest }}
+        run: cosign sign --yes "${IMAGE}@${DIGEST}"
