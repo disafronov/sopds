@@ -1,3 +1,18 @@
+## [4.5.4](https://github.com/disafronov/sopds/compare/v4.5.3...v4.5.4) (2026-11-02)
+
+### Bug Fixes
+
+* align semantic-release policy and committer sign-off ([de76f2c](https://github.com/disafronov/sopds/commit/de76f2cd36a75a5a9c415d43669a2672f2c3135e))
+* cover assets npm dependencies with Dependabot ([b67994b](https://github.com/disafronov/sopds/commit/b67994b4eb0fe16d1da1ce86150d5446fe04df0d))
+* **release:** sign generated releases as GitHub Actions ([416c393](https://github.com/disafronov/sopds/commit/416c39375c133ad5261ed8c82b97480b5c776313))
+
+### Code Refactoring
+
+* deps ([4c25f55](https://github.com/disafronov/sopds/commit/4c25f557e0ad533be96d2d72ca25f0c7234fb3a2))
+* deps ([901a900](https://github.com/disafronov/sopds/commit/901a900098fb284e2ea304cf901040c7eecf4a28))
+* deps ([8fcf514](https://github.com/disafronov/sopds/commit/8fcf51445f5080deab3602100a568a8ad03b42c1))
+* use default semantic-release configuration ([2f2e2b9](https://github.com/disafronov/sopds/commit/2f2e2b93b0ce69c1b1ae3dc58ec0739ba1459901))
+
 ## [4.5.4-rc.6](https://github.com/disafronov/sopds/compare/v4.5.4-rc.5...v4.5.4-rc.6) (2026-10-27)
 
 ## [4.5.4-rc.5](https://github.com/disafronov/sopds/compare/v4.5.4-rc.4...v4.5.4-rc.5) (2026-10-26)
