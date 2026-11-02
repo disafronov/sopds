@@ -5,6 +5,7 @@ name: "Docker"
   pull_request:
     branches:
       - main
+      - rc
   push:
     tags:
       - "v*"
