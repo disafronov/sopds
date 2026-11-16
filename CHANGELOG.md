@@ -1,3 +1,9 @@
+## [4.5.6](https://github.com/disafronov/sopds/compare/v4.5.5...v4.5.6) (2026-11-16)
+
+### Code Refactoring
+
+* deps ([4091296](https://github.com/disafronov/sopds/commit/409129637e871079709af4578d97c6b00cef3ff1))
+
 ## [4.5.5](https://github.com/disafronov/sopds/compare/v4.5.4...v4.5.5) (2026-11-03)
 
 ### Code Refactoring
